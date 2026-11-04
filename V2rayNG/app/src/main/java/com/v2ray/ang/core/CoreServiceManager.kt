@@ -25,6 +25,7 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.handler.SpeedtestManager
+import com.v2ray.ang.handler.TrafficTracker
 import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.service.DialerNativeService
 import com.v2ray.ang.service.DialerWebviewService
@@ -184,6 +185,7 @@ object CoreServiceManager {
         }
 
         if (!isReload) {
+            TrafficTracker.markConnected()
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
         }
         NotificationManager.startSpeedNotification()
@@ -214,6 +216,7 @@ object CoreServiceManager {
         }
 
         SshTunnelManager.stop()
+        TrafficTracker.markDisconnected()
 
         // Close existing browser dialer
         CoreNativeManager.reconcileBrowserDialer("")

@@ -98,8 +98,8 @@ object CoreConfigManager {
 
         val json = JsonUtil.parseString(raw)?.takeIf { it.isJsonObject }?.asJsonObject ?: return result
 
-        // Inject or remove traffic statistics configuration based on user preference
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) == true) {
+        // Cassanova: traffic statistics are always on, they feed the "data today" counter.
+        if (true) {
             if (!json.has("stats")) {
                 json.add("stats", JsonObject())
             }
@@ -728,7 +728,8 @@ object CoreConfigManager {
      * Remove speed-test runtime sections when the feature is disabled.
      */
     private fun applySpeedDisabled(v2rayConfig: V2rayConfig) {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) != true) {
+        // Cassanova: stats stay on for the "data today" counter, whatever the speed setting.
+        if (false) {
             v2rayConfig.stats = null
             v2rayConfig.policy?.system = null
         }

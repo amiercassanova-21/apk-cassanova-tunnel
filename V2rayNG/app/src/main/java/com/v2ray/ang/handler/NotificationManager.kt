@@ -48,7 +48,8 @@ object NotificationManager {
      * @param currentConfig The current profile configuration.
      */
     fun startSpeedNotification() {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) != true) return
+        // Cassanova: the loop always runs because it also feeds TrafficTracker (data today and
+        // speeds on the home screen); the notification text itself stays behind the setting.
         if (speedNotificationJob != null || CoreServiceManager.isRunning() == false) return
 
         var lastZeroSpeed = false
@@ -282,7 +283,14 @@ object NotificationManager {
         val proxyTotal = proxyUplink + proxyDownlink
         val directTotal = directUplink + directDownlink
         val zeroSpeed = proxyTotal + directTotal == 0L
-        if (!zeroSpeed || !lastZeroSpeed) {
+        TrafficTracker.record(
+            upBytes = proxyUplink + directUplink,
+            downBytes = proxyDownlink + directDownlink,
+            upSpeed = ((proxyUplink + directUplink) / sinceLastQueryInSeconds).toLong(),
+            downSpeed = ((proxyDownlink + directDownlink) / sinceLastQueryInSeconds).toLong(),
+        )
+        val showSpeed = MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) == true
+        if (showSpeed && (!zeroSpeed || !lastZeroSpeed)) {
             val text = StringBuilder()
             appendSpeedString(
                 text, AppConfig.TAG_PROXY,

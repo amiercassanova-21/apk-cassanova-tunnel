@@ -163,8 +163,9 @@ fun SettingsScreen(
             MmkvManager.decodeSettingsString(AppConfig.PREF_LANGUAGE, "auto") ?: "auto"
         )
     }
-    var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
-    var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
+    var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, ThemeManager.themeMode.value)
+    var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, false)
+    var uiStyle by rememberMmkvString(AppConfig.PREF_UI_STYLE, ThemeManager.uiStyle.value)
 
     var ipv6Enabled by rememberMmkvBool(AppConfig.PREF_IPV6_ENABLED, false)
     var preferIpv6 by rememberMmkvBool(AppConfig.PREF_PREFER_IPV6, false)
@@ -197,6 +198,8 @@ fun SettingsScreen(
 
     val languageEntries = stringArrayResource(R.array.language_select).toList()
     val languageValues = stringArrayResource(R.array.language_select_value).toList()
+    val uiStyleEntries = stringArrayResource(R.array.ui_style).toList()
+    val uiStyleValues = stringArrayResource(R.array.ui_style_value).toList()
     val uiModeNightEntries = stringArrayResource(R.array.ui_mode_night).toList()
     val uiModeNightValues = stringArrayResource(R.array.ui_mode_night_value).toList()
     val bypassLanEntries = stringArrayResource(R.array.vpn_bypass_lan).toList()
@@ -241,6 +244,17 @@ fun SettingsScreen(
                 onExpandedChange = { uiSettingsExpanded = it }
             )
             if (uiSettingsExpanded) {
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_ui_style),
+                    entries = uiStyleEntries,
+                    values = uiStyleValues,
+                    selectedValue = uiStyle,
+                    onSelected = {
+                        uiStyle = it
+                        ThemeManager.setUiStyle(it)
+                        uiModeNight = ThemeManager.themeMode.value
+                    }
+                )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_speed_enabled),
                     summary = stringResource(R.string.summary_pref_speed_enabled),

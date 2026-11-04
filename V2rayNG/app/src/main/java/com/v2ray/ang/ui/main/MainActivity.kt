@@ -1,5 +1,8 @@
 package com.v2ray.ang.ui.main
 
+import com.v2ray.ang.ui.compose.ThemeManager
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
@@ -103,29 +106,41 @@ class MainActivity : HelperBaseComponentActivity() {
     @Composable
     override fun ScreenContent() {
         BackHandler { moveTaskToBack(false) }
-        MainScreen(
-            mainViewModel = mainViewModel,
-            onAction = { action ->
-                when (action) {
-                    MainAction.ToggleService -> handleFabAction()
-                    MainAction.TestCurrentServer -> handleLayoutTestClick()
-                    MainAction.ImportQRcode -> importQRcode()
-                    MainAction.ImportClipboard -> importClipboard()
-                    MainAction.ImportConfigLocal -> importConfigLocal()
-                    is MainAction.ImportManually -> importManually(action.type)
-                    MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
-                    MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
-                    is MainAction.SelectServer -> setSelectServer(action.guid)
-                    is MainAction.EditServer -> editServer(action.guid, action.profile)
-                    is MainAction.ShareClipboard -> shareToClipboard(action.guid)
-                    is MainAction.ShareFullContent -> shareFullContentAsync(action.guid)
-                    is MainAction.ShareLocked -> shareLocked(action.guid)
-                    is MainAction.OpenSubscriptionLink -> openSubscriptionLink(action.url)
-                    else -> mainViewModel.onAction(action)
-                }
-            },
-            onNavigate = { route -> navigateTo(route) },
-        )
+        val style by ThemeManager.uiStyle.collectAsStateWithLifecycle()
+        val onAction: (MainAction) -> Unit = { action -> handleMainAction(action) }
+        val onNavigate: (MainDestination) -> Unit = { route -> navigateTo(route) }
+        if (style == ThemeManager.STYLE_B) {
+            MainScreen(mainViewModel = mainViewModel, onAction = onAction, onNavigate = onNavigate)
+        } else {
+            CassanovaShell(
+                style = style,
+                mainViewModel = mainViewModel,
+                onAction = onAction,
+                onNavigate = onNavigate,
+            ) {
+                MainScreen(mainViewModel = mainViewModel, onAction = onAction, onNavigate = onNavigate)
+            }
+        }
+    }
+
+    private fun handleMainAction(action: MainAction) {
+        when (action) {
+            MainAction.ToggleService -> handleFabAction()
+            MainAction.TestCurrentServer -> handleLayoutTestClick()
+            MainAction.ImportQRcode -> importQRcode()
+            MainAction.ImportClipboard -> importClipboard()
+            MainAction.ImportConfigLocal -> importConfigLocal()
+            is MainAction.ImportManually -> importManually(action.type)
+            MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
+            MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
+            is MainAction.SelectServer -> setSelectServer(action.guid)
+            is MainAction.EditServer -> editServer(action.guid, action.profile)
+            is MainAction.ShareClipboard -> shareToClipboard(action.guid)
+            is MainAction.ShareFullContent -> shareFullContentAsync(action.guid)
+            is MainAction.ShareLocked -> shareLocked(action.guid)
+            is MainAction.OpenSubscriptionLink -> openSubscriptionLink(action.url)
+            else -> mainViewModel.onAction(action)
+        }
     }
 
     private fun shareToClipboard(guid: String): Boolean =

@@ -505,4 +505,42 @@
     <plurals name="title_update_asset_count">
         <item quantity="other">Memperbarui %1$d file aset</item>
     </plurals>
+    <string name="title_pref_ui_style">Gaya tampilan</string>
+    <string name="home_protected">Terlindungi</string>
+    <string name="home_not_protected">Tidak terlindungi</string>
+    <string name="home_tap_to_connect">Ketuk untuk menyambung</string>
+    <string name="home_tap_to_disconnect">Ketuk untuk memutuskan</string>
+    <string name="home_active_server">SERVER AKTIF</string>
+    <string name="home_no_server">Belum ada config dipilih</string>
+    <string name="home_change">Ganti</string>
+    <string name="home_ping">Ping</string>
+    <string name="home_ping_failed">Gagal</string>
+    <string name="home_download">↓ Unduh</string>
+    <string name="home_upload">↑ Unggah</string>
+    <string name="home_data_today">Data hari ini</string>
+    <string name="home_connected">TERSAMBUNG</string>
+    <string name="home_disconnected">TERPUTUS</string>
+    <string name="nav_home">Beranda</string>
+    <string name="nav_config">Config</string>
+    <string name="nav_tools">Alat</string>
+    <string name="nav_settings">Pengaturan</string>
+    <string name="greeting_morning">Selamat pagi</string>
+    <string name="greeting_afternoon">Selamat siang</string>
+    <string name="greeting_evening">Selamat sore</string>
+    <string name="greeting_night">Selamat malam</string>
+    <string name="home_quick_tools">Alat cepat</string>
+    <string name="tool_import_qr">Impor QR</string>
+    <string name="tool_import_clipboard">Tempel</string>
+    <string name="tool_log">Log</string>
+    <string name="tool_test_all">Uji semua</string>
+    <string name="tool_routing">Routing</string>
+    <string name="tool_subscriptions">Langganan</string>
+    <string name="tool_backup">Cadangkan</string>
+    <string name="tool_per_app">Per aplikasi</string>
+    <string name="home_status_data_today">Data hari ini: %1$s</string>
+    <string-array name="ui_style">
+        <item>Gaya A — tombol besar</item>
+        <item>Gaya B — daftar config</item>
+        <item>Gaya C — dasbor terang</item>
+    </string-array>
 </resources>

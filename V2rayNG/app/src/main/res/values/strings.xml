@@ -595,4 +595,42 @@
     <string name="sub_info_traffic" translatable="false">%1$s / %2$s</string>
     <string name="sub_info_unlimited">Unlimited</string>
 
+    <string name="title_pref_ui_style">Home style</string>
+    <string name="home_protected">Protected</string>
+    <string name="home_not_protected">Not protected</string>
+    <string name="home_tap_to_connect">Tap to connect</string>
+    <string name="home_tap_to_disconnect">Tap to disconnect</string>
+    <string name="home_active_server">ACTIVE SERVER</string>
+    <string name="home_no_server">No config selected</string>
+    <string name="home_change">Change</string>
+    <string name="home_ping">Ping</string>
+    <string name="home_ping_failed">Failed</string>
+    <string name="home_download">↓ Download</string>
+    <string name="home_upload">↑ Upload</string>
+    <string name="home_data_today">Data today</string>
+    <string name="home_connected">CONNECTED</string>
+    <string name="home_disconnected">DISCONNECTED</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_config">Configs</string>
+    <string name="nav_tools">Tools</string>
+    <string name="nav_settings">Settings</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_night">Good night</string>
+    <string name="home_quick_tools">Quick tools</string>
+    <string name="tool_import_qr">Scan QR</string>
+    <string name="tool_import_clipboard">Paste</string>
+    <string name="tool_log">Log</string>
+    <string name="tool_test_all">Test all</string>
+    <string name="tool_routing">Routing</string>
+    <string name="tool_subscriptions">Subscriptions</string>
+    <string name="tool_backup">Backup</string>
+    <string name="tool_per_app">Per-app</string>
+    <string name="home_status_data_today">Data today: %1$s</string>
+    <string-array name="ui_style">
+        <item>Style A — big button</item>
+        <item>Style B — config list</item>
+        <item>Style C — light dashboard</item>
+    </string-array>
 </resources>

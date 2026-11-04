@@ -1,5 +1,8 @@
 package com.v2ray.ang.ui.main
 
+import com.v2ray.ang.extension.toTrafficString
+import com.v2ray.ang.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,7 +47,10 @@ fun MainScreen(
     val groups = uiState.groups
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
     val isRunning = uiState.isRunning
-    val displayText = mainViewModel.formatStatus(uiState.status)
+    val home by mainViewModel.home.collectAsStateWithLifecycle()
+    // Cassanova: today's data usage under the connection status.
+    val displayText = mainViewModel.formatStatus(uiState.status) +
+        "\n" + stringResource(R.string.home_status_data_today, home.todayBytes.toTrafficString())
     val selectedGuid = uiState.selectedGuid
     val doubleColumnDisplay = uiState.doubleColumnDisplay
     val confirmRemove = uiState.confirmRemove

@@ -19,6 +19,7 @@ import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.moveItem
 import com.v2ray.ang.handler.SubscriptionInfoParser
+import com.v2ray.ang.handler.TrafficTracker
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
 import kotlinx.coroutines.CancellationException
@@ -112,10 +113,74 @@ class MainViewModel(
 
     private val initialPageReady = CompletableDeferred<Unit>()
 
+    // ---------- Cassanova home (styles A/B/C) ----------
+    private val _home = MutableStateFlow(HomeState())
+    val home: StateFlow<HomeState> = _home.asStateFlow()
+
+    @Volatile
+    private var lastPing: ConnectionTestResult? = null
+
     // ---------- Service events ----------
     init {
         collectServiceEvents()
         setupGroupTab()
+        startHomeTicker()
+    }
+
+    /** Refreshes today's data, speeds, duration and the active server once a second. */
+    private fun startHomeTicker() {
+        viewModelScope.launch(ioDispatcher) {
+            while (true) {
+                try {
+                    refreshHome()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    LogUtil.e(AppConfig.TAG, "Home stats refresh failed", error)
+                }
+                kotlinx.coroutines.delay(HOME_REFRESH_MS)
+            }
+        }
+    }
+
+    private fun refreshHome() {
+        val state = uiState.value
+        val snapshot = TrafficTracker.snapshot()
+        val profile = state.selectedGuid?.let { dataSource.decodeServerConfig(it) }
+        _home.value = HomeState(
+            serverName = profile?.remarks.orEmpty(),
+            serverTags = profile?.let { homeTags(it) } ?: emptyList(),
+            isRunning = state.isRunning,
+            isTesting = state.isTesting,
+            todayBytes = snapshot.todayBytes,
+            upBytesPerSec = if (state.isRunning) snapshot.upBytesPerSec else 0L,
+            downBytesPerSec = if (state.isRunning) snapshot.downBytesPerSec else 0L,
+            connectedAtMillis = if (state.isRunning) snapshot.connectedAtMillis else 0L,
+            pingMillis = lastPing?.delayMillis?.takeIf { state.isRunning && it >= 0 },
+            pingFailed = state.isRunning && (lastPing?.delayMillis ?: 0L) < 0,
+        )
+    }
+
+    private fun homeTags(profile: ProfileItem): List<String> {
+        if (profile.configType == com.v2ray.ang.enums.EConfigType.SSH) {
+            val mode = com.v2ray.ang.core.ssh.SshMode.from(profile.sshMode)
+            val modeLabel = dataSource.getString(
+                when (mode) {
+                    com.v2ray.ang.core.ssh.SshMode.DIRECT -> R.string.ssh_mode_direct
+                    com.v2ray.ang.core.ssh.SshMode.PAYLOAD -> R.string.ssh_mode_payload
+                    com.v2ray.ang.core.ssh.SshMode.SSL -> R.string.ssh_mode_ssl
+                    com.v2ray.ang.core.ssh.SshMode.SSL_PAYLOAD -> R.string.ssh_mode_ssl_payload
+                    com.v2ray.ang.core.ssh.SshMode.SLOWDNS -> R.string.ssh_mode_slowdns
+                }
+            )
+            val type = profile.dnsRecordType?.takeIf { mode == com.v2ray.ang.core.ssh.SshMode.SLOWDNS }?.uppercase()
+            return listOfNotNull("SSH", modeLabel, type)
+        }
+        return listOfNotNull(
+            profile.configType.name,
+            profile.network?.takeIf { it.isNotBlank() },
+            profile.security?.takeIf { it.isNotBlank() },
+        )
     }
 
     private fun collectServiceEvents() {
@@ -133,6 +198,12 @@ class MainViewModel(
             MainServiceEvent.StateStartSuccess -> {
                 toastSuccess(R.string.toast_services_success)
                 updateRunningState(true)
+                lastPing = null
+                // Cassanova: test the real delay by itself once the connection is up.
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(AUTO_PING_DELAY_MS)
+                    if (uiState.value.isRunning && !uiState.value.isTesting) testCurrentServerRealPing()
+                }
             }
 
             is MainServiceEvent.StateStartFailure -> {
@@ -144,9 +215,13 @@ class MainViewModel(
                 updateRunningState(false)
             }
 
-            MainServiceEvent.StateStopSuccess -> updateRunningState(false)
+            MainServiceEvent.StateStopSuccess -> {
+                lastPing = null
+                updateRunningState(false)
+            }
             is MainServiceEvent.MeasureDelayResult -> {
                 if (!uiState.value.isRunning || !testRequests.completeCurrent(event.requestId)) return
+                lastPing = event.result
                 _uiState.update { it.copy(isTesting = testRequests.isTesting, status = MainStatus.ConnectionTest(event.result)) }
             }
 
@@ -968,3 +1043,20 @@ class MainViewModel(
         const val TEST_RESULT_FLUSH_INTERVAL_MS = 500L
     }
 }
+
+/** What the Cassanova home screens show. */
+data class HomeState(
+    val serverName: String = "",
+    val serverTags: List<String> = emptyList(),
+    val isRunning: Boolean = false,
+    val isTesting: Boolean = false,
+    val todayBytes: Long = 0L,
+    val upBytesPerSec: Long = 0L,
+    val downBytesPerSec: Long = 0L,
+    val connectedAtMillis: Long = 0L,
+    val pingMillis: Long? = null,
+    val pingFailed: Boolean = false,
+)
+
+private const val HOME_REFRESH_MS = 1000L
+private const val AUTO_PING_DELAY_MS = 2500L

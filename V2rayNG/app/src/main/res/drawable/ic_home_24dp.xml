@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Cassanova: hexagon (logo shape) used as the Home tab icon. -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M12,2L20.66,7V17L12,22L3.34,17V7L12,2ZM12,4.31L5.34,8.15V15.85L12,19.69L18.66,15.85V8.15L12,4.31ZM12,8L15.46,10V14L12,16L8.54,14V10L12,8Z" />
+</vector>
