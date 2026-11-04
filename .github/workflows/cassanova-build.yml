@@ -75,7 +75,7 @@ jobs:
         out-file-path: V2rayNG/app/libs/
 
     - name: Setup Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version-file: dnstt/go.mod
         cache-dependency-path: dnstt/go.sum
