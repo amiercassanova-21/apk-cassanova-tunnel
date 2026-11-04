@@ -335,7 +335,7 @@ object SettingsManager {
             MmkvManager.decodeSettingsString(AppConfig.PREF_DOMESTIC_DNS) ?: AppConfig.DNS_DIRECT
         val ret = domesticDns.split(",").filter { Utils.isPureIpAddress(it) || Utils.isCoreDNSAddress(it) }
         if (ret.isEmpty()) {
-            return listOf(AppConfig.DNS_DIRECT)
+            return AppConfig.DNS_DIRECT.split(",")
         }
         return ret
     }

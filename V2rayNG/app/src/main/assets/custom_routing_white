@@ -1,12 +1,14 @@
 [
   {
     "remarks": "阻断udp443",
+    "enabled": false,
     "outboundTag": "block",
     "port": "443",
     "network": "udp"
   },
   {
     "remarks": "代理Google",
+    "enabled": false,
     "outboundTag": "proxy",
     "domain": [
       "geosite:google"
@@ -28,6 +30,7 @@
   },
   {
     "remarks": "绕过中国公共DNSIP",
+    "enabled": false,
     "outboundTag": "direct",
     "ip": [
       "223.5.5.5",
@@ -69,6 +72,7 @@
   },
   {
     "remarks": "绕过中国公共DNS域名",
+    "enabled": false,
     "outboundTag": "direct",
     "domain": [
       "domain:alidns.com",
@@ -80,6 +84,7 @@
   },
   {
     "remarks": "绕过中国IP",
+    "enabled": false,
     "outboundTag": "direct",
     "ip": [
       "geoip:cn"
@@ -87,6 +92,7 @@
   },
   {
     "remarks": "绕过中国域名",
+    "enabled": false,
     "outboundTag": "direct",
     "domain": [
       "geosite:cn"

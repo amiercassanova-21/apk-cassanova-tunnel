@@ -116,7 +116,7 @@ fun SubSettingScreen(
     val subscriptions by viewModel.subsFlow.collectAsStateWithLifecycle()
     var showUpdateDialog by remember { mutableStateOf(false) }
     var removeTarget by remember { mutableStateOf<SubscriptionDeleteTarget?>(null) }
-    val confirmRemove = MmkvManager.decodeSettingsBool(AppConfig.PREF_CONFIRM_REMOVE, false)
+    val confirmRemove = MmkvManager.decodeSettingsBool(AppConfig.PREF_CONFIRM_REMOVE, true)
 
     var shareTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     val qrCodeBitmap by viewModel.qrCode.collectAsStateWithLifecycle()

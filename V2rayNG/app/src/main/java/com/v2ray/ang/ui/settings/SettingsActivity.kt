@@ -155,7 +155,7 @@ fun SettingsScreen(
     var proxySharing by rememberMmkvBool(AppConfig.PREF_PROXY_SHARING, false)
 
     var speedEnabled by rememberMmkvBool(AppConfig.PREF_SPEED_ENABLED, false)
-    var confirmRemove by rememberMmkvBool(AppConfig.PREF_CONFIRM_REMOVE, false)
+    var confirmRemove by rememberMmkvBool(AppConfig.PREF_CONFIRM_REMOVE, true)
     var doubleColumnDisplay by rememberMmkvBool(AppConfig.PREF_DOUBLE_COLUMN_DISPLAY, false)
     var groupAllDisplay by rememberMmkvBool(AppConfig.PREF_GROUP_ALL_DISPLAY, false)
     var language by remember {
