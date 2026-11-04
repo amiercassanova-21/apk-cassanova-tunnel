@@ -1,13 +1,13 @@
 [
   {
-    "remarks": "阻断udp443",
+    "remarks": "Blokir UDP 443",
     "enabled": false,
     "outboundTag": "block",
     "port": "443",
     "network": "udp"
   },
   {
-    "remarks": "代理Google",
+    "remarks": "Proxy Google",
     "enabled": false,
     "outboundTag": "proxy",
     "domain": [
@@ -15,21 +15,21 @@
     ]
   },
   {
-    "remarks": "绕过局域网IP",
+    "remarks": "Bypass IP LAN",
     "outboundTag": "direct",
     "ip": [
       "geoip:private"
     ]
   },
   {
-    "remarks": "绕过局域网域名",
+    "remarks": "Bypass domain LAN",
     "outboundTag": "direct",
     "domain": [
       "geosite:private"
     ]
   },
   {
-    "remarks": "绕过中国公共DNSIP",
+    "remarks": "Bypass IP DNS publik Tiongkok",
     "enabled": false,
     "outboundTag": "direct",
     "ip": [
@@ -71,7 +71,7 @@
     ]
   },
   {
-    "remarks": "绕过中国公共DNS域名",
+    "remarks": "Bypass domain DNS publik Tiongkok",
     "enabled": false,
     "outboundTag": "direct",
     "domain": [
@@ -83,7 +83,7 @@
     ]
   },
   {
-    "remarks": "绕过中国IP",
+    "remarks": "Bypass IP Tiongkok",
     "enabled": false,
     "outboundTag": "direct",
     "ip": [
@@ -91,7 +91,7 @@
     ]
   },
   {
-    "remarks": "绕过中国域名",
+    "remarks": "Bypass domain Tiongkok",
     "enabled": false,
     "outboundTag": "direct",
     "domain": [

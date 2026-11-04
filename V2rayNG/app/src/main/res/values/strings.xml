@@ -68,6 +68,9 @@
     <string name="toast_ssh_missing_credentials">Username and password are required</string>
     <string name="toast_ssh_missing_payload">Payload is required for this mode</string>
     <string name="toast_ssh_missing_slowdns">DNS resolver, nameserver and a 64-character public key are required</string>
+    <string name="ssh_status_connecting">SSH: connecting…</string>
+    <string name="ssh_status_connected">SSH: connected</string>
+    <string name="ssh_status_reconnecting">SSH: reconnecting…</string>
     <string name="confirm_delete_visible_profiles">Are you sure you want to delete all profiles currently shown?</string>
     <string name="confirm_delete_duplicate_profiles">Are you sure you want to delete all duplicate profiles currently shown?</string>
     <string name="confirm_delete_invalid_profiles">Please test the profiles first. Are you sure you want to delete all invalid profiles currently shown?</string>

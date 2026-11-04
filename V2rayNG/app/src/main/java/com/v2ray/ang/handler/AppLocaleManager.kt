@@ -21,6 +21,12 @@ object AppLocaleManager {
      * Migrates the existing MMKV language preference and restores it before the first activity.
      */
     fun initialize(context: Context) {
+        // Cassanova: Indonesian on a fresh install (no language stored, migration not yet run).
+        if (MmkvManager.decodeSettingsString(AppConfig.PREF_LANGUAGE) == null
+            && !MmkvManager.decodeSettingsBool(AppConfig.PREF_APP_LOCALE_MIGRATED, false)
+        ) {
+            MmkvManager.encodeSettings(AppConfig.PREF_LANGUAGE, Language.INDONESIAN.code)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Api33.prepareMigration(context)
         } else {
