@@ -74,6 +74,17 @@ data class ProfileItem(
     var proxyChainProfiles: String? = null,
 
     var browserDialerMode: String? = null,
+
+    // SSH / SlowDNS (configType SSH)
+    var sshMode: String? = null,
+    var sshPayload: String? = null,
+    var sshProxyHost: String? = null,
+    var sshProxyPort: String? = null,
+    var sshUdpgwPort: String? = null,
+    var dnsResolver: String? = null,
+    var dnsNameserver: String? = null,
+    var dnsPublicKey: String? = null,
+    var dnsRecordType: String? = null,
 ) {
 
     companion object {

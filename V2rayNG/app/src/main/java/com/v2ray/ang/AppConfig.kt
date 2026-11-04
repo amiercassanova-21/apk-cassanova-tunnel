@@ -163,6 +163,9 @@ object AppConfig {
     /** Ports and addresses for various services. */
     const val PORT_LOCAL_DNS = "10853"
     const val PORT_SOCKS = "10808"
+
+    /** Local SOCKS5 port of the SSH tunnel (SSH / SlowDNS profiles). */
+    const val PORT_SSH_SOCKS = 10818
     const val WIREGUARD_LOCAL_ADDRESS_V4 = "172.16.0.2/32"
     const val WIREGUARD_LOCAL_ADDRESS_V6 = "2606:4700:110:8f81:d551:a0:532e:a2b3/128"
     const val WIREGUARD_LOCAL_MTU = "1420"
@@ -219,6 +222,7 @@ object AppConfig {
     const val HYSTERIA2 = "hysteria2://"
     const val HY2 = "hy2://"
     const val V2RAYNFMTS = "v2rayn://"
+    const val SSH = "ssh://"
 
     /** Give a good name to this, IDK*/
     const val VPN = "VPN"

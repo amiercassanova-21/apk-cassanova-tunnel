@@ -63,6 +63,15 @@ class ServerUiState(
     echConfigList: String = "",
     verifyPeerCertByName: String = "",
     pinnedCA256: String = "",
+    sshMode: String = "",
+    sshPayload: String = "",
+    sshProxyHost: String = "",
+    sshProxyPort: String = "",
+    sshUdpgwPort: String = "",
+    dnsResolver: String = "",
+    dnsNameserver: String = "",
+    dnsPublicKey: String = "",
+    dnsRecordType: String = "",
     isFetchingCert: Boolean = false
 ) {
     var configType by mutableStateOf(configType)
@@ -112,6 +121,15 @@ class ServerUiState(
     var echConfigList by mutableStateOf(echConfigList)
     var verifyPeerCertByName by mutableStateOf(verifyPeerCertByName)
     var pinnedCA256 by mutableStateOf(pinnedCA256)
+    var sshMode by mutableStateOf(sshMode)
+    var sshPayload by mutableStateOf(sshPayload)
+    var sshProxyHost by mutableStateOf(sshProxyHost)
+    var sshProxyPort by mutableStateOf(sshProxyPort)
+    var sshUdpgwPort by mutableStateOf(sshUdpgwPort)
+    var dnsResolver by mutableStateOf(dnsResolver)
+    var dnsNameserver by mutableStateOf(dnsNameserver)
+    var dnsPublicKey by mutableStateOf(dnsPublicKey)
+    var dnsRecordType by mutableStateOf(dnsRecordType)
     var isFetchingCert by mutableStateOf(isFetchingCert)
 
     var isRemarksError by mutableStateOf(false)
@@ -126,6 +144,7 @@ class ServerUiState(
         val isSocksOrHttp = configType == EConfigType.SOCKS || configType == EConfigType.HTTP
         val isWireguard = configType == EConfigType.WIREGUARD
         val isHysteria2 = configType == EConfigType.HYSTERIA2
+        val isSsh = configType == EConfigType.SSH
 
         return initialConfig.copy(
             configType = configType,
@@ -139,7 +158,7 @@ class ServerUiState(
                 else -> null
             },
             flow = if (isVless) flow else null,
-            username = if (isSocksOrHttp) username else null,
+            username = if (isSocksOrHttp || isSsh) username else null,
             secretKey = if (isWireguard) secretKey else null,
             publicKey = when {
                 isWireguard -> publicKey
@@ -184,7 +203,16 @@ class ServerUiState(
             mldsa65Verify = mldsa65Verify,
             echConfigList = echConfigList,
             verifyPeerCertByName = verifyPeerCertByName,
-            pinnedCA256 = pinnedCA256
+            pinnedCA256 = pinnedCA256,
+            sshMode = if (isSsh) sshMode.nullIfBlank() else null,
+            sshPayload = if (isSsh) sshPayload.nullIfBlank() else null,
+            sshProxyHost = if (isSsh) sshProxyHost.nullIfBlank() else null,
+            sshProxyPort = if (isSsh) sshProxyPort.nullIfBlank() else null,
+            sshUdpgwPort = if (isSsh) sshUdpgwPort.nullIfBlank() else null,
+            dnsResolver = if (isSsh) dnsResolver.nullIfBlank() else null,
+            dnsNameserver = if (isSsh) dnsNameserver.nullIfBlank() else null,
+            dnsPublicKey = if (isSsh) dnsPublicKey.nullIfBlank() else null,
+            dnsRecordType = if (isSsh) dnsRecordType.nullIfBlank() else null
         )
     }
 
@@ -239,7 +267,16 @@ class ServerUiState(
                 mldsa65Verify = initialConfig.mldsa65Verify ?: "",
                 echConfigList = initialConfig.echConfigList ?: "",
                 verifyPeerCertByName = initialConfig.verifyPeerCertByName ?: "",
-                pinnedCA256 = initialConfig.pinnedCA256 ?: ""
+                pinnedCA256 = initialConfig.pinnedCA256 ?: "",
+                sshMode = initialConfig.sshMode ?: "",
+                sshPayload = initialConfig.sshPayload ?: "",
+                sshProxyHost = initialConfig.sshProxyHost ?: "",
+                sshProxyPort = initialConfig.sshProxyPort ?: "",
+                sshUdpgwPort = initialConfig.sshUdpgwPort ?: "",
+                dnsResolver = initialConfig.dnsResolver ?: "",
+                dnsNameserver = initialConfig.dnsNameserver ?: "",
+                dnsPublicKey = initialConfig.dnsPublicKey ?: "",
+                dnsRecordType = initialConfig.dnsRecordType ?: ""
             )
 
         fun from(

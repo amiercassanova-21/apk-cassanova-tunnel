@@ -32,6 +32,7 @@ object CoreOutboundBuilder {
             EConfigType.WIREGUARD -> toOutboundWireguard(profileItem)
             EConfigType.HYSTERIA2 -> toOutboundHysteria2(profileItem)
             EConfigType.HTTP -> toOutboundHttp(profileItem)
+            EConfigType.SSH -> toOutboundSsh()
             else -> null
         }
 
@@ -214,6 +215,19 @@ object CoreOutboundBuilder {
                 settings.user = profileItem.username.orEmpty()
                 settings.pass = profileItem.password.orEmpty()
             }
+        }
+
+        return outboundBean
+    }
+
+    /** SSH runs outside the core: route the profile to the local SOCKS port of SshTunnelManager. */
+    private fun toOutboundSsh(): OutboundBean? {
+        val outboundBean = createInitOutbound(EConfigType.SOCKS)
+
+        outboundBean?.settings?.let { settings ->
+            settings.address = AppConfig.LOOPBACK
+            settings.port = AppConfig.PORT_SSH_SOCKS
+            settings.level = AppConfig.DEFAULT_LEVEL
         }
 
         return outboundBean
