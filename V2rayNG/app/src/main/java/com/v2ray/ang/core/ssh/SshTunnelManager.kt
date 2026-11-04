@@ -18,7 +18,8 @@ import java.io.File
  */
 object SshTunnelManager {
 
-    private const val TAG = "${AppConfig.TAG}-SSH"
+    // The in-app Logcat screen only shows AppConfig.TAG, so SSH lines use it with a prefix.
+    private const val TAG = AppConfig.TAG
     private const val DNSTT_LIB = "libdnstt.so"
 
     private var tunnel: SshTunnel? = null
@@ -31,8 +32,8 @@ object SshTunnelManager {
 
         val settings = toSettings(profile)
         val dnstt = File(context.applicationInfo.nativeLibraryDir, DNSTT_LIB).takeIf { it.exists() }
-        LogUtil.i(TAG, "Starting SSH tunnel: mode=${settings.mode.key}")
-        val t = SshTunnel(settings, AppConfig.PORT_SSH_SOCKS, dnstt) { LogUtil.i(TAG, it) }
+        LogUtil.i(TAG, "SSH: starting tunnel, mode=${settings.mode.key}")
+        val t = SshTunnel(settings, AppConfig.PORT_SSH_SOCKS, dnstt) { LogUtil.i(TAG, "SSH: $it") }
         t.start()
         tunnel = t
     }
