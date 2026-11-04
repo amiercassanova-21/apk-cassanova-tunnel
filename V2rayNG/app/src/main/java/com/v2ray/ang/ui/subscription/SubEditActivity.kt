@@ -59,6 +59,7 @@ class SubEditActivity : BaseComponentActivity() {
                 EConfigType.CUSTOM,
                 EConfigType.POLICYGROUP,
                 EConfigType.PROXYCHAIN,
+                EConfigType.SSH,
             )
         )
         subItem = MmkvManager.decodeSubscription(editSubId) ?: SubscriptionItem()

@@ -69,7 +69,7 @@ class ServerGroupActivity : BaseComponentActivity() {
         populateSubscriptionSpinner()
         fallbackSuggestions = (
                 BUILTIN_OUTBOUND_TAGS + SettingsManager.getProfileRemarks(
-                    excludeConfigTypes = setOf(EConfigType.CUSTOM, EConfigType.POLICYGROUP)
+                    excludeConfigTypes = setOf(EConfigType.CUSTOM, EConfigType.POLICYGROUP, EConfigType.SSH)
                 )
                 ).filter { it != TAG_PROXY }
 
