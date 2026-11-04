@@ -1,0 +1,14 @@
+diff --git a/infra/conf/xray.go b/infra/conf/xray.go
+index 2c94ce5..b8ddc55 100644
+--- a/infra/conf/xray.go
++++ b/infra/conf/xray.go
+@@ -248,6 +248,9 @@ func requiresTransportSecurity(address *Address) bool {
+ }
+ 
+ func validateOutboundTransportSecurity(rawConfig interface{}, senderSettings *proxyman.SenderConfig) error {
++	// Cassanova Tunnel: allow VLESS/Trojan without TLS (e.g. WS/HTTPUpgrade on port 80
++	// behind a CDN or bug host). Upstream blocks this since XTLS/Xray-core#6303.
++	return nil
+ 	if senderSettings.StreamSettings != nil && senderSettings.StreamSettings.GetSecurityType() != "" {
+ 		return nil
+ 	}

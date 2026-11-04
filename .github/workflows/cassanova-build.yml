@@ -59,26 +59,54 @@ jobs:
     - name: Copy libhevtun
       run: cp -r ${{ github.workspace }}/libs ${{ github.workspace }}/V2rayNG/app
 
-    - name: Fetch AndroidLibXrayLite tag
-      run: |
-        pushd AndroidLibXrayLite
-        CURRENT_TAG=$(git describe --tags --abbrev=0)
-        echo "CURRENT_TAG=$CURRENT_TAG" >> $GITHUB_ENV
-        popd
-
-    - name: Download libv2ray
-      uses: robinraju/release-downloader@v1.13
-      with:
-        repository: '2dust/AndroidLibXrayLite'
-        tag: ${{ env.CURRENT_TAG }}
-        fileName: 'libv2ray.aar'
-        out-file-path: V2rayNG/app/libs/
-
     - name: Setup Go
       uses: actions/setup-go@v6
       with:
-        go-version-file: dnstt/go.mod
-        cache-dependency-path: dnstt/go.sum
+        go-version-file: AndroidLibXrayLite/go.mod
+        cache-dependency-path: |
+          AndroidLibXrayLite/go.sum
+          dnstt/go.sum
+
+    # libv2ray.aar is built here (not downloaded) so the Xray-core patches in patches/ apply:
+    # xray-core-allow-plaintext.patch re-allows VLESS/Trojan without TLS (port 80).
+    - name: Restore cached libv2ray
+      id: cache-libv2ray
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ github.workspace }}/V2rayNG/app/libs/libv2ray.aar
+        key: libv2ray-arm64-${{ hashFiles('.git/modules/AndroidLibXrayLite/HEAD') }}-${{ hashFiles('patches/xray-core-*.patch') }}
+
+    - name: Build libv2ray (patched Xray-core, arm64-v8a)
+      if: steps.cache-libv2ray.outputs.cache-hit != 'true'
+      env:
+        ANDROID_NDK_HOME: ${{ env.NDK_HOME }}
+      run: |
+        cd AndroidLibXrayLite
+        go mod download github.com/xtls/xray-core
+        SRC=$(go list -m -f '{{.Dir}}' github.com/xtls/xray-core)
+        echo "Xray-core: $(go list -m -f '{{.Version}}' github.com/xtls/xray-core)"
+        cp -r "$SRC" "$RUNNER_TEMP/xray-core"
+        chmod -R u+w "$RUNNER_TEMP/xray-core"
+        for p in ../patches/xray-core-*.patch; do patch -d "$RUNNER_TEMP/xray-core" -p1 --forward < "$p"; done
+        go mod edit -replace github.com/xtls/xray-core="$RUNNER_TEMP/xray-core"
+        mkdir -p assets data
+        bash gen_assets.sh download
+        cp -v data/*.dat assets/
+        go install golang.org/x/mobile/cmd/gomobile@latest
+        export PATH=$PATH:$(go env GOPATH)/bin
+        gomobile init
+        go mod tidy
+        mkdir -p ../V2rayNG/app/libs
+        gomobile bind -v -target android/arm64 -androidapi 24 -trimpath \
+          -ldflags='-s -w -buildid= -checklinkname=0' -o ../V2rayNG/app/libs/libv2ray.aar ./
+        rm -f ../V2rayNG/app/libs/libv2ray-sources.jar
+
+    - name: Save libv2ray
+      if: steps.cache-libv2ray.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ github.workspace }}/V2rayNG/app/libs/libv2ray.aar
+        key: libv2ray-arm64-${{ hashFiles('.git/modules/AndroidLibXrayLite/HEAD') }}-${{ hashFiles('patches/xray-core-*.patch') }}
 
     - name: Build dnstt client (SlowDNS, arm64-v8a)
       run: |
@@ -161,6 +189,9 @@ jobs:
         unzip -l "$APK" | grep -E "lib/arm64-v8a/(libdnstt|libhev-socks5-tunnel|libhevsockstun|libgojni)\.so"
         for f in libdnstt libhev-socks5-tunnel libhevsockstun libgojni; do
           unzip -l "$APK" | grep -q "lib/arm64-v8a/$f.so" || { echo "missing $f.so"; exit 1; }
+        done
+        for f in geoip.dat geosite.dat geoip-only-cn-private.dat; do
+          unzip -l "$APK" | grep -q "assets/$f" || { echo "missing assets/$f"; exit 1; }
         done
         $ANDROID_HOME/build-tools/37.0.0/apksigner verify --print-certs "$APK" | head -5
         $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging "$APK" | grep -E "^package|application-label:"
