@@ -74,9 +74,9 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ github.workspace }}/V2rayNG/app/libs/libv2ray.aar
-        key: libv2ray-arm64-${{ hashFiles('.git/modules/AndroidLibXrayLite/HEAD') }}-${{ hashFiles('patches/xray-core-*.patch') }}
+        key: libv2ray-arm64-armv7-${{ hashFiles('.git/modules/AndroidLibXrayLite/HEAD') }}-${{ hashFiles('patches/xray-core-*.patch') }}
 
-    - name: Build libv2ray (patched Xray-core, arm64-v8a)
+    - name: Build libv2ray (patched Xray-core, arm64-v8a + armeabi-v7a)
       if: steps.cache-libv2ray.outputs.cache-hit != 'true'
       env:
         ANDROID_NDK_HOME: ${{ env.NDK_HOME }}
@@ -97,7 +97,7 @@ jobs:
         gomobile init
         go mod tidy
         mkdir -p ../V2rayNG/app/libs
-        gomobile bind -v -target android/arm64 -androidapi 24 -trimpath \
+        gomobile bind -v -target android/arm64,android/arm -androidapi 24 -trimpath \
           -ldflags='-s -w -buildid= -checklinkname=0' -o ../V2rayNG/app/libs/libv2ray.aar ./
         rm -f ../V2rayNG/app/libs/libv2ray-sources.jar
 
@@ -106,17 +106,18 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ github.workspace }}/V2rayNG/app/libs/libv2ray.aar
-        key: libv2ray-arm64-${{ hashFiles('.git/modules/AndroidLibXrayLite/HEAD') }}-${{ hashFiles('patches/xray-core-*.patch') }}
+        key: libv2ray-arm64-armv7-${{ hashFiles('.git/modules/AndroidLibXrayLite/HEAD') }}-${{ hashFiles('patches/xray-core-*.patch') }}
 
-    - name: Build dnstt client (SlowDNS, arm64-v8a)
+    - name: Build dnstt client (SlowDNS, arm64-v8a + armeabi-v7a)
       run: |
-        mkdir -p V2rayNG/app/libs/arm64-v8a
+        TC=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin
         cd dnstt
-        CGO_ENABLED=1 GOOS=android GOARCH=arm64 \
-        CC=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang \
-          go build -trimpath -ldflags "-s -w" \
-          -o ../V2rayNG/app/libs/arm64-v8a/libdnstt.so ./dnstt-client
-        file ../V2rayNG/app/libs/arm64-v8a/libdnstt.so
+        mkdir -p ../V2rayNG/app/libs/arm64-v8a ../V2rayNG/app/libs/armeabi-v7a
+        CGO_ENABLED=1 GOOS=android GOARCH=arm64 CC=$TC/aarch64-linux-android24-clang \
+          go build -trimpath -ldflags "-s -w" -o ../V2rayNG/app/libs/arm64-v8a/libdnstt.so ./dnstt-client
+        CGO_ENABLED=1 GOOS=android GOARCH=arm GOARM=7 CC=$TC/armv7a-linux-androideabi24-clang \
+          go build -trimpath -ldflags "-s -w" -o ../V2rayNG/app/libs/armeabi-v7a/libdnstt.so ./dnstt-client
+        file ../V2rayNG/app/libs/*/libdnstt.so
 
     - name: Setup Java
       uses: actions/setup-java@v6.1.0
@@ -176,7 +177,7 @@ jobs:
     - name: Build APK
       run: |
         cd V2rayNG
-        ./gradlew :app:assemblePlaystoreRelease -PABI_FILTERS=arm64-v8a \
+        ./gradlew :app:assemblePlaystoreRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" \
           -Pandroid.injected.signing.store.file=$SIGN_FILE \
           -Pandroid.injected.signing.store.password=$SIGN_STORE_PASS \
           -Pandroid.injected.signing.key.alias=$SIGN_ALIAS \
@@ -184,29 +185,38 @@ jobs:
 
     - name: Verify APK contents
       run: |
-        APK=$(ls V2rayNG/app/build/outputs/apk/playstore/release/*arm64-v8a*.apk)
-        echo "APK=$APK" >> $GITHUB_ENV
-        unzip -l "$APK" | grep -E "lib/arm64-v8a/(libdnstt|libhev-socks5-tunnel|libhevsockstun|libgojni)\.so"
-        for f in libdnstt libhev-socks5-tunnel libhevsockstun libgojni; do
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/$f.so" || { echo "missing $f.so"; exit 1; }
-        done
-        for f in geoip.dat geosite.dat geoip-only-cn-private.dat; do
-          unzip -l "$APK" | grep -q "assets/$f" || { echo "missing assets/$f"; exit 1; }
-        done
-        $ANDROID_HOME/build-tools/37.0.0/apksigner verify --print-certs "$APK" | head -5
-        $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging "$APK" | grep -E "^package|application-label:"
+        OUT=V2rayNG/app/build/outputs/apk/playstore/release
+        check() { # apk abi...
+          apk=$1; shift
+          for abi in "$@"; do
+            for f in libdnstt libhev-socks5-tunnel libhevsockstun libgojni; do
+              unzip -l "$apk" | grep -q "lib/$abi/$f.so" || { echo "missing $abi/$f.so in $apk"; exit 1; }
+            done
+          done
+          for f in geoip.dat geosite.dat geoip-only-cn-private.dat; do
+            unzip -l "$apk" | grep -q "assets/$f" || { echo "missing assets/$f in $apk"; exit 1; }
+          done
+          unzip -l "$apk" | grep "lib/" | awk '{print $1, $4}'
+          $ANDROID_HOME/build-tools/37.0.0/apksigner verify --print-certs "$apk" | grep "SHA-256"
+          $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging "$apk" | grep -E "^package|application-label:|native-code"
+          ls -la "$apk"
+        }
+        check $OUT/*_arm64-v8a.apk arm64-v8a
+        check $OUT/*_armeabi-v7a.apk armeabi-v7a
+        check $OUT/*_universal.apk arm64-v8a armeabi-v7a
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v7
       with:
-        name: cassanova-tunnel-arm64-v8a
-        path: ${{ env.APK }}
+        name: cassanova-tunnel-apks
+        path: V2rayNG/app/build/outputs/apk/playstore/release/*.apk
 
     - name: Publish pre-release
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
         TAG="build-${{ github.run_number }}"
-        gh release create "$TAG" "$APK" --prerelease --target "${{ github.sha }}" \
+        gh release create "$TAG" V2rayNG/app/build/outputs/apk/playstore/release/*.apk \
+          --prerelease --target "${{ github.sha }}" \
           --title "Cassanova Tunnel build ${{ github.run_number }}" \
-          --notes "Automatic build of ${{ github.sha }} (arm64-v8a, signed with ${SIGN_SOURCE} key)."
+          --notes "Automatic build of ${{ github.sha }} (arm64-v8a, armeabi-v7a, universal; signed with ${SIGN_SOURCE} key)."

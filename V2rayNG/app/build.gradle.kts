@@ -31,7 +31,8 @@ android {
                         "x86"
                     )
                 }
-                isUniversalApk = abiFilterList.isNullOrEmpty()
+                // Cassanova: also a universal APK when ABI_FILTERS limits the split ABIs.
+                isUniversalApk = true
             }
         }
 
