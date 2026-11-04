@@ -9,6 +9,7 @@ import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.NetworkType
 import com.v2ray.ang.extension.isNotNullEmpty
 import com.v2ray.ang.extension.nullIfBlank
+import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.util.HttpUtil
 import com.v2ray.ang.util.JsonUtil
@@ -22,7 +23,9 @@ import com.v2ray.ang.util.Utils
 object CoreOutboundBuilder {
 
     /** Dispatches a profile to protocol-specific outbound builder. */
-    fun convert(profileItem: ProfileItem): OutboundBean? {
+    fun convert(item: ProfileItem): OutboundBean? {
+        // Locked configs keep their real fields sealed; open them only here, for the core.
+        val profileItem = ConfigLockManager.unlock(item)
         val outbound = when (profileItem.configType) {
             EConfigType.VMESS -> toOutboundVmess(profileItem)
             EConfigType.SHADOWSOCKS -> toOutboundShadowsocks(profileItem)

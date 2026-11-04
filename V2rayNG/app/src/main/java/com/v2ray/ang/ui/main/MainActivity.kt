@@ -21,6 +21,7 @@ import com.v2ray.ang.extension.toast
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.handler.AngConfigManager
+import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.handler.SettingsManager
@@ -118,6 +119,7 @@ class MainActivity : HelperBaseComponentActivity() {
                     is MainAction.EditServer -> editServer(action.guid, action.profile)
                     is MainAction.ShareClipboard -> shareToClipboard(action.guid)
                     is MainAction.ShareFullContent -> shareFullContentAsync(action.guid)
+                    is MainAction.ShareLocked -> shareLocked(action.guid)
                     is MainAction.OpenSubscriptionLink -> openSubscriptionLink(action.url)
                     else -> mainViewModel.onAction(action)
                 }
@@ -136,6 +138,14 @@ class MainActivity : HelperBaseComponentActivity() {
                 if (result == 0) toastSuccess(R.string.toast_success)
                 else toastError(R.string.toast_failure)
             }
+        }
+    }
+
+    private fun shareLocked(guid: String) {
+        if (AngConfigManager.shareLocked2Clipboard(this, guid) == 0) {
+            toastSuccess(R.string.toast_locked_copied)
+        } else {
+            toastError(R.string.toast_failure)
         }
     }
 
@@ -255,6 +265,10 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun editServer(guid: String, profile: ProfileItem) {
+        if (ConfigLockManager.isLocked(profile)) {
+            toast(R.string.toast_profile_locked)
+            return
+        }
         val activityClass = when (profile.configType) {
             EConfigType.CUSTOM -> ServerCustomConfigActivity::class.java
             EConfigType.POLICYGROUP -> ServerGroupActivity::class.java

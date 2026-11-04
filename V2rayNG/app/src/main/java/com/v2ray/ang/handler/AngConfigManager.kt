@@ -52,7 +52,31 @@ object AngConfigManager {
             EConfigType.HYSTERIA2.protocolScheme to Hysteria2Fmt::parse,
             AppConfig.HY2 to Hysteria2Fmt::parse,
             EConfigType.SSH.protocolScheme to SshFmt::parse,
+            AppConfig.LOCKED to ConfigLockManager::parseLocked,
         )
+    }
+
+    /** Parses one plain share link (no cslock://), used to open locked configs. */
+    fun parseShareLink(link: String): ProfileItem? =
+        configFmtParsers.firstNotNullOfOrNull { (scheme, parser) ->
+            if (scheme != AppConfig.LOCKED && link.startsWith(scheme)) parser(link) else null
+        }
+
+    /**
+     * Copies a locked (cslock://) link of the profile to the clipboard.
+     * @return 0 on success, -1 when the profile has no share link or locking is unavailable.
+     */
+    fun shareLocked2Clipboard(context: Context, guid: String): Int {
+        try {
+            val link = shareConfig(guid)
+            if (TextUtils.isEmpty(link)) return -1
+            val locked = ConfigLockManager.lockLink(link) ?: return -1
+            Utils.setClipboard(context, locked)
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Failed to share locked config to clipboard", e)
+            return -1
+        }
+        return 0
     }
 
     /**
@@ -136,6 +160,7 @@ object AngConfigManager {
     fun shareFullContent2Clipboard(context: Context, guid: String?): Int {
         try {
             if (guid == null) return -1
+            if (ConfigLockManager.isLocked(MmkvManager.decodeServerConfig(guid))) return -1
             // The core config of an SSH profile only points at the local tunnel port, which is
             // useless on another device: share the ssh:// link instead.
             if (MmkvManager.decodeServerConfig(guid)?.configType == EConfigType.SSH) {
@@ -163,6 +188,8 @@ object AngConfigManager {
     private fun shareConfig(guid: String): String {
         try {
             val config = MmkvManager.decodeServerConfig(guid) ?: return ""
+            // A locked config is never shared again, in any form.
+            if (ConfigLockManager.isLocked(config)) return ""
 
             return config.configType.protocolScheme + when (config.configType) {
                 EConfigType.VMESS -> VmessFmt.toUri(config)
@@ -648,6 +675,7 @@ object AngConfigManager {
      * @return The generated description.
      */
     fun generateDescription(profile: ProfileItem): String {
+        val lockMark = if (ConfigLockManager.isLocked(profile)) "\uD83D\uDD12 " else ""
         // Hide xxx:xxx:***/xxx.xxx.xxx.***
         val server = profile.server
         val port = profile.serverPort
@@ -660,6 +688,6 @@ object AngConfigManager {
                 it.split('.').dropLast(1).joinToString(".", postfix = ".***")
         } ?: ""
 
-        return "$addrPart : ${port ?: ""}"
+        return "$lockMark$addrPart : ${port ?: ""}"
     }
 }

@@ -37,6 +37,19 @@ android {
         }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Key for locked configs (cslock://), 64 hex chars from -PcassanovaLockKey (set by CI from
+        // the signing secrets). Masked byte-wise (see ConfigLock.maskByte) so it is not a plain
+        // hex string in the APK. Empty when not given: locking is then disabled.
+        val lockKeyHex = (project.findProperty("cassanovaLockKey") as String?).orEmpty().trim()
+        val maskedLockKey = if (lockKeyHex.matches(Regex("^[0-9a-fA-F]{64}$"))) {
+            lockKeyHex.chunked(2).mapIndexed { i, b ->
+                ((b.toInt(16) xor (0xA5 + i * 7)) and 0xff).toString(16).padStart(2, '0')
+            }.joinToString("")
+        } else {
+            ""
+        }
+        buildConfigField("String", "LOCK_KEY", "\"$maskedLockKey\"")
     }
 
     buildTypes {

@@ -148,6 +148,10 @@ jobs:
           echo "SIGN_ALIAS=$KS_ALIAS" >> $GITHUB_ENV
           echo "SIGN_KEY_PASS=$KEY_PASS" >> $GITHUB_ENV
           echo "SIGN_SOURCE=secrets" >> $GITHUB_ENV
+          # Locked-config key: derived from the keystore password, stable across builds.
+          LOCK_KEY=$(printf 'cassanova-lock-v1:%s' "$KS_PASS" | sha256sum | cut -d' ' -f1)
+          echo "::add-mask::$LOCK_KEY"
+          echo "LOCK_KEY=$LOCK_KEY" >> $GITHUB_ENV
         else
           if [ ! -f $RUNNER_TEMP/fallback.jks ]; then
             keytool -genkeypair -v -keystore $RUNNER_TEMP/fallback.jks -storepass cassanova -keypass cassanova \
@@ -181,7 +185,8 @@ jobs:
           -Pandroid.injected.signing.store.file=$SIGN_FILE \
           -Pandroid.injected.signing.store.password=$SIGN_STORE_PASS \
           -Pandroid.injected.signing.key.alias=$SIGN_ALIAS \
-          -Pandroid.injected.signing.key.password=$SIGN_KEY_PASS
+          -Pandroid.injected.signing.key.password=$SIGN_KEY_PASS \
+          -PcassanovaLockKey=$LOCK_KEY
 
     - name: Verify APK contents
       run: |

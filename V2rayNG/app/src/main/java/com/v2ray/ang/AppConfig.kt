@@ -223,6 +223,7 @@ object AppConfig {
     const val HY2 = "hy2://"
     const val V2RAYNFMTS = "v2rayn://"
     const val SSH = "ssh://"
+    const val LOCKED = "cslock://"
 
     /** Give a good name to this, IDK*/
     const val VPN = "VPN"

@@ -5,6 +5,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
+import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.util.LogUtil
 import java.io.File
@@ -32,7 +33,7 @@ object SshTunnelManager {
         stop()
         if (profile.configType != EConfigType.SSH) return
 
-        val settings = toSettings(profile)
+        val settings = toSettings(ConfigLockManager.unlock(profile))
         val dnstt = File(context.applicationInfo.nativeLibraryDir, DNSTT_LIB).takeIf { it.exists() }
         LogUtil.i(TAG, "SSH: starting tunnel, mode=${settings.mode.key}")
         val t = SshTunnel(

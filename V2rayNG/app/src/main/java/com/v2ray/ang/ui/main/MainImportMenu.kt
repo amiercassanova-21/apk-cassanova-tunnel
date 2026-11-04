@@ -7,6 +7,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.isComplexType
+import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.SelectListDialog
 
@@ -48,6 +49,7 @@ internal enum class ServerMenuAction(
     ShareQRCode(R.string.share_method_qrcode, isShareAction = true, supportsComplexProfiles = false),
     ShareClipboard(R.string.share_method_clipboard, isShareAction = true, supportsComplexProfiles = false),
     ShareFullContent(R.string.share_method_full_content, isShareAction = true, supportsComplexProfiles = true),
+    ShareLocked(R.string.share_method_locked, isShareAction = true, supportsComplexProfiles = false),
     Edit(R.string.action_edit, isShareAction = false, supportsComplexProfiles = true),
     Delete(R.string.action_delete, isShareAction = false, supportsComplexProfiles = true),
 }
@@ -55,8 +57,16 @@ internal enum class ServerMenuAction(
 internal fun serverMenuActions(
     isComplexProfile: Boolean,
     includeManagementActions: Boolean,
+    isLocked: Boolean = false,
+    lockAvailable: Boolean = false,
 ): List<ServerMenuAction> = ServerMenuAction.entries.filter { action ->
-    (includeManagementActions || action.isShareAction) && (!isComplexProfile || action.supportsComplexProfiles)
+    when {
+        // A locked config can only be deleted: no edit, no sharing of any kind.
+        isLocked -> includeManagementActions && action == ServerMenuAction.Delete
+        action == ServerMenuAction.ShareLocked && !lockAvailable -> false
+        else -> (includeManagementActions || action.isShareAction) &&
+            (!isComplexProfile || action.supportsComplexProfiles)
+    }
 }
 
 @Composable
@@ -85,6 +95,8 @@ fun ShareMethodDialog(
     val menuActions = serverMenuActions(
         isComplexProfile = profile.configType.isComplexType(),
         includeManagementActions = more,
+        isLocked = ConfigLockManager.isLocked(profile),
+        lockAvailable = ConfigLockManager.isAvailable,
     )
     SelectListDialog(
         options = menuActions,
@@ -95,6 +107,7 @@ fun ShareMethodDialog(
                 ServerMenuAction.ShareQRCode -> onAction(MainAction.ShareQRCode(guid))
                 ServerMenuAction.ShareClipboard -> onAction(MainAction.ShareClipboard(guid))
                 ServerMenuAction.ShareFullContent -> onAction(MainAction.ShareFullContent(guid))
+                ServerMenuAction.ShareLocked -> onAction(MainAction.ShareLocked(guid))
                 ServerMenuAction.Edit -> onAction(MainAction.EditServer(guid, profile))
                 ServerMenuAction.Delete -> onRemove(guid, profile.remarks)
             }

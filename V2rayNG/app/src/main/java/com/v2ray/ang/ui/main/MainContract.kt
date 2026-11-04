@@ -63,6 +63,7 @@ sealed interface MainAction {
     data class ShareQRCode(val guid: String) : MainAction
     data class ShareClipboard(val guid: String) : MainAction
     data class ShareFullContent(val guid: String) : MainAction
+    data class ShareLocked(val guid: String) : MainAction
     data object DismissQRCodeDialog : MainAction
     data class OpenSubscriptionLink(val url: String) : MainAction
 

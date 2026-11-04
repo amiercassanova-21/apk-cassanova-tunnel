@@ -85,6 +85,9 @@ data class ProfileItem(
     var dnsNameserver: String? = null,
     var dnsPublicKey: String? = null,
     var dnsRecordType: String? = null,
+
+    // Locked config: sealed share link (see ConfigLockManager). Non-null means locked.
+    var lockedData: String? = null,
 ) {
 
     companion object {

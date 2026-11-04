@@ -18,7 +18,7 @@ class MainImportMenuTest {
     @Test
     fun regularMoreMenuContainsEveryActionInDisplayOrder() {
         assertEquals(
-            ServerMenuAction.entries,
+            ServerMenuAction.entries - ServerMenuAction.ShareLocked,
             serverMenuActions(isComplexProfile = false, includeManagementActions = true),
         )
     }
@@ -39,5 +39,31 @@ class MainImportMenuTest {
             ServerMenuAction.Delete,
         )
         assertEquals(expected, serverMenuActions(isComplexProfile = true, includeManagementActions = true))
+    }
+
+    @Test
+    fun lockedCopyOfferedOnlyWhenLockingIsAvailable() {
+        assertEquals(
+            ServerMenuAction.entries,
+            serverMenuActions(isComplexProfile = false, includeManagementActions = true, lockAvailable = true),
+        )
+        assertEquals(
+            false,
+            ServerMenuAction.ShareLocked in serverMenuActions(
+                isComplexProfile = true, includeManagementActions = true, lockAvailable = true
+            ),
+        )
+    }
+
+    @Test
+    fun lockedProfileCanOnlyBeDeleted() {
+        assertEquals(
+            listOf(ServerMenuAction.Delete),
+            serverMenuActions(isComplexProfile = false, includeManagementActions = true, isLocked = true, lockAvailable = true),
+        )
+        assertEquals(
+            emptyList<ServerMenuAction>(),
+            serverMenuActions(isComplexProfile = false, includeManagementActions = false, isLocked = true, lockAvailable = true),
+        )
     }
 }

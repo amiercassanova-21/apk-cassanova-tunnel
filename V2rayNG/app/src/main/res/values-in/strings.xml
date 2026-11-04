@@ -404,6 +404,9 @@
     <string name="title_webdav_remote_path">Direktori remote (opsional)</string>
     <string name="share_method_qrcode">Kode QR</string>
     <string name="share_method_clipboard">Salin link profil</string>
+    <string name="share_method_locked">Salin config terkunci</string>
+    <string name="toast_locked_copied">Config terkunci disalin. Penerima tidak bisa mengubah atau membagikannya.</string>
+    <string name="toast_profile_locked">Config ini terkunci dan tidak bisa diubah</string>
     <string name="share_method_full_content">Salin konfigurasi lengkap</string>
     <string name="action_edit">Ubah</string>
     <string name="action_delete">Hapus</string>

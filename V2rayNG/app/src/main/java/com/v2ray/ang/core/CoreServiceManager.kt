@@ -136,7 +136,9 @@ object CoreServiceManager {
         // SSH profiles: the core's outbound is the local SOCKS port of this tunnel.
         SshTunnelManager.startIfNeeded(service, config)
         val result = CoreConfigManager.getV2rayConfig(service, guid)
-        LogUtil.d(AppConfig.TAG, result.content)
+        if (config.lockedData == null) {
+            LogUtil.d(AppConfig.TAG, result.content)
+        }
         if (!result.status) {
             error(result.errorMessage.ifBlank { "Failed to get V2Ray config" })
         }
