@@ -8,6 +8,8 @@ import java.io.File
 import java.net.ServerSocket
 import java.util.concurrent.atomic.AtomicBoolean
 
+enum class SshStatus { CONNECTING, CONNECTED, RECONNECTING }
+
 /**
  * SSH tunnel exposed as a local SOCKS5 proxy on 127.0.0.1:[socksPort].
  * Keeps the SSH session alive and reconnects it until [stop] is called.
@@ -17,6 +19,7 @@ class SshTunnel(
     private val socksPort: Int,
     private val dnsttBinary: File?,
     private val logger: SshLogger,
+    private val onStatus: (SshStatus) -> Unit = {},
 ) {
     private val running = AtomicBoolean(false)
     private val lock = Object()
@@ -27,6 +30,14 @@ class SshTunnel(
     private var dnsttPort = 0
     private var socks: SshSocksServer? = null
     private var worker: Thread? = null
+    private var everConnected = false
+    private var lastStatus: SshStatus? = null
+
+    private fun report(status: SshStatus) {
+        if (status == lastStatus) return
+        lastStatus = status
+        onStatus(status)
+    }
 
     /** Starts the SOCKS listener (and dnstt) right away; the SSH session connects in background. */
     fun start() {
@@ -92,6 +103,7 @@ class SshTunnel(
                 current.disconnect()
                 session = null
             }
+            report(if (everConnected) SshStatus.RECONNECTING else SshStatus.CONNECTING)
             if (settings.mode == SshMode.SLOWDNS && dnstt?.isAlive() == false) {
                 try {
                     dnstt?.start()
@@ -111,6 +123,8 @@ class SshTunnel(
                     lock.notifyAll()
                 }
                 logger.log("SSH connected (${s.serverVersion})")
+                everConnected = true
+                report(SshStatus.CONNECTED)
                 attempt = 0
             } catch (e: Exception) {
                 if (!running.get()) return

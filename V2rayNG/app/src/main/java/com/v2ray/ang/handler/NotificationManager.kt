@@ -39,6 +39,10 @@ object NotificationManager {
     private var speedNotificationJob: Job? = null
     private var mNotificationManager: NotificationManager? = null
 
+    /** SSH tunnel status shown as the notification sub text; null hides it. */
+    @Volatile
+    private var sshStatus: String? = null
+
     /**
      * Starts the speed notification.
      * @param currentConfig The current profile configuration.
@@ -94,6 +98,7 @@ object NotificationManager {
         mBuilder = NotificationCompat.Builder(service, channelId)
             .setSmallIcon(R.drawable.ic_stat_name)
             .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.app_name))
+            .setSubText(sshStatus)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)
@@ -113,6 +118,17 @@ object NotificationManager {
         //mBuilder?.setDefaults(NotificationCompat.FLAG_ONLY_ALERT_ONCE)
 
         service.startForeground(NOTIFICATION_ID, mBuilder?.build())
+    }
+
+    /**
+     * Shows the SSH tunnel status (connecting / connected / reconnecting) in the notification.
+     * @param status The status text, null to hide it.
+     */
+    fun updateSshStatus(status: String?) {
+        sshStatus = status
+        val builder = mBuilder ?: return
+        builder.setSubText(status)
+        getNotificationManager()?.notify(NOTIFICATION_ID, builder.build())
     }
 
     /**

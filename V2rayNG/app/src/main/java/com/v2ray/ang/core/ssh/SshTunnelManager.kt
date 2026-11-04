@@ -2,8 +2,10 @@ package com.v2ray.ang.core.ssh
 
 import android.content.Context
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
+import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.util.LogUtil
 import java.io.File
 
@@ -33,7 +35,21 @@ object SshTunnelManager {
         val settings = toSettings(profile)
         val dnstt = File(context.applicationInfo.nativeLibraryDir, DNSTT_LIB).takeIf { it.exists() }
         LogUtil.i(TAG, "SSH: starting tunnel, mode=${settings.mode.key}")
-        val t = SshTunnel(settings, AppConfig.PORT_SSH_SOCKS, dnstt) { LogUtil.i(TAG, "SSH: $it") }
+        val t = SshTunnel(
+            settings, AppConfig.PORT_SSH_SOCKS, dnstt,
+            logger = { LogUtil.i(TAG, "SSH: $it") },
+            onStatus = { status ->
+                NotificationManager.updateSshStatus(
+                    context.getString(
+                        when (status) {
+                            SshStatus.CONNECTING -> R.string.ssh_status_connecting
+                            SshStatus.CONNECTED -> R.string.ssh_status_connected
+                            SshStatus.RECONNECTING -> R.string.ssh_status_reconnecting
+                        }
+                    )
+                )
+            },
+        )
         t.start()
         tunnel = t
     }
@@ -42,6 +58,7 @@ object SshTunnelManager {
     fun stop() {
         tunnel?.stop()
         tunnel = null
+        NotificationManager.updateSshStatus(null)
     }
 
     fun toSettings(profile: ProfileItem): SshSettings = SshSettings(
