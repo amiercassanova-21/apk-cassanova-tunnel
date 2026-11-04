@@ -17,6 +17,7 @@ import com.v2ray.ang.fmt.CustomFmt
 import com.v2ray.ang.fmt.Hysteria2Fmt
 import com.v2ray.ang.fmt.ShadowsocksFmt
 import com.v2ray.ang.fmt.SocksFmt
+import com.v2ray.ang.fmt.SshFmt
 import com.v2ray.ang.fmt.TrojanFmt
 import com.v2ray.ang.fmt.V2rayNFmt
 import com.v2ray.ang.fmt.VlessFmt
@@ -50,6 +51,7 @@ object AngConfigManager {
             EConfigType.WIREGUARD.protocolScheme to WireguardFmt::parse,
             EConfigType.HYSTERIA2.protocolScheme to Hysteria2Fmt::parse,
             AppConfig.HY2 to Hysteria2Fmt::parse,
+            EConfigType.SSH.protocolScheme to SshFmt::parse,
         )
     }
 
@@ -134,6 +136,11 @@ object AngConfigManager {
     fun shareFullContent2Clipboard(context: Context, guid: String?): Int {
         try {
             if (guid == null) return -1
+            // The core config of an SSH profile only points at the local tunnel port, which is
+            // useless on another device: share the ssh:// link instead.
+            if (MmkvManager.decodeServerConfig(guid)?.configType == EConfigType.SSH) {
+                return share2Clipboard(context, guid)
+            }
             val result = CoreConfigManager.getV2rayConfig(context, guid)
             if (result.status) {
                 Utils.setClipboard(context, result.content)
@@ -165,6 +172,7 @@ object AngConfigManager {
                 EConfigType.TROJAN -> TrojanFmt.toUri(config)
                 EConfigType.WIREGUARD -> WireguardFmt.toUri(config)
                 EConfigType.HYSTERIA2 -> Hysteria2Fmt.toUri(config)
+                EConfigType.SSH -> SshFmt.toUri(config)
                 else -> {}
             }
         } catch (e: Exception) {
