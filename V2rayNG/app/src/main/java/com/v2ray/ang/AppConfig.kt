@@ -99,6 +99,8 @@ object AppConfig {
     const val PREF_TETHER_ENABLED = "pref_tether_enabled"
     const val PREF_TETHER_SOCKS_PORT = "pref_tether_socks_port"
     const val PREF_TETHER_HTTP_PORT = "pref_tether_http_port"
+    const val PREF_HOST_LOOKUP_SOURCE = "pref_host_lookup_source"
+    const val PREF_HOST_LOOKUP_HISTORY = "pref_host_lookup_history"
     const val PREF_AUTOPING_MODE = "pref_autoping_mode"
     const val PREF_AUTOPING_METHOD = "pref_autoping_method"
     const val PREF_AUTOPING_TARGET = "pref_autoping_target"

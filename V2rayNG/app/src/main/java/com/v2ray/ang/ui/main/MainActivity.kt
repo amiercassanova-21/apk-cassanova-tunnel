@@ -181,6 +181,7 @@ class MainActivity : HelperBaseComponentActivity() {
             MainDestination.Settings -> Intent(this, SettingsActivity::class.java)
             MainDestination.Logcat -> Intent(this, LogcatActivity::class.java)
             MainDestination.ConnectionLog -> Intent(this, com.v2ray.ang.ui.connlog.ConnLogActivity::class.java)
+            MainDestination.HostToIp -> Intent(this, com.v2ray.ang.ui.tools.HostToIpActivity::class.java)
             MainDestination.CheckUpdate -> Intent(this, CheckUpdateActivity::class.java)
             MainDestination.BackupRestore -> Intent(this, BackupActivity::class.java)
             MainDestination.About -> Intent(this, AboutActivity::class.java)

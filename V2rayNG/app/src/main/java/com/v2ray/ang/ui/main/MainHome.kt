@@ -612,6 +612,11 @@ private fun ToolsTab(onAction: (MainAction) -> Unit, onNavigate: (MainDestinatio
             QuickTool(stringResource(R.string.tool_backup), R.drawable.ic_backup_24dp) { onNavigate(MainDestination.BackupRestore) }
             QuickTool(stringResource(R.string.nav_settings), R.drawable.ic_settings_24dp) { onNavigate(MainDestination.Settings) }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuickTool(stringResource(R.string.tool_host_to_ip), R.drawable.ic_dns_24dp) { onNavigate(MainDestination.HostToIp) }
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
+        }
     }
 }
 

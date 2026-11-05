@@ -146,6 +146,10 @@
             android:name=".ui.connlog.ConnLogActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.tools.HostToIpActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateUnchanged|adjustResize" />
+        <activity
             android:name=".ui.routing.RoutingSettingActivity"
             android:exported="false" />
         <activity
