@@ -39,6 +39,15 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.ui.compose.cassanovaAccent
+import com.v2ray.ang.ui.compose.BrandGold
+import com.v2ray.ang.ui.compose.OnBrandGold
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.ui.base.BaseComponentActivity
@@ -194,7 +203,9 @@ fun LogcatScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.loadLogcat() },
-                modifier = Modifier.navigationBarsPadding()
+                modifier = Modifier.navigationBarsPadding(),
+                containerColor = cassanovaAccent(),
+                contentColor = if (cassanovaAccent() == BrandGold) OnBrandGold else Color.White
             ) {
                 Icon(
                     painterResource(R.drawable.ic_restore_24dp),
@@ -217,7 +228,6 @@ fun LogcatScreen(
             ) {
                 items(items = logs, key = { it.key }) { log ->
                     LogcatItem(log = log.text, onLongClick = { Utils.setClipboard(context, log.text) })
-                    ItemDivider()
                 }
             }
         }
@@ -239,13 +249,25 @@ private fun LogcatItem(log: String, onLongClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 3.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .combinedClickable(onClick = {}, onLongClick = onLongClick)
-            .padding(8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Text(text = tag, style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = tag,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = cassanovaAccent()
+        )
         if (content.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = content, style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = content,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

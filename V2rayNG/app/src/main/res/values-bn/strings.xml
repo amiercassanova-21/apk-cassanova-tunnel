@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">রিফ্রেশ করতে নিচে টানুন!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">v2rayNG সার্ভিস</string>
+    <string name="notification_channel_service">Cassanova Tunnel সার্ভিস</string>
     <string name="notification_channel_subscription_updates">সাবস্ক্রিপশন আপডেট</string>
     <string name="notification_channel_connection_checks">সংযোগ পরীক্ষা</string>
     <string name="notification_action_stop_v2ray">বন্ধ করুন</string>
@@ -491,11 +491,7 @@
         <item>ডার্ক</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">চায়না হোয়াইটলিস্ট</string>
-    <string name="routing_preset_china_blacklist">চায়না ব্ল্যাকলিস্ট</string>
     <string name="routing_preset_global">গ্লোবাল</string>
-    <string name="routing_preset_iran_whitelist">ইরান হোয়াইটলিস্ট</string>
-    <string name="routing_preset_russia_whitelist">রাশিয়া হোয়াইটলিস্ট</string>
 
     <string-array name="vpn_bypass_lan">
         <item>কনফিগ অনুসরণ করুন</item>

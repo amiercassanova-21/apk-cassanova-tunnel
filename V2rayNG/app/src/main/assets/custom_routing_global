@@ -1,26 +1,26 @@
 [
   {
-    "remarks": "阻断udp443",
+    "remarks": "Blokir UDP 443",
     "outboundTag": "block",
     "port": "443",
     "network": "udp"
   },
   {
-    "remarks": "绕过局域网IP",
+    "remarks": "Bypass IP LAN",
     "outboundTag": "direct",
     "ip": [
       "geoip:private"
     ]
   },
   {
-    "remarks": "绕过局域网域名",
+    "remarks": "Bypass domain LAN",
     "outboundTag": "direct",
     "domain": [
       "geosite:private"
     ]
   },
   {
-    "remarks": "最终代理",
+    "remarks": "Semua lewat proxy",
     "port": "0-65535",
     "outboundTag": "proxy"
   }

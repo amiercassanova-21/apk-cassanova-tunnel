@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">Yeniləmək üçün aşağı çəkin!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">v2rayNG xidməti</string>
+    <string name="notification_channel_service">Cassanova Tunnel xidməti</string>
     <string name="notification_channel_subscription_updates">Abunəlik yenilənmələri</string>
     <string name="notification_channel_connection_checks">Bağlantı yoxlamaları</string>
     <string name="notification_action_stop_v2ray">Dayandır</string>
@@ -491,11 +491,7 @@
         <item>Qaranlıq</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">Çin Ağ Siyahısı</string>
-    <string name="routing_preset_china_blacklist">Çin Qara Siyahısı</string>
     <string name="routing_preset_global">Qlobal</string>
-    <string name="routing_preset_iran_whitelist">İran Ağ Siyahısı</string>
-    <string name="routing_preset_russia_whitelist">Rusiya Ağ Siyahısı</string>
 
     <string-array name="vpn_bypass_lan">
         <item>Konfiqurasiyaya uyğunlaş</item>

@@ -21,6 +21,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.dp
 import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreNativeManager
@@ -28,7 +31,7 @@ import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.SettingsMenuItem
-import com.v2ray.ang.ui.compose.SettingsSwitchItem
+import com.v2ray.ang.ui.compose.CassanovaCard
 import com.v2ray.ang.ui.compose.VersionInfoBlock
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.Utils
@@ -58,12 +61,12 @@ fun CheckUpdateScreen(
     val context = LocalContext.current
 
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-    val checkPreRelease by viewModel.checkPreRelease.collectAsStateWithLifecycle()
     val showUpdateDialog by viewModel.showUpdateDialog.collectAsStateWithLifecycle()
     val updateResult by viewModel.updateResult.collectAsStateWithLifecycle()
 
     val libVersion = CoreNativeManager.getLibVersion()
-    val versionText = "v${BuildConfig.VERSION_NAME} ($libVersion)"
+    val versionText = stringResource(R.string.about_build_line, BuildConfig.VERSION_NAME, BuildConfig.CASSANOVA_BUILD) +
+        " · " + stringResource(R.string.about_core_line, libVersion)
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -81,17 +84,15 @@ fun CheckUpdateScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {
-            SettingsSwitchItem(
-                icon = painterResource(R.drawable.ic_source_code_24dp),
-                title = stringResource(R.string.update_check_pre_release),
-                checked = checkPreRelease,
-                onCheckedChange = { viewModel.toggleCheckPreRelease(it) }
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_check_update_24dp),
-                title = stringResource(R.string.update_check_for_update),
-                onClick = { viewModel.checkForUpdates() }
-            )
+            Spacer(Modifier.height(8.dp))
+            CassanovaCard {
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_check_update_24dp),
+                    title = stringResource(R.string.update_check_for_update),
+                    subtitle = stringResource(R.string.update_source_cassanova),
+                    onClick = { viewModel.checkForUpdates() }
+                )
+            }
             VersionInfoBlock(versionText = versionText)
             NavigationBarsSpacer()
         }

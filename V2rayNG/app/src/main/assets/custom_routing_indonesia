@@ -1,0 +1,76 @@
+[
+  {
+    "remarks": "Blokir UDP 443",
+    "enabled": false,
+    "outboundTag": "block",
+    "port": "443",
+    "network": "udp"
+  },
+  {
+    "remarks": "Blokir iklan",
+    "enabled": false,
+    "outboundTag": "block",
+    "domain": [
+      "geosite:category-ads-all"
+    ]
+  },
+  {
+    "remarks": "Bypass IP LAN",
+    "outboundTag": "direct",
+    "ip": [
+      "geoip:private"
+    ]
+  },
+  {
+    "remarks": "Bypass domain LAN",
+    "outboundTag": "direct",
+    "domain": [
+      "geosite:private"
+    ]
+  },
+  {
+    "remarks": "Langsung: domain .id",
+    "outboundTag": "direct",
+    "domain": [
+      "domain:id"
+    ]
+  },
+  {
+    "remarks": "Langsung: situs & aplikasi Indonesia",
+    "outboundTag": "direct",
+    "domain": [
+      "domain:tokopedia.com",
+      "domain:tokopedia.net",
+      "domain:bukalapak.com",
+      "domain:blibli.com",
+      "domain:lazada.co.id",
+      "domain:gojek.com",
+      "domain:gojekapi.com",
+      "domain:traveloka.com",
+      "domain:tiket.com",
+      "domain:detik.com",
+      "domain:detik.net",
+      "domain:kompas.com",
+      "domain:tribunnews.com",
+      "domain:liputan6.com",
+      "domain:cnnindonesia.com",
+      "domain:okezone.com",
+      "domain:kumparan.com",
+      "domain:idntimes.com",
+      "domain:vidio.com",
+      "domain:rctiplus.com"
+    ]
+  },
+  {
+    "remarks": "Langsung: IP Indonesia",
+    "outboundTag": "direct",
+    "ip": [
+      "geoip:id"
+    ]
+  },
+  {
+    "remarks": "Sisanya lewat proxy",
+    "port": "0-65535",
+    "outboundTag": "proxy"
+  }
+]

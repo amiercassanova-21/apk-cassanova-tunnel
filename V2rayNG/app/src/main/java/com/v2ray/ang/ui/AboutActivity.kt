@@ -27,6 +27,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
@@ -35,7 +42,7 @@ import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.SettingsMenuItem
-import com.v2ray.ang.ui.compose.VersionInfoBlock
+import com.v2ray.ang.ui.compose.CassanovaCard
 import com.v2ray.ang.util.Utils
 
 class AboutActivity : BaseComponentActivity() {
@@ -64,7 +71,6 @@ fun AboutScreen(
     var showOssDialog by remember { mutableStateOf(false) }
 
     val libVersion = CoreNativeManager.getLibVersion()
-    val versionText = "v${BuildConfig.VERSION_NAME} ($libVersion)"
     val appIdText = BuildConfig.APPLICATION_ID
 
     Scaffold(
@@ -81,42 +87,79 @@ fun AboutScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp)
         ) {
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_source_code_24dp),
-                title = stringResource(R.string.title_source_code),
-                onClick = { Utils.openUri(context, AppConfig.APP_URL) }
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.license_24px),
-                title = stringResource(R.string.title_oss_license),
-                onClick = { showOssDialog = true }
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_translate_24dp),
-                title = stringResource(R.string.title_translators),
-                onClick = onTranslatorsClick
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_feedback_24dp),
-                title = stringResource(R.string.title_pref_feedback),
-                onClick = { Utils.openUri(context, AppConfig.APP_ISSUES_URL) }
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_telegram_24dp),
-                title = stringResource(R.string.title_tg_channel),
-                onClick = { Utils.openUri(context, AppConfig.TG_CHANNEL_URL) }
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_privacy_24dp),
-                title = stringResource(R.string.title_privacy_policy),
-                onClick = { Utils.openUri(context, AppConfig.APP_PRIVACY_POLICY) }
-            )
-            VersionInfoBlock(
-                versionText = versionText,
-                appIdText = appIdText
-            )
-            NavigationBarsSpacer()
+            // Identity card: logo, name, version and core.
+            CassanovaCard {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Image(
+                        painter = painterResource(R.mipmap.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier = Modifier.size(72.dp)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(R.string.about_build_line, BuildConfig.VERSION_NAME, BuildConfig.CASSANOVA_BUILD),
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = stringResource(R.string.about_core_line, libVersion),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = appIdText,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            CassanovaCard(title = stringResource(R.string.about_contact)) {
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_telegram_24dp),
+                    title = stringResource(R.string.about_telegram_title),
+                    subtitle = stringResource(R.string.about_telegram_handle),
+                    onClick = { Utils.openUri(context, AppConfig.TG_CONTACT_URL) }
+                )
+            }
+            CassanovaCard(title = stringResource(R.string.about_info)) {
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_source_code_24dp),
+                    title = stringResource(R.string.title_source_code),
+                    onClick = { Utils.openUri(context, AppConfig.APP_URL) }
+                )
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.license_24px),
+                    title = stringResource(R.string.title_oss_license),
+                    onClick = { showOssDialog = true }
+                )
+            }
+            CassanovaCard(title = stringResource(R.string.about_credits)) {
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_about_24dp),
+                    title = stringResource(R.string.about_based_on),
+                    subtitle = stringResource(R.string.about_based_on_desc),
+                    onClick = { Utils.openUri(context, AppConfig.UPSTREAM_URL) }
+                )
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_translate_24dp),
+                    title = stringResource(R.string.title_translators),
+                    onClick = onTranslatorsClick
+                )
+            }
+            NavigationBarsSpacer(Modifier.padding(bottom = 16.dp))
         }
     }
 

@@ -413,11 +413,7 @@
     <string name="action_close">Tutup</string>
     <string name="share_subscription_qrcode">Kode QR</string>
     <string name="share_subscription_clipboard">Ekspor ke papan klip</string>
-    <string name="routing_preset_china_whitelist">Whitelist Tiongkok</string>
-    <string name="routing_preset_china_blacklist">Blacklist Tiongkok</string>
     <string name="routing_preset_global">Global</string>
-    <string name="routing_preset_iran_whitelist">Whitelist Iran</string>
-    <string name="routing_preset_russia_whitelist">Whitelist Rusia</string>
     <string name="backup_location_local">Lokal</string>
     <string name="acc_refresh">Segarkan log</string>
     <string name="toast_permission_denied_for">Izin %1$s ditolak</string>
@@ -544,7 +540,6 @@
         <item>Gaya C — dasbor terang</item>
     </string-array>
     <string name="settings_version_style">Versi %1$s · %2$s</string>
-    <string name="drawer_tagline">SSH · Xray · Hysteria2 · SlowDNS</string>
     <string name="drawer_section_main">Menu utama</string>
     <string name="drawer_section_other">Lainnya</string>
     <string name="config_count_groups">%1$d config · %2$d grup</string>
@@ -564,4 +559,17 @@
     <string name="home_see_all">Lihat semua</string>
     <string name="home_choose_protocol">Pilih protokol</string>
     <string name="acc_close_search">Tutup pencarian</string>
+    <string name="about_build_line">Versi %1$s · build %2$d</string>
+    <string name="about_core_line">Core: %1$s</string>
+    <string name="about_contact">Kontak</string>
+    <string name="about_telegram_title">Hubungi via Telegram</string>
+    <string name="about_info">Informasi</string>
+    <string name="about_credits">Kredit</string>
+    <string name="about_based_on">Berbasis v2rayNG</string>
+    <string name="about_based_on_desc">oleh 2dust · lisensi GPL-3.0</string>
+    <string name="update_source_cassanova">Mengecek rilis Cassanova Tunnel di GitHub</string>
+    <string name="routing_preset_cassanova_default">Default Cassanova</string>
+    <string name="routing_preset_indonesia">Indonesia (situs lokal langsung)</string>
+    <string name="backup_section_local">Di perangkat ini</string>
+    <string name="backup_section_cloud">Cloud (WebDAV)</string>
 </resources>

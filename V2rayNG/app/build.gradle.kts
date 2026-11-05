@@ -50,6 +50,9 @@ android {
             ""
         }
         buildConfigField("String", "LOCK_KEY", "\"$maskedLockKey\"")
+        // Cassanova build number (CI run number, from -PcassanovaBuild); 0 for local builds.
+        val cassanovaBuild = (project.findProperty("cassanovaBuild") as String?)?.trim()?.toIntOrNull() ?: 0
+        buildConfigField("int", "CASSANOVA_BUILD", "$cassanovaBuild")
     }
 
     buildTypes {

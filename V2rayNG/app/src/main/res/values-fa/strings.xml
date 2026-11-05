@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">برای بروزرسانی، صفحه را به پایین بکشید!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">سرویس v2rayNG</string>
+    <string name="notification_channel_service">سرویس Cassanova Tunnel</string>
     <string name="notification_channel_subscription_updates">به‌روزرسانی اشتراک‌ها</string>
     <string name="notification_channel_connection_checks">بررسی اتصال</string>
     <string name="notification_action_stop_v2ray">توقف</string>
@@ -491,11 +491,7 @@
         <item>تاریک</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">لیست سفید چین ( دور زدن سرزمین اصلی )</string>
-    <string name="routing_preset_china_blacklist">لیست سیاه چین</string>
     <string name="routing_preset_global">جهانی (Global)</string>
-    <string name="routing_preset_iran_whitelist">فهرست سفید ایران</string>
-    <string name="routing_preset_russia_whitelist">لیست سفید روسیه</string>
 
     <string-array name="vpn_bypass_lan">
         <item>پیش فرض کانفیگ</item>

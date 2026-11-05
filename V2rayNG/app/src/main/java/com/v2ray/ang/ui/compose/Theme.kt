@@ -244,12 +244,15 @@ fun AppTheme(
     val snackbarController = rememberAppSnackbarController()
 
     val view = LocalView.current
+    // Style C puts a blue header under the status bar on every screen, so its icons stay light.
+    val uiStyleForBars by ThemeManager.uiStyle.collectAsState()
+    val lightBarIcons = darkTheme || uiStyleForBars == ThemeManager.STYLE_C
     if (!view.isInEditMode) {
         SideEffect {
             val activity = view.context as? Activity ?: return@SideEffect
             val window = activity.window
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightStatusBars = !lightBarIcons
                 isAppearanceLightNavigationBars = !darkTheme
             }
         }

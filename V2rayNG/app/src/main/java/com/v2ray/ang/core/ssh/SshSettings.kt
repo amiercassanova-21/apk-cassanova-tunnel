@@ -61,3 +61,17 @@ fun SshSettings.validate(): SshConfigError? = when {
 
     else -> null
 }
+
+/**
+ * Host and port a TCP ping of an SSH profile should reach: the payload proxy when one is set,
+ * else the SSH server. Null for SlowDNS, which talks UDP DNS and has no TCP endpoint to time.
+ */
+fun sshTcpTarget(profile: com.v2ray.ang.dto.entities.ProfileItem): Pair<String, Int>? {
+    if (SshMode.from(profile.sshMode) == SshMode.SLOWDNS) return null
+    val proxyHost = profile.sshProxyHost?.trim().orEmpty()
+    val proxyPort = profile.sshProxyPort?.trim()?.toIntOrNull()
+    if (proxyHost.isNotEmpty() && proxyPort != null) return proxyHost to proxyPort
+    val host = profile.server?.trim().orEmpty()
+    val port = profile.serverPort?.trim()?.toIntOrNull() ?: 22
+    return if (host.isEmpty()) null else host to port
+}

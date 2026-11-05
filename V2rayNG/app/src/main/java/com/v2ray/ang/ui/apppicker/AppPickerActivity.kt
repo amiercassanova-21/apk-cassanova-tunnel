@@ -197,7 +197,6 @@ fun AppPickerScreen(
                     checked = checked,
                     onCheckedChange = { onToggleApp(app.packageName) }
                 )
-                ItemDivider()
             }
         }
     }

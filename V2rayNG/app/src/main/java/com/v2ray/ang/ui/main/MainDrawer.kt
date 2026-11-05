@@ -34,16 +34,11 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.v2ray.ang.R
-import com.v2ray.ang.ui.compose.BrandBlue
 import com.v2ray.ang.ui.compose.BrandGold
-import com.v2ray.ang.ui.compose.BrandGoldDeep
-import com.v2ray.ang.ui.compose.BrandNavy
 import com.v2ray.ang.ui.compose.sectionTitleColor
 import com.v2ray.ang.ui.compose.verticalScrollbar
 
@@ -53,7 +48,6 @@ enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRe
     Routing(R.drawable.ic_routing_24dp, R.string.routing_settings_title),
     UserAssets(R.drawable.ic_file_24dp, R.string.title_user_asset_setting),
     Settings(R.drawable.ic_settings_24dp, R.string.title_settings),
-    Promotion(R.drawable.ic_promotion_24dp, R.string.title_pref_promotion),
     Logcat(R.drawable.ic_logcat_24dp, R.string.title_logcat),
     CheckUpdate(R.drawable.ic_check_update_24dp, R.string.update_check_for_update),
     BackupRestore(R.drawable.ic_restore_24dp, R.string.title_configuration_backup_restore),
@@ -69,7 +63,6 @@ private val primaryDrawerItems = listOf(
 )
 
 private val drawerItems = primaryDrawerItems + listOf(
-    MainDestination.Promotion,
     MainDestination.Logcat,
     MainDestination.CheckUpdate,
     MainDestination.BackupRestore,
@@ -91,32 +84,24 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                 .verticalScroll(drawerScrollState)
                 .verticalScrollbar(drawerScrollState)
         ) {
-            // Cassanova header: gold-to-blue gradient with the logo and the protocol line.
+            // Header: the logo centred on the plain drawer background.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(bottomEnd = 28.dp))
-                    .background(Brush.linearGradient(listOf(BrandGold, BrandGoldDeep, BrandBlue, BrandNavy)))
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 22.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(top = 24.dp, bottom = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Image(
                     painter = painterResource(R.mipmap.ic_launcher_foreground),
                     contentDescription = null,
-                    modifier = Modifier.size(84.dp)
+                    modifier = Modifier.size(120.dp)
                 )
                 Text(
                     text = stringResource(R.string.app_name),
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
-                )
-                Text(
-                    text = stringResource(R.string.drawer_tagline),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFE6ECFF)
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.onSurface
                 )
             }
             Spacer(Modifier.height(12.dp))

@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">سی وانۊ کردن، بلگه ن بلم بکشین!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">سرویس v2rayNG</string>
+    <string name="notification_channel_service">سرویس Cassanova Tunnel</string>
     <string name="notification_channel_subscription_updates">ورۊ کردن اشتراکا</string>
     <string name="notification_channel_connection_checks">واجۊری منپیز</string>
     <string name="notification_action_stop_v2ray">واڌاشتن</string>
@@ -491,11 +491,7 @@
         <item>تاریک</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">نومگه اسبؽڌ چین</string>
-    <string name="routing_preset_china_blacklist">نومگه شه چین</string>
     <string name="routing_preset_global">جهۊوی (Global)</string>
-    <string name="routing_preset_iran_whitelist">نومگه اسبؽڌ ایران</string>
-    <string name="routing_preset_russia_whitelist">نومگه اسبؽڌ رۊسیه</string>
 
     <string-array name="vpn_bypass_lan">
         <item>پؽش فرز کانفیگ</item>

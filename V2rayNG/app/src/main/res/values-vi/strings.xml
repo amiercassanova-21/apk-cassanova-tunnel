@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">Kéo xuống để làm mới!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">Dịch vụ v2rayNG</string>
+    <string name="notification_channel_service">Dịch vụ Cassanova Tunnel</string>
     <string name="notification_channel_subscription_updates">Cập nhật gói đăng ký</string>
     <string name="notification_channel_connection_checks">Kiểm tra kết nối</string>
     <string name="notification_action_stop_v2ray">Ngắt kết nối v2rayNG</string>
@@ -489,11 +489,7 @@
         <item>Tối</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">Danh sách trắng Trung Quốc</string>
-    <string name="routing_preset_china_blacklist">Danh sách đen Trung Quốc</string>
     <string name="routing_preset_global">Toàn cầu</string>
-    <string name="routing_preset_iran_whitelist">Danh sách trắng Iran</string>
-    <string name="routing_preset_russia_whitelist">Danh sách trắng Nga</string>
 
     <string-array name="vpn_bypass_lan">
         <item>Theo cấu hình</item>

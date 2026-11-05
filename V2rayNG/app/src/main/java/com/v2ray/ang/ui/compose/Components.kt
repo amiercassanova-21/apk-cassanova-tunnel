@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.graphics.Brush
@@ -43,6 +44,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -78,14 +82,30 @@ fun AppTopBar(
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    // Cassanova identity per UI style: A navy bar with a gold line, C blue bar with rounded
+    // corners, B the neutral bar with the gold-to-blue line.
+    val style by ThemeManager.uiStyle.collectAsState()
+    val colors = MaterialTheme.colorScheme
+    val branded = style != ThemeManager.STYLE_B
+    val contentColor = if (branded) Color.White else colors.onSurface
+    val navColor = if (style == ThemeManager.STYLE_A) BrandGold else contentColor
+    val barModifier = when (style) {
+        ThemeManager.STYLE_A -> Modifier.background(Brush.horizontalGradient(listOf(BrandNavy, Color(0xFF1E2A66))))
+        ThemeManager.STYLE_C -> Modifier
+            .clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
+            .background(BrandBlue)
+        else -> Modifier.background(colors.surfaceContainerLow)
+    }
     Column {
         TopAppBar(
+            modifier = barModifier,
             title = {
                 if (isSearchActive) {
                     SearchInputField(
                         query = searchQuery,
                         onQueryChange = onSearchQueryChange,
-                        placeholder = searchPlaceholder
+                        placeholder = searchPlaceholder,
+                        textColor = contentColor
                     )
                 } else {
                     Text(text = title, style = MaterialTheme.typography.titleLarge)
@@ -105,19 +125,20 @@ fun AppTopBar(
             },
             actions = actions,
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                containerColor = Color.Transparent,
+                titleContentColor = contentColor,
+                navigationIconContentColor = navColor,
+                actionIconContentColor = contentColor
             )
         )
-        // Cassanova identity: gold-to-blue accent line under every top bar.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.dp)
-                .background(Brush.horizontalGradient(listOf(BrandGold, BrandBlue)))
-        )
+        if (style != ThemeManager.STYLE_C) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (style == ThemeManager.STYLE_A) 3.dp else 2.dp)
+                    .background(Brush.horizontalGradient(listOf(BrandGold, BrandBlue)))
+            )
+        }
         AnimatedVisibility(
             visible = isLoading,
             enter = expandVertically(),
@@ -132,7 +153,8 @@ fun AppTopBar(
 private fun SearchInputField(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String?
+    placeholder: String?,
+    textColor: Color
 ) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -141,14 +163,14 @@ private fun SearchInputField(
             value = query,
             onValueChange = onQueryChange,
             singleLine = true,
-            textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp),
-            placeholder = { if (placeholder != null) Text(placeholder, style = TextStyle(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)) },
+            textStyle = TextStyle(color = textColor, fontSize = 16.sp),
+            placeholder = { if (placeholder != null) Text(placeholder, style = TextStyle(color = textColor.copy(alpha = 0.7f), fontSize = 16.sp)) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
-                cursorColor = MaterialTheme.colorScheme.secondary,
+                cursorColor = textColor,
                 selectionColors = TextSelectionColors(
                     handleColor = MaterialTheme.colorScheme.secondary,
                     backgroundColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
@@ -180,8 +202,11 @@ fun AppListItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val model = remember(icon, packageName) {
@@ -224,9 +249,16 @@ fun AppListItem(
         Checkbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.secondary)
+            colors = CheckboxDefaults.colors(checkedColor = cassanovaAccent(), checkmarkColor = if (cassanovaAccent() == BrandGold) OnBrandGold else Color.White)
         )
     }
+}
+
+/** Accent of the current style: gold for A and B, brand blue (primary) for C. */
+@Composable
+fun cassanovaAccent(): Color {
+    val style by ThemeManager.uiStyle.collectAsState()
+    return if (style == ThemeManager.STYLE_C) MaterialTheme.colorScheme.primary else BrandGold
 }
 
 @Composable
@@ -288,6 +320,7 @@ fun ReorderableCollectionItemScope.reorderableDragHandle(): Modifier {
     )
 }
 
+/** A Cassanova card row that can be dragged (long press) to reorder. */
 @Composable
 fun ReorderableListItem(
     scope: ReorderableCollectionItemScope,
@@ -295,14 +328,21 @@ fun ReorderableListItem(
     content: @Composable RowScope.() -> Unit
 ) {
     val elevation by reorderableElevation(isDragging)
+    val shape = RoundedCornerShape(16.dp)
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 5.dp),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = elevation
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(with(scope) { reorderableDragHandle() }),
+                .then(with(scope) { reorderableDragHandle() })
+                .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             content = content
         )

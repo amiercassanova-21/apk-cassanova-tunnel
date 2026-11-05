@@ -14,12 +14,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object UpdateCheckerManager {
+    /**
+     * Checks the Cassanova releases (tags `build-N`, all published as pre-releases) and reports an
+     * update when the newest build number is above [BuildConfig.CASSANOVA_BUILD]. The pre-release
+     * switch is kept for compatibility but every Cassanova build is a pre-release, so all count.
+     */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun checkForUpdate(includePreRelease: Boolean = false): CheckUpdateResult = withContext(Dispatchers.IO) {
-        val url = if (includePreRelease) {
-            AppConfig.APP_API_URL
-        } else {
-            AppConfig.APP_API_URL.concatUrl("latest")
-        }
+        val url = AppConfig.APP_API_URL
 
         val proxyUsername = SettingsManager.getSocksUsername()
         val proxyPassword = SettingsManager.getSocksPassword()
@@ -44,63 +46,45 @@ object UpdateCheckerManager {
                 ?: throw IllegalStateException("Failed to get response")
         }
 
-        val latestRelease = if (includePreRelease) {
-            JsonUtil.fromJsonSafe(response, Array<GitHubRelease>::class.java)
-                ?.firstOrNull()
-                ?: throw IllegalStateException("No pre-release found")
-        } else {
-            JsonUtil.fromJsonSafe(response, GitHubRelease::class.java)
-        }
-        if (latestRelease == null) {
-            return@withContext CheckUpdateResult(hasUpdate = false)
-        }
+        val releases = JsonUtil.fromJsonSafe(response, Array<GitHubRelease>::class.java)?.toList()
+            ?: throw IllegalStateException("No release list")
+        val latest = newestBuild(releases) ?: return@withContext CheckUpdateResult(hasUpdate = false)
+        val latestNumber = buildNumber(latest.tagName) ?: 0
+        LogUtil.i(AppConfig.TAG, "Latest Cassanova build: $latestNumber (current: ${BuildConfig.CASSANOVA_BUILD})")
 
-        val latestVersion = latestRelease.tagName.removePrefix("v")
-        LogUtil.i(
-            AppConfig.TAG,
-            "Found new version: $latestVersion (current: ${BuildConfig.VERSION_NAME})"
-        )
-
-        return@withContext if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) > 0) {
-            val downloadUrl = getDownloadUrl(latestRelease, Build.SUPPORTED_ABIS[0])
+        return@withContext if (isNewer(latestNumber, BuildConfig.CASSANOVA_BUILD)) {
             CheckUpdateResult(
                 hasUpdate = true,
-                latestVersion = latestVersion,
-                releaseNotes = latestRelease.body,
-                downloadUrl = downloadUrl,
-                isPreRelease = latestRelease.prerelease
+                latestVersion = latest.tagName,
+                releaseNotes = latest.body,
+                downloadUrl = downloadUrlFor(latest, Build.SUPPORTED_ABIS.toList())
+                    ?: throw IllegalStateException("No compatible APK found"),
+                isPreRelease = latest.prerelease
             )
         } else {
             CheckUpdateResult(hasUpdate = false)
         }
     }
 
-    private fun compareVersions(version1: String, version2: String): Int {
-        val v1 = version1.split(".")
-        val v2 = version2.split(".")
-
-        for (i in 0 until maxOf(v1.size, v2.size)) {
-            val num1 = if (i < v1.size) v1[i].toInt() else 0
-            val num2 = if (i < v2.size) v2[i].toInt() else 0
-            if (num1 != num2) return num1 - num2
-        }
-        return 0
+    /** `build-12` → 12; null for any other tag. */
+    fun buildNumber(tag: String): Int? {
+        val t = tag.trim()
+        return if (t.startsWith("build-")) t.removePrefix("build-").toIntOrNull() else null
     }
 
-    private fun getDownloadUrl(release: GitHubRelease, abi: String): String {
-        val fDroid = "fdroid"
+    /** The release with the highest build number, ignoring tags that are not `build-N`. */
+    fun newestBuild(releases: List<GitHubRelease>): GitHubRelease? =
+        releases.filter { buildNumber(it.tagName) != null }.maxByOrNull { buildNumber(it.tagName) ?: 0 }
 
-        val assetsByAbi = release.assets.filter {
-            (it.name.contains(abi, true))
+    /** A local build without a number (0) never asks to update, so test builds are not nagged. */
+    fun isNewer(latest: Int, current: Int): Boolean = current > 0 && latest > current
+
+    /** The APK for the first supported ABI that has one, else the universal APK. */
+    fun downloadUrlFor(release: GitHubRelease, abis: List<String>): String? {
+        val apks = release.assets.filter { it.name.endsWith(".apk", ignoreCase = true) }
+        abis.forEach { abi ->
+            apks.firstOrNull { it.name.contains(abi, ignoreCase = true) }?.let { return it.browserDownloadUrl }
         }
-
-        val asset = if (BuildConfig.APPLICATION_ID.contains(fDroid, ignoreCase = true)) {
-            assetsByAbi.firstOrNull { it.name.contains(fDroid) }
-        } else {
-            assetsByAbi.firstOrNull { !it.name.contains(fDroid) }
-        }
-
-        return asset?.browserDownloadUrl
-            ?: throw IllegalStateException("No compatible APK found")
+        return apks.firstOrNull { it.name.contains("universal", ignoreCase = true) }?.browserDownloadUrl
     }
 }

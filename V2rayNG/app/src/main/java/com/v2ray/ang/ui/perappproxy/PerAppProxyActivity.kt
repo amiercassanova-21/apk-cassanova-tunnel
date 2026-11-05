@@ -39,6 +39,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.v2ray.ang.ui.compose.cassanovaSwitchColors
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.AppInfo
 import com.v2ray.ang.extension.toastSuccess
@@ -196,8 +199,12 @@ fun PerAppProxyScreen(
                 .padding(innerPadding)
         ) {
             Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Row(
                     modifier = Modifier
@@ -220,10 +227,7 @@ fun PerAppProxyScreen(
                             checked = perAppProxyEnabled,
                             modifier = Modifier.scale(0.65f),
                             onCheckedChange = onPerAppProxyChanged,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
-                                checkedTrackColor = MaterialTheme.colorScheme.secondary
-                            )
+                            colors = cassanovaSwitchColors()
                         )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
@@ -241,10 +245,7 @@ fun PerAppProxyScreen(
                             checked = bypassApps,
                             modifier = Modifier.scale(0.65f),
                             onCheckedChange = onBypassAppsChanged,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
-                                checkedTrackColor = MaterialTheme.colorScheme.secondary
-                            )
+                            colors = cassanovaSwitchColors()
                         )
                     }
                     IconButton(onClick = onInfoClick) {
@@ -256,7 +257,6 @@ fun PerAppProxyScreen(
                     }
                 }
             }
-            AppDivider()
 
             LazyColumn(
                 state = listState,
@@ -274,7 +274,6 @@ fun PerAppProxyScreen(
                         checked = checked,
                         onCheckedChange = { onToggleApp(app.packageName) }
                     )
-                    ItemDivider()
                 }
             }
         }

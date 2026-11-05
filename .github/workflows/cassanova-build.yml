@@ -186,7 +186,8 @@ jobs:
           -Pandroid.injected.signing.store.password=$SIGN_STORE_PASS \
           -Pandroid.injected.signing.key.alias=$SIGN_ALIAS \
           -Pandroid.injected.signing.key.password=$SIGN_KEY_PASS \
-          -PcassanovaLockKey=$LOCK_KEY
+          -PcassanovaLockKey=$LOCK_KEY \
+          -PcassanovaBuild=${{ github.run_number }}
 
     - name: Verify APK contents
       run: |

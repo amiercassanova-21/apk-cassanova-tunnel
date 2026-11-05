@@ -43,6 +43,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.ui.compose.PreferenceGroupHeader
+import com.v2ray.ang.ui.compose.CassanovaCard
+import com.v2ray.ang.ui.compose.cassanovaSwitchColors
+import com.v2ray.ang.ui.compose.BrandGold
+import com.v2ray.ang.ui.compose.LocalDarkTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.RulesetItem
 import com.v2ray.ang.enums.RoutingType
@@ -78,11 +88,9 @@ private enum class RoutingMenuAction(@StringRes val labelRes: Int) {
 }
 
 private enum class RoutingPreset(val type: RoutingType, @StringRes val labelRes: Int) {
-    ChinaWhitelist(RoutingType.WHITE, R.string.routing_preset_china_whitelist),
-    ChinaBlacklist(RoutingType.BLACK, R.string.routing_preset_china_blacklist),
+    CassanovaDefault(RoutingType.WHITE, R.string.routing_preset_cassanova_default),
     Global(RoutingType.GLOBAL, R.string.routing_preset_global),
-    IranWhitelist(RoutingType.WHITE_IRAN, R.string.routing_preset_iran_whitelist),
-    RussiaWhitelist(RoutingType.WHITE_RUSSIA, R.string.routing_preset_russia_whitelist)
+    Indonesia(RoutingType.INDONESIA, R.string.routing_preset_indonesia)
 }
 
 class RoutingSettingActivity : HelperBaseComponentActivity() {
@@ -264,6 +272,7 @@ fun RoutingSettingScreen(
             contentPadding = NavigationBarsBottomPadding()
         ) {
             item(key = "domain_strategy") {
+                CassanovaCard(modifier = Modifier.padding(top = 8.dp)) {
                 SettingsListItem(
                     title = stringResource(R.string.routing_settings_domain_strategy),
                     entries = domainStrategies,
@@ -271,13 +280,10 @@ fun RoutingSettingScreen(
                     selectedValue = domainStrategy,
                     onSelected = { onDomainStrategySelected(it) }
                 )
+                }
             }
             item {
-                Text(
-                    text = stringResource(R.string.routing_settings_rule_title),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(16.dp)
-                )
+                PreferenceGroupHeader(stringResource(R.string.routing_settings_rule_title))
             }
 
             itemsIndexed(
@@ -298,7 +304,6 @@ fun RoutingSettingScreen(
                             }
                         )
                     }
-                    ItemDivider()
                 }
             }
         }
@@ -362,11 +367,7 @@ private fun RoutingRulesetItem(
             }
             if (!ruleset.outboundTag.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = ruleset.outboundTag,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colorConfigType
-                )
+                OutboundChip(ruleset.outboundTag)
             }
         }
 
@@ -385,11 +386,30 @@ private fun RoutingRulesetItem(
                 checked = ruleset.enabled ?: false,
                 onCheckedChange = onEnabledChange,
                 modifier = Modifier.scale(0.7f),
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
-                    checkedTrackColor = MaterialTheme.colorScheme.secondary
-                )
+                colors = cassanovaSwitchColors()
             )
         }
     }
+}
+
+/** Outbound tag as a colored chip: proxy gold, direct green, block red. */
+@Composable
+private fun OutboundChip(tag: String) {
+    val dark = LocalDarkTheme.current
+    val (bg, fg) = when (tag.lowercase()) {
+        "proxy" -> (if (dark) Color(0xFF3A2C08) else Color(0xFFFFEDC2)) to (if (dark) BrandGold else Color(0xFF6B4A00))
+        "direct" -> (if (dark) Color(0xFF13301F) else Color(0xFFCDEFD9)) to (if (dark) Color(0xFF6EE7A0) else Color(0xFF1F8A4C))
+        "block" -> (if (dark) Color(0xFF3A1414) else Color(0xFFFFE0E0)) to (if (dark) Color(0xFFFF8A8A) else Color(0xFFC62828))
+        else -> MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Text(
+        text = tag,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+        color = fg,
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(bg)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    )
 }

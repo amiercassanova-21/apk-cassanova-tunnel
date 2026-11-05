@@ -134,6 +134,45 @@ fun SettingsSection(
     }
 }
 
+/** A fixed (non-collapsible) Cassanova card with an optional section title above it. */
+@Composable
+fun CassanovaCard(
+    title: String? = null,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val style by ThemeManager.uiStyle.collectAsState()
+    val dark = LocalDarkTheme.current
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+    ) {
+        if (title != null) {
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                letterSpacing = 0.8.sp,
+                color = sectionTitleColor(),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(colors.surfaceContainer)
+                .then(
+                    if (style == ThemeManager.STYLE_C && !dark) Modifier
+                    else Modifier.border(1.dp, colors.outlineVariant, shape)
+                ),
+            content = content
+        )
+    }
+}
+
 @Composable
 private fun SectionHeaderRow(
     title: String,

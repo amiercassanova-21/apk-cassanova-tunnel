@@ -31,6 +31,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.BuildConfig
+import com.v2ray.ang.ui.compose.CassanovaCard
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.WebDavConfig
 import com.v2ray.ang.extension.toastError
@@ -217,7 +218,9 @@ fun BackupScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp)
         ) {
+            CassanovaCard(title = stringResource(R.string.backup_section_local)) {
             SettingsMenuItem(
                 icon = painterResource(R.drawable.ic_backup_24dp),
                 title = stringResource(R.string.title_configuration_backup),
@@ -239,13 +242,15 @@ fun BackupScreen(
                 subtitle = stringResource(R.string.summary_profile_storage_cleanup),
                 onClick = { showCleanupDialog = true }
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            }
+            CassanovaCard(title = stringResource(R.string.backup_section_cloud)) {
             SettingsMenuItem(
                 icon = painterResource(R.drawable.ic_settings_24dp),
                 title = stringResource(R.string.title_webdav_config_setting),
                 subtitle = webDavSummary,
                 onClick = { showWebDavDialog = true }
             )
+            }
             NavigationBarsSpacer()
         }
     }

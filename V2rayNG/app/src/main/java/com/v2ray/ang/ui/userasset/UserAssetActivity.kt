@@ -46,6 +46,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.ui.compose.PreferenceGroupHeader
+import com.v2ray.ang.ui.compose.CassanovaCard
+import com.v2ray.ang.ui.compose.cassanovaAccent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.AssetUrlCache
 import com.v2ray.ang.dto.entities.AssetUrlItem
@@ -313,20 +320,18 @@ internal fun UserAssetScreen(
             contentPadding = NavigationBarsBottomPadding()
         ) {
             item(key = "geo_source") {
-                SettingsListItem(
-                    title = stringResource(R.string.asset_geo_files_sources),
-                    entries = geoFilesSourcesList,
-                    values = geoFilesSourcesList,
-                    selectedValue = geoFilesSource,
-                    onSelected = { onGeoSourceSelected(it) }
-                )
+                CassanovaCard(modifier = Modifier.padding(top = 8.dp)) {
+                    SettingsListItem(
+                        title = stringResource(R.string.asset_geo_files_sources),
+                        entries = geoFilesSourcesList,
+                        values = geoFilesSourcesList,
+                        selectedValue = geoFilesSource,
+                        onSelected = { onGeoSourceSelected(it) }
+                    )
+                }
             }
             item {
-                Text(
-                    text = stringResource(R.string.title_user_asset_setting),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(16.dp)
-                )
+                PreferenceGroupHeader(stringResource(R.string.title_user_asset_setting))
             }
             itemsIndexed(items = uiState.assets, key = { _, item -> item.guid }) { _, item ->
                 UserAssetItem(
@@ -337,7 +342,6 @@ internal fun UserAssetScreen(
                         deleteTarget = AssetDeleteTarget(item.guid, item.assetUrl.remarks)
                     }
                 )
-                ItemDivider()
             }
         }
     }
@@ -379,9 +383,28 @@ private fun UserAssetItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+            .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_file_24dp),
+                contentDescription = null,
+                tint = cassanovaAccent(),
+                modifier = Modifier.size(20.dp)
+            )
+        }
         Column(
             modifier = Modifier
                 .weight(1f)

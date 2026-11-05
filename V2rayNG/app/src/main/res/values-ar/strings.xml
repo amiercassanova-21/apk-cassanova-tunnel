@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">اسحب لأسفل للتحديث!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">خدمة v2rayNG</string>
+    <string name="notification_channel_service">خدمة Cassanova Tunnel</string>
     <string name="notification_channel_subscription_updates">تحديثات الاشتراكات</string>
     <string name="notification_channel_connection_checks">فحوص الاتصال</string>
     <string name="notification_action_stop_v2ray">إيقاف</string>
@@ -499,11 +499,7 @@
         <item>داكن</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">القائمة البيضاء للصين</string>
-    <string name="routing_preset_china_blacklist">القائمة السوداء للصين</string>
     <string name="routing_preset_global">عالمي</string>
-    <string name="routing_preset_iran_whitelist">القائمة البيضاء لإيران</string>
-    <string name="routing_preset_russia_whitelist">القائمة البيضاء لروسيا</string>
 
     <string-array name="vpn_bypass_lan">
         <item>اتباع الإعداد</item>

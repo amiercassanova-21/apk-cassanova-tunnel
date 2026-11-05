@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">请下拉刷新!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">v2rayNG 服务</string>
+    <string name="notification_channel_service">Cassanova Tunnel 服务</string>
     <string name="notification_channel_subscription_updates">订阅更新</string>
     <string name="notification_channel_connection_checks">连接检查</string>
     <string name="notification_action_stop_v2ray">停止</string>
@@ -489,11 +489,7 @@
         <item>深色</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">绕过大陆 (Whitelist)</string>
-    <string name="routing_preset_china_blacklist">黑名单 (Blacklist)</string>
     <string name="routing_preset_global">全局 (Global)</string>
-    <string name="routing_preset_iran_whitelist">伊朗 (Iran)</string>
-    <string name="routing_preset_russia_whitelist">俄罗斯白名单 (Russia Whitelist)</string>
 
     <string-array name="vpn_bypass_lan">
         <item>跟随配置</item>

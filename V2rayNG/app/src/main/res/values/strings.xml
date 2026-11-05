@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">Please pull down to refresh!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">v2rayNG service</string>
+    <string name="notification_channel_service">Cassanova Tunnel service</string>
     <string name="notification_channel_subscription_updates">Subscription updates</string>
     <string name="notification_channel_connection_checks">Connection checks</string>
     <string name="notification_action_stop_v2ray">Stop</string>
@@ -520,11 +520,7 @@
         <item>Dark</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">China Whitelist</string>
-    <string name="routing_preset_china_blacklist">China Blacklist</string>
     <string name="routing_preset_global">Global</string>
-    <string name="routing_preset_iran_whitelist">Iran Whitelist</string>
-    <string name="routing_preset_russia_whitelist">Russia Whitelist</string>
 
     <string-array name="vpn_bypass_lan">
         <item>Follow config</item>
@@ -634,7 +630,6 @@
         <item>Style C — light dashboard</item>
     </string-array>
     <string name="settings_version_style">Version %1$s · %2$s</string>
-    <string name="drawer_tagline">SSH · Xray · Hysteria2 · SlowDNS</string>
     <string name="drawer_section_main">Main menu</string>
     <string name="drawer_section_other">Others</string>
     <string name="config_count_groups">%1$d configs · %2$d groups</string>
@@ -660,4 +655,18 @@
     <string name="ssh_mode_short_slowdns" translatable="false">SlowDNS</string>
     <string name="config_ping_none" translatable="false">— ms</string>
     <string name="acc_close_search">Close search</string>
+    <string name="about_build_line">Version %1$s · build %2$d</string>
+    <string name="about_core_line">Core: %1$s</string>
+    <string name="about_contact">Contact</string>
+    <string name="about_telegram_title">Contact on Telegram</string>
+    <string name="about_info">Information</string>
+    <string name="about_credits">Credits</string>
+    <string name="about_based_on">Based on v2rayNG</string>
+    <string name="about_based_on_desc">by 2dust · GPL-3.0 license</string>
+    <string name="about_telegram_handle" translatable="false">@kang_rebahan</string>
+    <string name="update_source_cassanova">Checks Cassanova Tunnel releases on GitHub</string>
+    <string name="routing_preset_cassanova_default">Cassanova default</string>
+    <string name="routing_preset_indonesia">Indonesia (local sites direct)</string>
+    <string name="backup_section_local">On this device</string>
+    <string name="backup_section_cloud">Cloud (WebDAV)</string>
 </resources>

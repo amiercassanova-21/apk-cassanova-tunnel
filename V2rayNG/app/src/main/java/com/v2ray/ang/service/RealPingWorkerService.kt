@@ -3,6 +3,9 @@ package com.v2ray.ang.service
 import android.content.Context
 import com.v2ray.ang.core.CoreConfigManager
 import com.v2ray.ang.core.CoreNativeManager
+import com.v2ray.ang.core.ssh.SshProbe
+import com.v2ray.ang.core.ssh.sshTcpTarget
+import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.dto.RealPingEvent
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.isComplexType
@@ -108,6 +111,10 @@ class RealPingWorkerService(
         val retFailure = -1L
 
         val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
+        // SSH runs outside Xray (and SlowDNS is UDP on port 53), so it gets its own probe.
+        if (config.configType == EConfigType.SSH) {
+            return SshProbe.measure(context, config, SettingsManager.getDelayTestUrl())
+        }
         if (!config.configType.isComplexType()
             && config.configType != EConfigType.HYSTERIA2
             && config.configType != EConfigType.WIREGUARD
@@ -136,6 +143,11 @@ class RealPingWorkerService(
         val retFailure = -1L
 
         val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
+        if (config.configType == EConfigType.SSH) {
+            return sshTcpTarget(ConfigLockManager.unlock(config))
+                ?.let { (host, port) -> SpeedtestManager.socketConnectTime(host, port, 1000) }
+                ?: retFailure
+        }
         if (!config.configType.isComplexType()
             && config.configType != EConfigType.HYSTERIA2
             && config.configType != EConfigType.WIREGUARD

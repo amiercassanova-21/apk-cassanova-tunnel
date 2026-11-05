@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">Потяните вниз для обновления!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">Служба v2rayNG</string>
+    <string name="notification_channel_service">Служба Cassanova Tunnel</string>
     <string name="notification_channel_subscription_updates">Обновления подписок</string>
     <string name="notification_channel_connection_checks">Проверки соединения</string>
     <string name="notification_action_stop_v2ray">Остановить</string>
@@ -495,11 +495,7 @@
         <item>Тёмная</item>
     </string-array>
 
-    <string name="routing_preset_china_whitelist">Белый список Китая</string>
-    <string name="routing_preset_china_blacklist">Чёрный список Китая</string>
     <string name="routing_preset_global">Общие</string>
-    <string name="routing_preset_iran_whitelist">Белый список Ирана</string>
-    <string name="routing_preset_russia_whitelist">Белый список России</string>
 
     <string-array name="vpn_bypass_lan">
         <item>Как в профиле</item>
