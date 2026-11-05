@@ -244,6 +244,7 @@ private fun HomeStyleA(
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            home.tether?.let { TetherCard(it) }
             StatsRow3D(home)
             SpeedSparkline(home.speedHistory)
         }

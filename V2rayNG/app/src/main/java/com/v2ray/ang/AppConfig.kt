@@ -95,6 +95,10 @@ object AppConfig {
     /** SSH engine: [SSH_ENGINE_NATIVE] (Go, default) or [SSH_ENGINE_JAVA] (JSch). */
     const val PREF_SSH_ENGINE = "pref_ssh_engine"
     // Auto Ping (AutoPingManager): mode, method, STUN target, interval / timeout in s, failures before reset.
+    // Proxy Tethering (TetherManager): extra SOCKS5/HTTP inbounds on all interfaces at fixed ports.
+    const val PREF_TETHER_ENABLED = "pref_tether_enabled"
+    const val PREF_TETHER_SOCKS_PORT = "pref_tether_socks_port"
+    const val PREF_TETHER_HTTP_PORT = "pref_tether_http_port"
     const val PREF_AUTOPING_MODE = "pref_autoping_mode"
     const val PREF_AUTOPING_METHOD = "pref_autoping_method"
     const val PREF_AUTOPING_TARGET = "pref_autoping_target"

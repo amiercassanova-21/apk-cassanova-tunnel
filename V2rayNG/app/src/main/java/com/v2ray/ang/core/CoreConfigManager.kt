@@ -14,6 +14,7 @@ import com.v2ray.ang.enums.BalancerStrategyType
 import com.v2ray.ang.enums.CoreResolvedType
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.isNotNullEmpty
+import com.v2ray.ang.handler.TetherManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.util.HttpUtil
@@ -573,12 +574,42 @@ object CoreConfigManager {
             v2rayConfig.inbounds.removeIf { it.protocol == "socks" || it.protocol == "http" }
         }
 
+        // Proxy Tethering: SOCKS5 + HTTP for hotspot clients on fixed ports, no login.
+        if (TetherManager.isEnabled()) {
+            v2rayConfig.inbounds.addAll(tetherInbounds(inbound1))
+        }
+
         if (needTun()) {
             val inboundTun = v2rayConfig.inbounds.firstOrNull { e -> e.tag == "tun" }
             inboundTun?.settings?.mtu = SettingsManager.getVpnMtu()
             inboundTun?.sniffing = inbound1.sniffing
         }
     }
+
+    /** The two tethering inbounds, cloned from the local SOCKS inbound (same sniffing). */
+    private fun tetherInbounds(template: V2rayConfig.InboundBean): List<V2rayConfig.InboundBean> {
+        fun clone(): V2rayConfig.InboundBean =
+            JsonUtil.fromJson(JsonUtil.toJson(template), V2rayConfig.InboundBean::class.java)
+                ?: error("Failed to clone inbound template")
+        val socks = clone().apply {
+            tag = TETHER_SOCKS_TAG
+            protocol = "socks"
+            listen = "0.0.0.0"
+            port = TetherManager.socksPort()
+            settings = V2rayConfig.InboundBean.InSettingsBean(auth = "noauth", udp = true)
+        }
+        val http = clone().apply {
+            tag = TETHER_HTTP_TAG
+            protocol = "http"
+            listen = "0.0.0.0"
+            port = TetherManager.httpPort()
+            settings = V2rayConfig.InboundBean.InSettingsBean()
+        }
+        return listOf(socks, http)
+    }
+
+    private const val TETHER_SOCKS_TAG = "tether-socks"
+    private const val TETHER_HTTP_TAG = "tether-http"
 
     /**
      * Enable fake DNS when local DNS and fake DNS are both enabled.

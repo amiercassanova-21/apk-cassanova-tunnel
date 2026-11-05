@@ -28,6 +28,7 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.handler.SpeedtestManager
+import com.v2ray.ang.handler.TetherManager
 import com.v2ray.ang.handler.TrafficTracker
 import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.service.DialerNativeService
@@ -199,6 +200,7 @@ object CoreServiceManager {
         if (!isReload) {
             TrafficTracker.markConnected()
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
+            logTetherGuide(service)
             // Auto Ping keeps running across reloads; it only (re)starts with a new connection.
             AutoPingManager.start(service) { resetConnection() }
         }
@@ -313,6 +315,20 @@ object CoreServiceManager {
      * restarted by launchCore). Called from AutoPingManager's IO coroutine, never the main thread.
      */
     fun resetConnection(): Boolean = reloadCore()
+
+    /** Proxy Tethering: how other devices reach the tunnel, like HTTP Custom's guide. */
+    private fun logTetherGuide(service: Service) {
+        if (!TetherManager.isEnabled()) return
+        val ip = TetherManager.detectAddress()
+        if (ip == null) {
+            ConnLog.warn(service.getString(R.string.connlog_tether_no_hotspot, TetherManager.socksPort(), TetherManager.httpPort()))
+            return
+        }
+        ConnLog.ok(
+            service.getString(R.string.connlog_tether_on) + "\n" +
+                TetherManager.guide(ip, TetherManager.socksPort(), TetherManager.httpPort()).joinToString("\n")
+        )
+    }
 
     /** Short protocol description for the connection log, e.g. "VLESS · ws · tls" or "SSH · slowdns". */
     private fun connLogType(config: ProfileItem): String {

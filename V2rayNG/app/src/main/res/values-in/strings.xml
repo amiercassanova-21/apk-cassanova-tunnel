@@ -628,4 +628,16 @@
         <item>STUN (UDP)</item>
         <item>HTTP</item>
     </string-array>
+    <string name="connlog_tether_on">Proxy tethering aktif. Nyalakan hotspot Wi-Fi, lalu atur proxy ini di HP lain:</string>
+    <string name="connlog_tether_no_hotspot">Proxy tethering aktif, tapi hotspot belum menyala. Nyalakan hotspot Wi-Fi; alamatnya tampil di Beranda (port SOCKS5 %1$d, HTTP %2$d).</string>
+    <string name="tether_card_title">Proxy tethering aktif</string>
+    <string name="tether_card_no_hotspot">Nyalakan hotspot Wi-Fi untuk berbagi koneksi; alamatnya muncul di sini.</string>
+    <string name="tether_copy">Salin</string>
+    <string name="tether_qr">QR</string>
+    <string name="tether_copied">Alamat proxy disalin</string>
+    <string name="title_tether">Proxy Tethering</string>
+    <string name="title_tether_enabled">Bagikan terowongan lewat hotspot</string>
+    <string name="summary_tether_enabled">HP lain memakai HP ini sebagai proxy SOCKS5/HTTP. Tanpa login: siapa pun di hotspot Anda bisa memakainya. Berlaku saat sambung berikutnya.</string>
+    <string name="title_tether_socks_port">Port SOCKS5</string>
+    <string name="title_tether_http_port">Port HTTP</string>
 </resources>

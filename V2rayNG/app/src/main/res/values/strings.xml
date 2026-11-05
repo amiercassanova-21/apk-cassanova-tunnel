@@ -725,4 +725,16 @@
         <item>STUN (UDP)</item>
         <item>HTTP</item>
     </string-array>
+    <string name="connlog_tether_on">Proxy tethering on. Turn on the Wi-Fi hotspot, then set this proxy on the other device:</string>
+    <string name="connlog_tether_no_hotspot">Proxy tethering on, but no hotspot yet. Turn on the Wi-Fi hotspot; the address shows on the home screen (SOCKS5 port %1$d, HTTP port %2$d).</string>
+    <string name="tether_card_title">Proxy tethering on</string>
+    <string name="tether_card_no_hotspot">Turn on the Wi-Fi hotspot to share the connection; the address shows here.</string>
+    <string name="tether_copy">Copy</string>
+    <string name="tether_qr">QR</string>
+    <string name="tether_copied">Proxy address copied</string>
+    <string name="title_tether">Proxy Tethering</string>
+    <string name="title_tether_enabled">Share the tunnel over the hotspot</string>
+    <string name="summary_tether_enabled">Other devices set this phone as SOCKS5/HTTP proxy. No login: anyone on your hotspot can use it. Applies on the next connect.</string>
+    <string name="title_tether_socks_port">SOCKS5 port</string>
+    <string name="title_tether_http_port">HTTP port</string>
 </resources>

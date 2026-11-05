@@ -77,6 +77,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.foundation.layout.heightIn
+import kotlinx.coroutines.launch
 import com.v2ray.ang.R
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.toTrafficString
@@ -599,3 +601,78 @@ internal fun HexChip3D(size: Dp, face: Color, side: Color, modifier: Modifier = 
 }
 
 private const val STANDARD_GRAVITY = 9.80665f
+
+// ---------- Proxy Tethering card ----------
+
+/** Shown while connected with Proxy Tethering on: the address other devices use, Copy and QR. */
+@Composable
+internal fun TetherCard(info: TetherInfo) {
+    val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var qr by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<android.graphics.Bitmap?>(null) }
+    val copiedText = stringResource(R.string.tether_copied)
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(colors.surfaceContainerHigh, colors.surfaceContainer)))
+            .border(1.dp, colors.outlineVariant, shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.tether_card_title),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = BrandGold,
+        )
+        val ip = info.ip
+        if (ip == null) {
+            Text(
+                text = stringResource(R.string.tether_card_no_hotspot),
+                fontSize = 12.sp,
+                color = colors.onSurfaceVariant,
+            )
+        } else {
+            val lines = com.v2ray.ang.handler.TetherManager.guide(ip, info.socksPort, info.httpPort)
+            Text(
+                text = lines[0] + "\n" + lines[1],
+                fontSize = 13.sp,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                color = colors.onSurface,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TetherButton(stringResource(R.string.tether_copy)) {
+                    com.v2ray.ang.util.Utils.setClipboard(context, lines.joinToString("\n"))
+                    android.widget.Toast.makeText(context, copiedText, android.widget.Toast.LENGTH_SHORT).show()
+                }
+                TetherButton(stringResource(R.string.tether_qr)) {
+                    scope.launch {
+                        qr = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            com.v2ray.ang.util.QRCodeDecoder.createQRCode(lines[2])
+                        }
+                    }
+                }
+            }
+        }
+    }
+    com.v2ray.ang.ui.compose.QRCodeDialog(bitmap = qr, onDismiss = { qr = null })
+}
+
+@Composable
+private fun TetherButton(label: String, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .heightIn(min = 40.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(colors.surfaceContainerHighest)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
+    }
+}

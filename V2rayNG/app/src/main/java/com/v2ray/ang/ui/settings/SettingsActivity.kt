@@ -34,6 +34,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.core.AutoPing
+import com.v2ray.ang.handler.TetherManager
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.AppLocaleManager
@@ -124,6 +125,10 @@ fun SettingsScreen(
     var advancedSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var modeSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var autoPingExpanded by rememberSaveable { mutableStateOf(true) }
+    var tetherExpanded by rememberSaveable { mutableStateOf(true) }
+    var tetherEnabled by rememberMmkvBool(AppConfig.PREF_TETHER_ENABLED, false)
+    var tetherSocksPort by rememberMmkvString(AppConfig.PREF_TETHER_SOCKS_PORT, TetherManager.DEFAULT_SOCKS_PORT.toString())
+    var tetherHttpPort by rememberMmkvString(AppConfig.PREF_TETHER_HTTP_PORT, TetherManager.DEFAULT_HTTP_PORT.toString())
     var autoPingMode by rememberMmkvString(AppConfig.PREF_AUTOPING_MODE, AutoPing.Mode.RESET.key)
     var autoPingMethod by rememberMmkvString(AppConfig.PREF_AUTOPING_METHOD, AutoPing.Method.STUN.key)
     var autoPingTarget by rememberMmkvString(AppConfig.PREF_AUTOPING_TARGET, AutoPing.DEFAULT_STUN_TARGET)
@@ -720,6 +725,32 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsSection(
+                title = stringResource(R.string.title_tether),
+                expanded = tetherExpanded,
+                onExpandedChange = { tetherExpanded = it }
+            ) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_tether_enabled),
+                    summary = stringResource(R.string.summary_tether_enabled),
+                    checked = tetherEnabled,
+                    onCheckedChange = { tetherEnabled = it }
+                )
+                if (tetherEnabled) {
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_tether_socks_port),
+                        value = tetherSocksPort,
+                        keyboardNumber = true,
+                        onValueChanged = { tetherSocksPort = it.trim() }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_tether_http_port),
+                        value = tetherHttpPort,
+                        keyboardNumber = true,
+                        onValueChanged = { tetherHttpPort = it.trim() }
+                    )
+                }
+            }
             SettingsSection(
                 title = stringResource(R.string.title_autoping),
                 expanded = autoPingExpanded,

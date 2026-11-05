@@ -152,6 +152,24 @@ class MainViewModel(
     val serverBanner: StateFlow<ServerBanner?> = _serverBanner.asStateFlow()
     private var connLogModified = 0L
 
+    // Proxy Tethering card: hotspot address, re-detected every few seconds while connected.
+    private var tetherInfo: TetherInfo? = null
+    private var tetherTick = 0
+
+    private fun refreshTether(running: Boolean) {
+        if (!running || !com.v2ray.ang.handler.TetherManager.isEnabled()) {
+            tetherInfo = null
+            return
+        }
+        if (tetherInfo == null || tetherTick++ % TETHER_REFRESH_TICKS == 0) {
+            tetherInfo = TetherInfo(
+                ip = com.v2ray.ang.handler.TetherManager.detectAddress(),
+                socksPort = com.v2ray.ang.handler.TetherManager.socksPort(),
+                httpPort = com.v2ray.ang.handler.TetherManager.httpPort(),
+            )
+        }
+    }
+
     private fun checkServerBanner() {
         val file = com.v2ray.ang.handler.ConnLog.file(app)
         val modified = file.lastModified()
@@ -174,6 +192,7 @@ class MainViewModel(
         val state = uiState.value
         val snapshot = TrafficTracker.snapshot()
         if (state.isRunning) checkServerBanner()
+        refreshTether(state.isRunning)
         speedHistory = if (state.isRunning) {
             appendSpeedSample(speedHistory, SpeedSample(snapshot.downBytesPerSec, snapshot.upBytesPerSec))
         } else {
@@ -194,6 +213,7 @@ class MainViewModel(
                 ?.takeIf { state.isRunning && it >= 0 },
             pingFailed = state.isRunning && (lastPing?.delayMillis ?: 0L) < 0,
             speedHistory = speedHistory,
+            tether = tetherInfo,
         )
     }
 
@@ -1098,7 +1118,13 @@ data class HomeState(
     val pingMillis: Long? = null,
     val pingFailed: Boolean = false,
     val speedHistory: List<SpeedSample> = emptyList(),
+    val tether: TetherInfo? = null,
 )
+
+/** Proxy Tethering as shown on the home card; [ip] is null while the hotspot is off. */
+data class TetherInfo(val ip: String?, val socksPort: Int, val httpPort: Int)
+
+private const val TETHER_REFRESH_TICKS = 3
 
 /** A server's SSH banner (HTML) for the pop-up, keyed by the connection session. */
 data class ServerBanner(val session: Long, val html: String)
