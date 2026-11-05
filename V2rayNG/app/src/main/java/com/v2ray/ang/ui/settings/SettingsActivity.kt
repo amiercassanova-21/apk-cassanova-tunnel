@@ -42,12 +42,15 @@ import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
+import com.v2ray.ang.ui.AboutActivity
+import com.v2ray.ang.ui.backup.BackupActivity
+import com.v2ray.ang.ui.routing.RoutingSettingActivity
 import com.v2ray.ang.ui.compose.AppTopBar
-import com.v2ray.ang.ui.compose.CollapsiblePreferenceGroupHeader
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.SettingsEditItem
 import com.v2ray.ang.ui.compose.SettingsListItem
 import com.v2ray.ang.ui.compose.SettingsMenuItem
+import com.v2ray.ang.ui.compose.SettingsSection
 import com.v2ray.ang.ui.compose.SettingsSwitchItem
 import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.ui.compose.verticalScrollbar
@@ -89,7 +92,10 @@ class SettingsActivity : BaseComponentActivity() {
             viewModel = viewModel,
             onBackClick = { finish() },
             onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
-            onSystemVpnSettingsClicked = ::openSystemVpnSettings
+            onSystemVpnSettingsClicked = ::openSystemVpnSettings,
+            onRoutingClicked = { startActivity(Intent(this, RoutingSettingActivity::class.java)) },
+            onBackupClicked = { startActivity(Intent(this, BackupActivity::class.java)) },
+            onAboutClicked = { startActivity(Intent(this, AboutActivity::class.java)) }
         )
     }
 }
@@ -100,7 +106,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBackClick: () -> Unit,
     onModeHelpClicked: () -> Unit,
-    onSystemVpnSettingsClicked: () -> Unit
+    onSystemVpnSettingsClicked: () -> Unit,
+    onRoutingClicked: () -> Unit = {},
+    onBackupClicked: () -> Unit = {},
+    onAboutClicked: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -221,14 +230,18 @@ fun SettingsScreen(
     val modeEntries = stringArrayResource(R.array.mode_entries).toList()
     val modeValues = stringArrayResource(R.array.mode_value).toList()
 
+    val currentStyle by ThemeManager.uiStyle.collectAsStateWithLifecycle()
+    val brandHeader = currentStyle != ThemeManager.STYLE_B
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            AppTopBar(
-                title = stringResource(R.string.title_settings),
-                onBackClick = onBackClick,
-                isLoading = isLoading
-            )
+            if (!brandHeader) {
+                AppTopBar(
+                    title = stringResource(R.string.title_settings),
+                    onBackClick = onBackClick,
+                    isLoading = isLoading
+                )
+            }
         }
     ) { innerPadding ->
         Column(
@@ -238,12 +251,29 @@ fun SettingsScreen(
                 .verticalScrollbar(scrollState)
                 .verticalScroll(scrollState)
         ) {
-            CollapsiblePreferenceGroupHeader(
+            if (brandHeader) {
+                CassanovaSettingsHeader(
+                    style = currentStyle,
+                    themeMode = uiModeNight,
+                    onThemeModeChange = {
+                        uiModeNight = it
+                        ThemeManager.setThemeMode(it)
+                    },
+                    onBackClick = onBackClick
+                )
+                SettingsShortcutRow(
+                    onRouting = onRoutingClicked,
+                    onBackup = onBackupClicked,
+                    onAbout = onAboutClicked
+                )
+            } else {
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+            SettingsSection(
                 title = stringResource(R.string.title_ui_settings),
                 expanded = uiSettingsExpanded,
                 onExpandedChange = { uiSettingsExpanded = it }
-            )
-            if (uiSettingsExpanded) {
+            ) {
                 SettingsListItem(
                     title = stringResource(R.string.title_pref_ui_style),
                     entries = uiStyleEntries,
@@ -317,12 +347,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSection(
                 title = stringResource(R.string.title_vpn_settings),
                 expanded = vpnSettingsExpanded,
                 onExpandedChange = { vpnSettingsExpanded = it }
-            )
-            if (vpnSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_ipv6_enabled),
                     summary = stringResource(R.string.summary_pref_ipv6_enabled),
@@ -414,12 +443,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSection(
                 title = stringResource(R.string.title_core_settings),
                 expanded = coreSettingsExpanded,
                 onExpandedChange = { coreSettingsExpanded = it }
-            )
-            if (coreSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_sniffing_enabled),
                     summary = stringResource(R.string.summary_pref_sniffing_enabled),
@@ -518,12 +546,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSection(
                 title = stringResource(R.string.title_mux_settings),
                 expanded = muxSettingsExpanded,
                 onExpandedChange = { muxSettingsExpanded = it }
-            )
-            if (muxSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_mux_enabled),
                     summary = stringResource(R.string.summary_pref_mux_enabled),
@@ -554,12 +581,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSection(
                 title = stringResource(R.string.title_fragment_settings),
                 expanded = fragmentSettingsExpanded,
                 onExpandedChange = { fragmentSettingsExpanded = it }
-            )
-            if (fragmentSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_fragment_enabled),
                     checked = fragment,
@@ -594,12 +620,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSection(
                 title = stringResource(R.string.title_observatory_settings),
                 expanded = observatorySettingsExpanded,
                 onExpandedChange = { observatorySettingsExpanded = it }
-            )
-            if (observatorySettingsExpanded) {
+            ) {
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_observatory_least_ping_interval),
                     value = observatoryLeastPingInterval,
@@ -646,12 +671,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSection(
                 title = stringResource(R.string.title_advanced),
                 expanded = advancedSettingsExpanded,
                 onExpandedChange = { advancedSettingsExpanded = it }
-            )
-            if (advancedSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_is_booted),
                     summary = stringResource(R.string.summary_pref_is_booted),
@@ -683,12 +707,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSection(
                 title = stringResource(R.string.title_mode_settings),
                 expanded = modeSettingsExpanded,
                 onExpandedChange = { modeSettingsExpanded = it }
-            )
-            if (modeSettingsExpanded) {
+            ) {
                 SettingsListItem(
                     title = stringResource(R.string.title_mode),
                     entries = modeEntries,

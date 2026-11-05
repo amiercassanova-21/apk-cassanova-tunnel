@@ -118,7 +118,7 @@ class MainActivity : HelperBaseComponentActivity() {
                 onAction = onAction,
                 onNavigate = onNavigate,
             ) {
-                MainScreen(mainViewModel = mainViewModel, onAction = onAction, onNavigate = onNavigate)
+                MainScreen(mainViewModel = mainViewModel, onAction = onAction, onNavigate = onNavigate, style = style)
             }
         }
     }

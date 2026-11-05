@@ -19,6 +19,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,12 +53,12 @@ import kotlinx.coroutines.flow.StateFlow
 
 private val TAB_BAR_PADDING = 3.dp
 private val TAB_SPACING = 2.dp
-private val TAB_HEIGHT = 30.dp
+private val TAB_HEIGHT = 36.dp
 private val SELECTED_TAB_MARGIN = 12.dp
 
 /**
- * Subscription group tabs: a floating rounded bar whose selected tab is a tinted pill and whose
- * server count is a small badge.
+ * Subscription group tabs (style B): a segmented control whose selected group is a tinted
+ * segment labelled "name · count".
  *
  * While all tabs fit, they share the bar width equally (like Telegram's folder tabs); once they
  * no longer fit, they keep their natural width and the bar scrolls horizontally, keeping the
@@ -76,14 +77,14 @@ fun GroupTabBar(
     // The plain surface color equals the screen background in dark mode, so the bar needs its own tone there.
     val dark = colors.surface.luminance() < 0.5f
 
+    // Cassanova segmented control: a recessed track with the selected group as a raised segment.
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        shape = CircleShape,
-        color = if (dark) colors.surfaceContainerHigh else colors.surface,
-        border = BorderStroke(0.5.dp, colors.outlineVariant.copy(alpha = if (dark) 0.6f else 0.35f)),
-        shadowElevation = 3.dp
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = colors.background,
+        border = BorderStroke(0.5.dp, colors.outlineVariant.copy(alpha = if (dark) 0.6f else 0.35f))
     ) {
         BoxWithConstraints {
             val barPaddingPx = with(LocalDensity.current) { TAB_BAR_PADDING.roundToPx() }
@@ -165,8 +166,7 @@ private fun GroupTabItem(
     onClick: () -> Unit
 ) {
     val servers by serverFlow.collectAsStateWithLifecycle()
-    // The default group (empty id) never showed a count.
-    val count = if (group.id.isEmpty()) 0 else servers.size
+    val count = servers.size
     val colors = MaterialTheme.colorScheme
     val bringIntoView = remember { BringIntoViewRequester() }
     var size by remember { mutableStateOf(IntSize.Zero) }
@@ -187,39 +187,21 @@ private fun GroupTabItem(
         modifier = Modifier
             .bringIntoViewRequester(bringIntoView)
             .onSizeChanged { size = it }
-            .clip(CircleShape)
-            .background(if (selected) colors.primary.copy(alpha = 0.12f) else Color.Transparent)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) configPalette().blueBg else Color.Transparent)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = group.remarks,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = if (selected) colors.primary else colors.onSurfaceVariant,
+            text = if (count > 0) "${group.remarks} · $count" else group.remarks,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+            color = if (selected) colors.onSurface else colors.onSurfaceVariant,
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis
         )
-        if (count > 0) {
-            Spacer(Modifier.width(3.dp))
-            Box(
-                modifier = Modifier
-                    .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) colors.primary else colors.onSurfaceVariant.copy(alpha = 0.55f))
-                    .padding(horizontal = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = count.toString(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
-                    color = if (selected) colors.onPrimary else colors.surface,
-                    maxLines = 1
-                )
-            }
-        }
     }
 }

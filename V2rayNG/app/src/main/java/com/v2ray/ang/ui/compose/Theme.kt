@@ -21,6 +21,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import com.v2ray.ang.R
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.handler.MmkvManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,6 +106,44 @@ private val DarkColor = darkColorScheme(
     surfaceContainerHigh = Color(0xFF1D2338),
     surfaceContainerHighest = Color(0xFF262D45),
 )
+
+// Cassanova typography: Plus Jakarta Sans for every Material text style.
+val CassanovaFont = FontFamily(
+    Font(R.font.plus_jakarta_sans_regular, FontWeight.Normal),
+    Font(R.font.plus_jakarta_sans_medium, FontWeight.Medium),
+    Font(R.font.plus_jakarta_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.plus_jakarta_sans_bold, FontWeight.Bold),
+    Font(R.font.plus_jakarta_sans_extrabold, FontWeight.ExtraBold),
+)
+
+private val CassanovaTypography: Typography = Typography().let { base ->
+    base.copy(
+        displayLarge = base.displayLarge.copy(fontFamily = CassanovaFont),
+        displayMedium = base.displayMedium.copy(fontFamily = CassanovaFont),
+        displaySmall = base.displaySmall.copy(fontFamily = CassanovaFont),
+        headlineLarge = base.headlineLarge.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.ExtraBold),
+        headlineMedium = base.headlineMedium.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.ExtraBold),
+        headlineSmall = base.headlineSmall.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.ExtraBold),
+        titleLarge = base.titleLarge.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.ExtraBold),
+        titleMedium = base.titleMedium.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.Bold),
+        titleSmall = base.titleSmall.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.Bold),
+        bodyLarge = base.bodyLarge.copy(fontFamily = CassanovaFont),
+        bodyMedium = base.bodyMedium.copy(fontFamily = CassanovaFont),
+        bodySmall = base.bodySmall.copy(fontFamily = CassanovaFont),
+        labelLarge = base.labelLarge.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.Bold),
+        labelMedium = base.labelMedium.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.SemiBold),
+        labelSmall = base.labelSmall.copy(fontFamily = CassanovaFont, fontWeight = FontWeight.SemiBold),
+    )
+}
+
+// Cassanova brand constants shared by the home, config and settings screens.
+val BrandBlue = Color(0xFF2F55D4)
+val BrandBlueDeep = Color(0xFF1E3FB0)
+val BrandBlueMid = Color(0xFF2448BF)
+val BrandNavy = Color(0xFF14204F)
+val BrandGold = Color(0xFFF5B530)
+val BrandGoldDeep = Color(0xFFE09A12)
+val OnBrandGold = Color(0xFF1B1608)
 
 // Semantic Colors
 val colorPing = Color(0xFF009966) // Green
@@ -217,7 +260,8 @@ fun AppTheme(
         LocalAppSnackbar provides snackbarController
     ) {
         MaterialTheme(
-            colorScheme = colorScheme
+            colorScheme = colorScheme,
+            typography = CassanovaTypography
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 AppSnackbarBridge(controller = snackbarController)

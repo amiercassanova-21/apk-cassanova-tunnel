@@ -633,4 +633,31 @@
         <item>Style B — config list</item>
         <item>Style C — light dashboard</item>
     </string-array>
+    <string name="settings_version_style">Version %1$s · %2$s</string>
+    <string name="drawer_tagline">SSH · Xray · Hysteria2 · SlowDNS</string>
+    <string name="drawer_section_main">Main menu</string>
+    <string name="drawer_section_other">Others</string>
+    <string name="config_count_groups">%1$d configs · %2$d groups</string>
+    <string name="config_list_title">CONFIG LIST</string>
+    <string name="config_in_use">IN USE</string>
+    <string name="config_locked">Locked</string>
+    <string name="config_filter_all">All</string>
+    <string name="config_filter_protocol">Protocol filter</string>
+    <string name="config_group_label">Group: %1$s</string>
+    <string name="config_search_hint">Search configs…</string>
+    <string name="config_options_for">Options for %1$s</string>
+    <string name="config_status_connected">Connected · %1$s</string>
+    <string name="config_status_disconnected">Not connected</string>
+    <string name="config_tap_to_check">tap to check</string>
+    <string name="config_no_match">No config matches this filter</string>
+    <string name="home_servers_of">%1$s servers</string>
+    <string name="home_see_all">See all</string>
+    <string name="home_choose_protocol">Choose protocol</string>
+    <string name="ssh_mode_short_direct" translatable="false">Direct</string>
+    <string name="ssh_mode_short_payload" translatable="false">Payload</string>
+    <string name="ssh_mode_short_ssl" translatable="false">SSL</string>
+    <string name="ssh_mode_short_ssl_payload" translatable="false">SSL+Payload</string>
+    <string name="ssh_mode_short_slowdns" translatable="false">SlowDNS</string>
+    <string name="config_ping_none" translatable="false">— ms</string>
+    <string name="acc_close_search">Close search</string>
 </resources>

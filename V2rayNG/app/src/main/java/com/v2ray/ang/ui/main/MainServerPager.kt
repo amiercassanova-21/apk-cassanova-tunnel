@@ -53,16 +53,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.v2ray.ang.ui.compose.ThemeManager
+import com.v2ray.ang.ui.compose.reorderableDragHandle
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.LocateTarget
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.SubscriptionUsageInfo
-import com.v2ray.ang.ui.compose.ItemDivider
-import com.v2ray.ang.ui.compose.ReorderableGridItem
-import com.v2ray.ang.ui.compose.ReorderableListItem
-import com.v2ray.ang.ui.compose.colorConfigType
-import com.v2ray.ang.ui.compose.colorPing
-import com.v2ray.ang.ui.compose.colorPingRed
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
@@ -87,13 +87,20 @@ fun GroupPagerPage(
     usageInfo: SubscriptionUsageInfo?,
     groupTitle: String,
     onOpenLink: (String) -> Unit,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    style: String = ThemeManager.STYLE_B,
+    filter: ProtocolFilter = ProtocolFilter.ALL,
 ) {
     val groupStateFlow = remember(groupId) {
         mainViewModel.serverGroupState(groupId)
     }
     val groupState by groupStateFlow.collectAsStateWithLifecycle()
-    val canReorder = groupId.isNotEmpty() && searchQuery.isEmpty()
+    // Reordering a filtered list would move servers relative to hidden ones, so it needs the full list.
+    val canReorder = groupId.isNotEmpty() && searchQuery.isEmpty() && filter == ProtocolFilter.ALL
+    val allRows = groupState.rows
+    val rows = remember(allRows, filter) {
+        if (filter == ProtocolFilter.ALL) allRows else allRows.filter { filter.matches(it.profile) }
+    }
     val actions = remember(
         onSelectServer,
         onEditServer,
@@ -101,7 +108,7 @@ fun GroupPagerPage(
         onMoreServer,
         onRemoveServer,
     ) {
-        ServerRowActions(
+        ConfigCardActions(
             select = onSelectServer,
             edit = onEditServer,
             share = onShareServer,
@@ -125,8 +132,19 @@ fun GroupPagerPage(
     }
 
     Box(Modifier.fillMaxSize()) {
+        if (rows.isEmpty() && allRows.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.config_no_match),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 32.dp + listPadding.calculateTopPadding(), start = 24.dp, end = 24.dp)
+            )
+        }
         ServerListPage(
-            rows = groupState.rows,
+            style = style,
+            rows = rows,
             selectedGuid = selectedGuid,
             locateTarget = locateTarget?.takeIf { it.groupId == groupId },
             canReorder = canReorder,
@@ -155,16 +173,9 @@ fun GroupPagerPage(
     }
 }
 
-private class ServerRowActions(
-    val select: (String) -> Unit,
-    val edit: (String, ProfileItem) -> Unit,
-    val share: (String, ProfileItem) -> Unit,
-    val more: (String, ProfileItem) -> Unit,
-    val remove: (String, String) -> Unit,
-)
-
 @Composable
 private fun ServerListPage(
+    style: String,
     rows: List<ServerRowUiModel>,
     selectedGuid: String?,
     locateTarget: LocateTarget?,
@@ -173,11 +184,24 @@ private fun ServerListPage(
     groupId: String,
     lazyListStates: MutableMap<String, LazyListState>,
     lazyGridStates: MutableMap<String, LazyGridState>,
-    actions: ServerRowActions,
+    actions: ConfigCardActions,
     onLocateHandled: () -> Unit,
     onMoveServer: (Int, Int) -> Unit,
     contentPadding: PaddingValues
 ) {
+    val sidePadding = if (style == ThemeManager.STYLE_B) 12.dp else 20.dp
+    val gap = if (style == ThemeManager.STYLE_B) 8.dp else 10.dp
+    val layoutDirection = LocalLayoutDirection.current
+    val padded = PaddingValues(
+        start = contentPadding.calculateStartPadding(layoutDirection) + sidePadding,
+        top = contentPadding.calculateTopPadding() + 4.dp,
+        end = contentPadding.calculateEndPadding(layoutDirection) + sidePadding,
+        bottom = contentPadding.calculateBottomPadding()
+    )
+    val card: @Composable (ServerRowUiModel) -> Unit = { row ->
+        ConfigCard(style, row, row.guid == selectedGuid, doubleColumnDisplay, actions)
+    }
+
     if (doubleColumnDisplay) {
         val gridState = remember(groupId) {
             lazyGridStates.getOrPut(groupId) { LazyGridState() }
@@ -196,29 +220,17 @@ private fun ServerListPage(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScrollbar(gridState),
-            contentPadding = contentPadding
+            contentPadding = padded,
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            verticalArrangement = Arrangement.spacedBy(gap)
         ) {
             itemsIndexed(items = rows, key = { _, item -> item.guid }) { _, row ->
-                val content: @Composable () -> Unit = {
-                    ServerItemColumn(
-                        row = row,
-                        isSelected = row.guid == selectedGuid,
-                        doubleColumnDisplay = true,
-                        actions = actions
-                    )
-                }
                 if (canReorder && reorderableGridState != null) {
-                    ReorderableItem(
-                        reorderableGridState,
-                        key = row.guid
-                    ) { isDragging ->
-                        ReorderableGridItem(
-                            scope = this,
-                            isDragging = isDragging
-                        ) { content() }
+                    ReorderableItem(reorderableGridState, key = row.guid) { isDragging ->
+                        ReorderableCard(this, isDragging) { card(row) }
                     }
                 } else {
-                    content()
+                    card(row)
                 }
             }
         }
@@ -239,36 +251,51 @@ private fun ServerListPage(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScrollbar(listState),
-            contentPadding = contentPadding
+            contentPadding = padded,
+            verticalArrangement = Arrangement.spacedBy(gap)
         ) {
             itemsIndexed(items = rows, key = { _, item -> item.guid }) { _, row ->
                 if (canReorder && reorderableState != null) {
-                    ReorderableItem(
-                        reorderableState,
-                        key = row.guid
-                    ) { isDragging ->
-                        ReorderableListItem(
-                            scope = this,
-                            isDragging = isDragging
-                        ) {
-                            ServerItemRow(
-                                row = row,
-                                isSelected = row.guid == selectedGuid,
-                                actions = actions
-                            )
-                        }
-                        ItemDivider()
+                    ReorderableItem(reorderableState, key = row.guid) { isDragging ->
+                        ReorderableCard(this, isDragging) { card(row) }
                     }
                 } else {
-                    ServerItemRow(
-                        row = row,
-                        isSelected = row.guid == selectedGuid,
-                        actions = actions
-                    )
-                    ItemDivider()
+                    card(row)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ConfigCard(
+    style: String,
+    row: ServerRowUiModel,
+    isSelected: Boolean,
+    compact: Boolean,
+    actions: ConfigCardActions,
+) {
+    when (style) {
+        ThemeManager.STYLE_A -> ConfigCardA(row, isSelected, actions)
+        ThemeManager.STYLE_C -> ConfigCardC(row, isSelected, actions)
+        else -> ConfigCardB(row, isSelected, compact, actions)
+    }
+}
+
+/** Long-press drag handle around a card; lifts the card while it is dragged. */
+@Composable
+private fun ReorderableCard(
+    scope: ReorderableCollectionItemScope,
+    isDragging: Boolean,
+    content: @Composable () -> Unit
+) {
+    val elevation by animateDpAsState(if (isDragging) 6.dp else 0.dp, label = "cardDrag")
+    Box(
+        modifier = Modifier
+            .shadow(elevation, RoundedCornerShape(18.dp))
+            .then(with(scope) { reorderableDragHandle() })
+    ) {
+        content()
     }
 }
 
@@ -301,168 +328,6 @@ private fun LocateTargetEffect(
         if (index < 0) return@LaunchedEffect
         state.scrollToItem(index, -state.layoutInfo.viewportSize.height / 3)
         onHandled()
-    }
-}
-
-@Composable
-private fun ServerItemRow(
-    row: ServerRowUiModel,
-    isSelected: Boolean,
-    actions: ServerRowActions
-) {
-    ServerListItem(
-        row = row,
-        isSelected = isSelected,
-        doubleColumnDisplay = false,
-        actions = actions
-    )
-}
-
-@Composable
-private fun ServerItemColumn(
-    row: ServerRowUiModel,
-    isSelected: Boolean,
-    doubleColumnDisplay: Boolean,
-    actions: ServerRowActions
-) {
-    Column {
-        ServerListItem(
-            row = row,
-            isSelected = isSelected,
-            doubleColumnDisplay = doubleColumnDisplay,
-            actions = actions
-        )
-        ItemDivider()
-    }
-}
-
-@Composable
-private fun ServerListItem(
-    row: ServerRowUiModel,
-    isSelected: Boolean,
-    doubleColumnDisplay: Boolean,
-    actions: ServerRowActions
-) {
-    val testResult = if (row.testDelayMillis == 0L) {
-        ""
-    } else {
-        stringResource(R.string.server_test_delay_value, row.testDelayMillis)
-    }
-    val selectedStateDescription = if (isSelected) {
-        stringResource(R.string.acc_selected_server)
-    } else {
-        null
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .semantics {
-                if (selectedStateDescription != null) {
-                    stateDescription = selectedStateDescription
-                }
-            }
-            .clickable { actions.select(row.guid) }
-    ) {
-        Box(
-            Modifier
-                .width(10.dp)
-                .fillMaxHeight()
-        ) {
-            if (isSelected) {
-                Row {
-                    Spacer(Modifier.width(6.dp))
-                    Box(
-                        Modifier
-                            .width(4.dp)
-                            .fillMaxHeight()
-                            .padding(vertical = 10.dp)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                }
-            }
-        }
-
-        Column(
-            Modifier
-                .weight(1f)
-                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(row.remarks, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge.copy(lineBreak = LineBreak.Paragraph), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (doubleColumnDisplay) {
-                    IconButton(onClick = { actions.more(row.guid, row.profile) }, Modifier.size(36.dp)) {
-                        Icon(
-                            painterResource(R.drawable.ic_more_vert_24dp),
-                            stringResource(R.string.acc_more),
-                            Modifier.size(24.dp)
-                        )
-                    }
-                } else {
-                    IconButton(onClick = { actions.share(row.guid, row.profile) }, Modifier.size(36.dp)) {
-                        Icon(
-                            painterResource(R.drawable.ic_share_24dp),
-                            stringResource(R.string.title_configuration_share),
-                            Modifier.size(24.dp)
-                        )
-                    }
-                    IconButton(onClick = { actions.edit(row.guid, row.profile) }, Modifier.size(36.dp)) {
-                        Icon(
-                            painterResource(R.drawable.ic_edit_24dp),
-                            stringResource(R.string.acc_edit),
-                            Modifier.size(24.dp)
-                        )
-                    }
-                    IconButton(onClick = { actions.remove(row.guid, row.remarks) }, Modifier.size(36.dp)) {
-                        Icon(
-                            painterResource(R.drawable.ic_delete_24dp),
-                            stringResource(R.string.acc_delete),
-                            Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (row.subscriptionBadge.isNotBlank()) {
-                    Box(
-                        Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)), Alignment.Center
-                    ) {
-                        Text(row.subscriptionBadge.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                Text(
-                    row.statistics,
-                    Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    row.typeDescription,
-                    modifier = Modifier.weight(1f, fill = false),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colorConfigType,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    testResult,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (row.testDelayMillis < 0L) colorPingRed else colorPing,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
     }
 }
 

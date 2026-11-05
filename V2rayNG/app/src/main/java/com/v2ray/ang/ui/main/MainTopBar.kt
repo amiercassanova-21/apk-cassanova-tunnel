@@ -1,6 +1,9 @@
 package com.v2ray.ang.ui.main
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.heightIn
@@ -48,7 +51,7 @@ fun MainTopBar(
     val maxMenuHeight = LocalConfiguration.current.screenHeightDp.dp - statusBarHeight - navBarHeight - 20.dp
 
     AppTopBar(
-        title = stringResource(R.string.title_server),
+        title = stringResource(R.string.nav_config),
         onBackClick = {},
         isLoading = isLoading,
         isSearchActive = showSearch,
@@ -62,8 +65,15 @@ fun MainTopBar(
                     Icon(painterResource(R.drawable.ic_arrow_back_24dp), contentDescription = stringResource(R.string.acc_back))
                 }
             } else {
-                IconButton(onClick = onMenuClick) {
-                    Icon(painterResource(R.drawable.ic_menu_24dp), contentDescription = stringResource(R.string.acc_open_menu))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(painterResource(R.drawable.ic_menu_24dp), contentDescription = stringResource(R.string.acc_open_menu))
+                    }
+                    Image(
+                        painter = painterResource(R.mipmap.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
             }
         },

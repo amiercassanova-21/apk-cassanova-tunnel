@@ -16,9 +16,6 @@ import androidx.compose.material3.DrawerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,8 +23,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.v2ray.ang.R
-import com.v2ray.ang.ui.compose.AppDivider
+import com.v2ray.ang.ui.compose.BrandBlue
+import com.v2ray.ang.ui.compose.BrandGold
+import com.v2ray.ang.ui.compose.BrandGoldDeep
+import com.v2ray.ang.ui.compose.BrandNavy
+import com.v2ray.ang.ui.compose.sectionTitleColor
 import com.v2ray.ang.ui.compose.verticalScrollbar
 
 enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRes: Int) {
@@ -62,52 +79,102 @@ private val drawerItems = primaryDrawerItems + listOf(
 @Composable
 fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) -> Unit) {
     val drawerScrollState = rememberScrollState()
+    val colors = MaterialTheme.colorScheme
 
     ModalDrawerSheet(
         drawerState = drawerState,
-        modifier = Modifier.fillMaxWidth(0.75f),
-        drawerContainerColor = MaterialTheme.colorScheme.surface
+        modifier = Modifier.fillMaxWidth(0.8f),
+        drawerContainerColor = colors.surfaceContainerLow
     ) {
         Column(
             modifier = Modifier
                 .verticalScroll(drawerScrollState)
                 .verticalScrollbar(drawerScrollState)
         ) {
-            Surface(
+            // Cassanova header: gold-to-blue gradient with the logo and the protocol line.
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .clip(RoundedCornerShape(bottomEnd = 28.dp))
+                    .background(Brush.linearGradient(listOf(BrandGold, BrandGoldDeep, BrandBlue, BrandNavy)))
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 22.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Cassanova logo is full color: show it as-is in both themes.
-                    Image(
-                        painter = painterResource(R.mipmap.ic_launcher_foreground),
-                        contentDescription = null,
-                        modifier = Modifier.size(120.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-            drawerItems.forEachIndexed { index, item ->
-                if (index == primaryDrawerItems.size) AppDivider()
-                NavigationDrawerItem(
-                    label = { Text(stringResource(item.labelRes)) },
-                    selected = false,
-                    onClick = { onNavigate(item) },
-                    icon = { Icon(painterResource(item.iconRes), contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                Image(
+                    painter = painterResource(R.mipmap.ic_launcher_foreground),
+                    contentDescription = null,
+                    modifier = Modifier.size(84.dp)
+                )
+                Text(
+                    text = stringResource(R.string.app_name),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+                Text(
+                    text = stringResource(R.string.drawer_tagline),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFE6ECFF)
                 )
             }
+            Spacer(Modifier.height(12.dp))
+            DrawerSectionLabel(stringResource(R.string.drawer_section_main))
+            primaryDrawerItems.forEach { item -> DrawerRow(item, onNavigate) }
+            Spacer(Modifier.height(8.dp))
+            DrawerSectionLabel(stringResource(R.string.drawer_section_other))
+            drawerItems.drop(primaryDrawerItems.size).forEach { item -> DrawerRow(item, onNavigate) }
+            Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+private fun DrawerSectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelLarge,
+        letterSpacing = 0.8.sp,
+        color = sectionTitleColor(),
+        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 6.dp)
+    )
+}
+
+@Composable
+private fun DrawerRow(item: MainDestination, onNavigate: (MainDestination) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val label = stringResource(item.labelRes)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 2.dp)
+            .heightIn(min = 52.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(role = Role.Button, onClick = { onNavigate(item) })
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(item.iconRes),
+                contentDescription = null,
+                tint = BrandGold,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.onSurface,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

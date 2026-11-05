@@ -543,4 +543,25 @@
         <item>Gaya B — daftar config</item>
         <item>Gaya C — dasbor terang</item>
     </string-array>
+    <string name="settings_version_style">Versi %1$s · %2$s</string>
+    <string name="drawer_tagline">SSH · Xray · Hysteria2 · SlowDNS</string>
+    <string name="drawer_section_main">Menu utama</string>
+    <string name="drawer_section_other">Lainnya</string>
+    <string name="config_count_groups">%1$d config · %2$d grup</string>
+    <string name="config_list_title">DAFTAR CONFIG</string>
+    <string name="config_in_use">DIPAKAI</string>
+    <string name="config_locked">Terkunci</string>
+    <string name="config_filter_all">Semua</string>
+    <string name="config_filter_protocol">Filter protokol</string>
+    <string name="config_group_label">Grup: %1$s</string>
+    <string name="config_search_hint">Cari config…</string>
+    <string name="config_options_for">Opsi %1$s</string>
+    <string name="config_status_connected">Tersambung · %1$s</string>
+    <string name="config_status_disconnected">Belum tersambung</string>
+    <string name="config_tap_to_check">ketuk untuk cek</string>
+    <string name="config_no_match">Tidak ada config untuk filter ini</string>
+    <string name="home_servers_of">Server %1$s</string>
+    <string name="home_see_all">Lihat semua</string>
+    <string name="home_choose_protocol">Pilih protokol</string>
+    <string name="acc_close_search">Tutup pencarian</string>
 </resources>

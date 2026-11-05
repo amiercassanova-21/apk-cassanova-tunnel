@@ -64,6 +64,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.stateDescription
+import com.v2ray.ang.enums.EConfigType
+import com.v2ray.ang.handler.ConfigLockManager
+import com.v2ray.ang.ui.compose.LocalDarkTheme
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toSpeedString
 import com.v2ray.ang.extension.toTrafficString
@@ -76,6 +86,7 @@ import kotlin.math.sin
 // Cassanova brand colors (the logo's blue and gold).
 private val BrandBlue = Color(0xFF2F55D4)
 private val BrandBlueDeep = Color(0xFF1E3FB0)
+private val BrandBlueMid = Color(0xFF2448BF)
 private val BrandGold = Color(0xFFF5B530)
 private val OnGold = Color(0xFF1B1608)
 private val GreenText = Color(0xFF6EE7A0)
@@ -130,7 +141,7 @@ fun CassanovaShell(
         ) {
             when (tab) {
                 HomeTab.Home -> if (isLight) {
-                    HomeStyleC(home, onAction, onNavigate)
+                    HomeStyleC(home, mainViewModel, onAction, onNavigate, onOpenConfigs = { tab = HomeTab.Config })
                 } else {
                     HomeStyleA(home, onAction, onNavigate, onOpenConfigs = { tab = HomeTab.Config })
                 }
@@ -237,15 +248,30 @@ private fun HomeStyleA(
     }
 }
 
-// ---------- Style C: light dashboard ----------
+// ---------- Style C: dashboard (light by default, follows the theme) ----------
 
 @Composable
 private fun HomeStyleC(
     home: HomeState,
+    mainViewModel: MainViewModel,
     onAction: (MainAction) -> Unit,
     onNavigate: (MainDestination) -> Unit,
+    onOpenConfigs: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val palette = configPalette()
+    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    val groupState by remember(uiState.selectedGroupId) {
+        mainViewModel.serverGroupState(uiState.selectedGroupId)
+    }.collectAsStateWithLifecycle()
+    val rows = groupState.rows
+    // Until the user picks a protocol, follow the protocol of the selected server.
+    var chosenFilter by rememberSaveable { mutableStateOf<ProtocolFilter?>(null) }
+    val filter = chosenFilter
+        ?: rows.firstOrNull { it.guid == uiState.selectedGuid }?.let { ProtocolFilter.of(it.profile) }
+        ?: ProtocolFilter.SSH
+    val filteredRows = remember(rows, filter) { rows.filter { filter.matches(it.profile) } }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -278,11 +304,13 @@ private fun HomeStyleC(
                 )
             }
 
+            ProtocolSegments(selected = filter, onSelect = { chosenFilter = it })
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White)
+                    .background(colors.surfaceContainer)
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -295,20 +323,20 @@ private fun HomeStyleC(
                         },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (home.isRunning) GreenTextLight else Color(0xFF5A6380),
+                        color = if (home.isRunning) palette.green else colors.onSurfaceVariant,
                     )
                     Text(
                         text = home.serverName.ifBlank { stringResource(R.string.home_no_server) },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF141A2E),
+                        color = colors.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = home.serverTags.joinToString(" · "),
                         fontSize = 12.sp,
-                        color = Color(0xFF5A6380),
+                        color = colors.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -318,25 +346,159 @@ private fun HomeStyleC(
         }
 
         Column(
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp),
+            modifier = Modifier.padding(top = 18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            StatGrid(home, light = true, large = true)
+            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                StatGrid(home, light = true, large = true)
+            }
+
+            Row(
+                modifier = Modifier.padding(start = 20.dp, end = 8.dp, top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.home_servers_of, protocolFilterLabel(filter)),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.onBackground,
+                    modifier = Modifier.weight(1f),
+                )
+                Box(
+                    modifier = Modifier
+                        .heightIn(min = 44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(role = Role.Button, onClick = onOpenConfigs)
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.home_see_all),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (LocalDarkTheme.current) colors.primary else BrandBlue,
+                    )
+                }
+            }
+            ServerCarousel(
+                rows = filteredRows,
+                selectedGuid = uiState.selectedGuid,
+                onSelect = { guid -> onAction(MainAction.SelectServer(guid)) },
+            )
 
             Text(
                 text = stringResource(R.string.home_quick_tools),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = colors.onBackground,
-                modifier = Modifier.padding(top = 10.dp),
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 QuickTool(stringResource(R.string.tool_import_qr), R.drawable.ic_scan_24dp, light = true) { onAction(MainAction.ImportQRcode) }
                 QuickTool(stringResource(R.string.tool_import_clipboard), R.drawable.ic_copy, light = true) { onAction(MainAction.ImportClipboard) }
                 QuickTool(stringResource(R.string.tool_log), R.drawable.ic_logcat_24dp, light = true) { onNavigate(MainDestination.Logcat) }
                 QuickTool(stringResource(R.string.tool_test_all), R.drawable.ic_refresh_24dp, light = true) { onAction(MainAction.TestRealAllServers) }
             }
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+/** SSH / Xray / Hy2 / SlowDNS segmented control in the blue header. */
+@Composable
+private fun ProtocolSegments(selected: ProtocolFilter, onSelect: (ProtocolFilter) -> Unit) {
+    val groupLabel = stringResource(R.string.home_choose_protocol)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(BrandBlueMid)
+            .padding(4.dp)
+            .semantics { contentDescription = groupLabel },
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        listOf(ProtocolFilter.SSH, ProtocolFilter.XRAY, ProtocolFilter.HY2, ProtocolFilter.SLOWDNS).forEach { option ->
+            val isSelected = option == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isSelected) Color.White else Color.Transparent)
+                    .selectable(selected = isSelected, role = Role.Tab) { onSelect(option) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = protocolFilterLabel(option),
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    color = if (isSelected) BrandBlueDeep else Color.White,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/** Horizontal list of servers of the chosen protocol; tapping one selects it. */
+@Composable
+private fun ServerCarousel(
+    rows: List<ServerRowUiModel>,
+    selectedGuid: String?,
+    onSelect: (String) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    if (rows.isEmpty()) {
+        Text(
+            text = stringResource(R.string.config_no_match),
+            fontSize = 13.sp,
+            color = colors.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+        )
+        return
+    }
+    val accent = if (LocalDarkTheme.current) BrandGold else colors.primary
+    val selectedLabel = stringResource(R.string.acc_selected_server)
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(rows, key = { it.guid }) { row ->
+            val isSelected = row.guid == selectedGuid
+            val locked = ConfigLockManager.isLocked(row.profile)
+            val parts = typeParts(row.profile, locked)
+            val kind = if (row.profile.configType == EConfigType.SSH && parts.size > 1) parts[1] else parts.first()
+            val shape = RoundedCornerShape(16.dp)
+            Column(
+                modifier = Modifier
+                    .width(150.dp)
+                    .clip(shape)
+                    .background(colors.surfaceContainer)
+                    .border(if (isSelected) 2.dp else 1.dp, if (isSelected) accent else colors.outlineVariant, shape)
+                    .semantics { if (isSelected) stateDescription = selectedLabel }
+                    .clickable(role = Role.RadioButton) { onSelect(row.guid) }
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = row.remarks,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = kind + " · " + pingText(row.testDelayMillis),
+                    fontSize = 12.sp,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -475,22 +637,38 @@ private fun StatGrid(home: HomeState, light: Boolean, large: Boolean = false) {
 @Composable
 private fun RowScope.StatTile(label: String, value: String, light: Boolean, large: Boolean) {
     val colors = MaterialTheme.colorScheme
+    // "73 ms" → big "73" with a smaller "ms".
+    val split = value.lastIndexOf(' ')
+    val number = if (split > 0) value.substring(0, split) else value
+    val unit = if (split > 0) value.substring(split + 1) else ""
     Column(
         modifier = Modifier
             .weight(1f)
             .clip(RoundedCornerShape(if (large) 16.dp else 12.dp))
-            .background(if (light) Color.White else colors.surfaceContainerLowest)
+            .background(if (light) colors.surfaceContainer else colors.surfaceContainerLowest)
             .padding(if (large) 14.dp else 10.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(text = label, fontSize = 12.sp, color = colors.onSurfaceVariant)
-        Text(
-            text = value,
-            fontSize = if (large) 20.sp else 16.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = colors.onSurface,
-            maxLines = 1,
-        )
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = number,
+                fontSize = if (large) 22.sp else 16.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.onSurface,
+                maxLines = 1,
+            )
+            if (unit.isNotEmpty()) {
+                Text(
+                    text = unit,
+                    fontSize = if (large) 13.sp else 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.padding(bottom = if (large) 3.dp else 2.dp),
+                )
+            }
+        }
     }
 }
 
@@ -502,7 +680,7 @@ private fun RowScope.QuickTool(label: String, iconRes: Int, light: Boolean = fal
             .weight(1f)
             .heightIn(min = 76.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(if (light) Color.White else colors.surfaceContainer)
+            .background(colors.surfaceContainer)
             .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
             .padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -511,7 +689,7 @@ private fun RowScope.QuickTool(label: String, iconRes: Int, light: Boolean = fal
         Icon(
             painter = painterResource(iconRes),
             contentDescription = null,
-            tint = if (light) BrandBlue else BrandGold,
+            tint = if (light && !LocalDarkTheme.current) BrandBlue else BrandGold,
             modifier = Modifier.size(22.dp),
         )
         Text(
@@ -588,20 +766,21 @@ private fun HexConnectButton(running: Boolean, size: Dp, onClick: () -> Unit) {
 
 @Composable
 private fun PowerCircleButton(running: Boolean, onClick: () -> Unit) {
+    val idleGlyph = MaterialTheme.colorScheme.onSurfaceVariant
     val label = stringResource(if (running) R.string.acc_stop else R.string.acc_start)
     Canvas(
         modifier = Modifier
             .size(56.dp)
             .clip(CircleShape)
-            .background(if (running) BrandGold else Color(0xFFE1E5F0))
+            .background(if (running) BrandGold else MaterialTheme.colorScheme.surfaceContainerHighest)
             .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label },
     ) {
-        drawPower(center, size.minDimension * 0.22f, if (running) OnGold else Color(0xFF5A6380), size.minDimension * 0.06f)
+        drawPower(center, size.minDimension * 0.22f, if (running) OnGold else idleGlyph, size.minDimension * 0.06f)
     }
 }
 
-private fun hexagon(center: Offset, radius: Float): Path = Path().apply {
+internal fun hexagon(center: Offset, radius: Float): Path = Path().apply {
     for (i in 0 until 6) {
         val angle = Math.toRadians((60.0 * i) - 90.0)
         val x = center.x + radius * cos(angle).toFloat()
@@ -611,7 +790,7 @@ private fun hexagon(center: Offset, radius: Float): Path = Path().apply {
     close()
 }
 
-private fun DrawScope.drawPower(center: Offset, radius: Float, color: Color, width: Float) {
+internal fun DrawScope.drawPower(center: Offset, radius: Float, color: Color, width: Float) {
     drawArc(
         color = color,
         startAngle = -60f,
@@ -669,17 +848,21 @@ private fun RowScope.NavItem(label: String, iconRes: Int, selected: Boolean, onC
 
 @Composable
 private fun PillNav(current: HomeTab, onSelect: (HomeTab) -> Unit, onSettings: () -> Unit) {
+    val dark = LocalDarkTheme.current
+    val pillShape = RoundedCornerShape(22.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(start = 20.dp, end = 20.dp, bottom = 14.dp, top = 6.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF141A2E))
+                .clip(pillShape)
+                .background(if (dark) Color(0xFF1D2338) else Color(0xFF141A2E))
+                .then(if (dark) Modifier.border(1.dp, Color(0xFF262D45), pillShape) else Modifier)
                 .padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -713,7 +896,7 @@ private fun RowScope.PillItem(label: String, selected: Boolean, onClick: () -> U
 
 // ---------- Formatting ----------
 
-private fun formatDuration(connectedAtMillis: Long): String {
+internal fun formatDuration(connectedAtMillis: Long): String {
     if (connectedAtMillis <= 0L) return "00:00:00"
     val total = ((System.currentTimeMillis() - connectedAtMillis) / 1000L).coerceAtLeast(0L)
     return "%02d:%02d:%02d".format(total / 3600, (total % 3600) / 60, total % 60)
