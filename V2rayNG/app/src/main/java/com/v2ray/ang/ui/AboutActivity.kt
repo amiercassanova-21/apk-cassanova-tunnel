@@ -34,6 +34,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.mutableIntStateOf
+import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
@@ -69,6 +74,7 @@ fun AboutScreen(
 ) {
     val context = LocalContext.current
     var showOssDialog by remember { mutableStateOf(false) }
+    var versionTaps by remember { mutableIntStateOf(0) }
 
     val libVersion = CoreNativeManager.getLibVersion()
     val appIdText = BuildConfig.APPLICATION_ID
@@ -108,10 +114,26 @@ fun AboutScreen(
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
+                        // Tapping the version 7 times unlocks (or locks again) the experimental styles.
                         Text(
                             text = stringResource(R.string.about_build_line, BuildConfig.VERSION_NAME, BuildConfig.CASSANOVA_BUILD),
                             fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                versionTaps++
+                                if (versionTaps >= EXPERIMENTAL_TAPS) {
+                                    versionTaps = 0
+                                    val on = ThemeManager.toggleExperimentalUi()
+                                    Toast.makeText(
+                                        context,
+                                        if (on) R.string.about_experimental_on else R.string.about_experimental_off,
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
                         )
                         Text(
                             text = stringResource(R.string.about_core_line, libVersion),
@@ -189,3 +211,5 @@ fun AboutScreen(
         )
     }
 }
+
+private const val EXPERIMENTAL_TAPS = 7

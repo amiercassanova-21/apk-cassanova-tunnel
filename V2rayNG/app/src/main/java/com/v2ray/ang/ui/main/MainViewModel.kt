@@ -143,9 +143,18 @@ class MainViewModel(
         }
     }
 
+    // Last 60 one-second speed samples for the home sparkline; cleared when disconnected.
+    @Volatile
+    private var speedHistory: List<SpeedSample> = emptyList()
+
     private fun refreshHome() {
         val state = uiState.value
         val snapshot = TrafficTracker.snapshot()
+        speedHistory = if (state.isRunning) {
+            appendSpeedSample(speedHistory, SpeedSample(snapshot.downBytesPerSec, snapshot.upBytesPerSec))
+        } else {
+            emptyList()
+        }
         val profile = state.selectedGuid?.let { dataSource.decodeServerConfig(it) }
         _home.value = HomeState(
             serverName = profile?.remarks.orEmpty(),
@@ -158,6 +167,7 @@ class MainViewModel(
             connectedAtMillis = if (state.isRunning) snapshot.connectedAtMillis else 0L,
             pingMillis = lastPing?.delayMillis?.takeIf { state.isRunning && it >= 0 },
             pingFailed = state.isRunning && (lastPing?.delayMillis ?: 0L) < 0,
+            speedHistory = speedHistory,
         )
     }
 
@@ -1057,7 +1067,17 @@ data class HomeState(
     val connectedAtMillis: Long = 0L,
     val pingMillis: Long? = null,
     val pingFailed: Boolean = false,
+    val speedHistory: List<SpeedSample> = emptyList(),
 )
+
+/** One second of traffic: download and upload bytes per second. */
+data class SpeedSample(val down: Long, val up: Long)
+
+/** Pure: [history] plus [sample], keeping only the newest [max] samples. */
+fun appendSpeedSample(history: List<SpeedSample>, sample: SpeedSample, max: Int = SPEED_HISTORY_SIZE): List<SpeedSample> =
+    (history + sample).takeLast(max)
+
+const val SPEED_HISTORY_SIZE = 60
 
 private const val HOME_REFRESH_MS = 1000L
 private const val AUTO_PING_DELAY_MS = 2500L

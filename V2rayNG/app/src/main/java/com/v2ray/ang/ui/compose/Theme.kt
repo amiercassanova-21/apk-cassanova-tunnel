@@ -164,13 +164,34 @@ val toastInfoBg = Color(0xD93F51B5) // Indigo Blue
 val toastIconCircleBg = Color(0x33FFFFFF) // Semi-transparent White
 val toastTextColor = Color.White // White
 
+/** Style A is the Cassanova look; B and C are only used while the experimental UI is unlocked. */
+fun effectiveUiStyle(stored: String?, experimental: Boolean): String =
+    if (experimental && (stored == ThemeManager.STYLE_B || stored == ThemeManager.STYLE_C)) stored ?: ThemeManager.STYLE_A else ThemeManager.STYLE_A
+
 object ThemeManager {
     const val STYLE_A = "a"
     const val STYLE_B = "b"
     const val STYLE_C = "c"
 
-    private fun storedStyle(): String =
-        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_STYLE, STYLE_A) ?: STYLE_A
+    private fun experimentalStored(): Boolean =
+        MmkvManager.decodeSettingsBool(AppConfig.PREF_EXPERIMENTAL_UI, false)
+
+    private fun storedStyle(): String = effectiveUiStyle(
+        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_STYLE, STYLE_A),
+        experimentalStored()
+    )
+
+    private val _experimentalUi = MutableStateFlow(experimentalStored())
+    val experimentalUi: StateFlow<Boolean> = _experimentalUi.asStateFlow()
+
+    /** Turns the experimental styles on or off; off goes back to style A. Returns the new state. */
+    fun toggleExperimentalUi(): Boolean {
+        val enabled = !_experimentalUi.value
+        MmkvManager.encodeSettings(AppConfig.PREF_EXPERIMENTAL_UI, enabled)
+        _experimentalUi.value = enabled
+        _uiStyle.value = storedStyle()
+        return enabled
+    }
 
     /** A and B are dark designs, C is light: the default night mode follows the style. */
     fun defaultModeFor(style: String): String = if (style == STYLE_C) "1" else "2"
@@ -207,6 +228,7 @@ object ThemeManager {
     }
 
     fun refresh() {
+        _experimentalUi.value = experimentalStored()
         _uiStyle.value = storedStyle()
         _themeMode.value = storedMode()
         _dynamicColorEnabled.value =

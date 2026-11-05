@@ -232,6 +232,7 @@ fun SettingsScreen(
     val modeValues = stringArrayResource(R.array.mode_value).toList()
 
     val currentStyle by ThemeManager.uiStyle.collectAsStateWithLifecycle()
+    val experimentalUi by ThemeManager.experimentalUi.collectAsStateWithLifecycle()
     val brandHeader = currentStyle != ThemeManager.STYLE_B
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -275,17 +276,20 @@ fun SettingsScreen(
                 expanded = uiSettingsExpanded,
                 onExpandedChange = { uiSettingsExpanded = it }
             ) {
-                SettingsListItem(
-                    title = stringResource(R.string.title_pref_ui_style),
-                    entries = uiStyleEntries,
-                    values = uiStyleValues,
-                    selectedValue = uiStyle,
-                    onSelected = {
-                        uiStyle = it
-                        ThemeManager.setUiStyle(it)
-                        uiModeNight = ThemeManager.themeMode.value
-                    }
-                )
+                // Styles B and C are experimental: the picker shows only after the About unlock.
+                if (experimentalUi) {
+                    SettingsListItem(
+                        title = stringResource(R.string.title_pref_ui_style),
+                        entries = uiStyleEntries,
+                        values = uiStyleValues,
+                        selectedValue = currentStyle,
+                        onSelected = {
+                            uiStyle = it
+                            ThemeManager.setUiStyle(it)
+                            uiModeNight = ThemeManager.themeMode.value
+                        }
+                    )
+                }
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_speed_enabled),
                     summary = stringResource(R.string.summary_pref_speed_enabled),

@@ -74,6 +74,13 @@ import androidx.compose.ui.semantics.stateDescription
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.ui.compose.LocalDarkTheme
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.shadow
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toSpeedString
 import com.v2ray.ang.extension.toTrafficString
@@ -143,7 +150,7 @@ fun CassanovaShell(
                 HomeTab.Home -> if (isLight) {
                     HomeStyleC(home, mainViewModel, onAction, onNavigate, onOpenConfigs = { tab = HomeTab.Config })
                 } else {
-                    HomeStyleA(home, onAction, onNavigate, onOpenConfigs = { tab = HomeTab.Config })
+                    HomeStyleA(home, mainViewModel, onAction, onNavigate, onOpenConfigs = { tab = HomeTab.Config })
                 }
 
                 HomeTab.Config -> configContent()
@@ -153,54 +160,78 @@ fun CassanovaShell(
     }
 }
 
-// ---------- Style A: big hexagon button (dark) ----------
+// ---------- Style A: the Cassanova home (3D hexagon button) ----------
 
 @Composable
 private fun HomeStyleA(
     home: HomeState,
+    mainViewModel: MainViewModel,
     onAction: (MainAction) -> Unit,
     onNavigate: (MainDestination) -> Unit,
     onOpenConfigs: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val dark = LocalDarkTheme.current
+    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    val groupState by remember(uiState.selectedGroupId) {
+        mainViewModel.serverGroupState(uiState.selectedGroupId)
+    }.collectAsStateWithLifecycle()
+    val glow = if (dark) Color(0xFF18204A) else colors.surfaceContainerHigh
+    val background = colors.background
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
+            .background(background)
+            .drawBehind {
+                // A soft blue light behind the button, so it seems to float.
+                drawRect(
+                    Brush.radialGradient(
+                        listOf(glow, background),
+                        center = Offset(size.width / 2f, size.height * 0.3f),
+                        radius = size.width * 0.9f,
+                    )
+                )
+            }
             .windowInsetsPadding(WindowInsets.statusBars)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             BrandTitle(dark = true)
-            IconTile(
+            RaisedIconTile(
                 label = stringResource(R.string.tool_log),
                 iconRes = R.drawable.ic_logcat_24dp,
                 onClick = { onNavigate(MainDestination.Logcat) },
             )
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(10.dp))
         StatusPill(home.isRunning, light = false)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
         Text(
             text = formatDuration(home.connectedAtMillis),
-            fontSize = 34.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = colors.onBackground,
+            style = TextStyle(
+                fontFamily = MaterialTheme.typography.headlineLarge.fontFamily,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.sp,
+                color = colors.onBackground,
+                shadow = Shadow(
+                    color = if (dark) Color(0xFF05070F) else Color(0x33000000),
+                    offset = Offset(0f, 4f),
+                    blurRadius = 2f,
+                ),
+            ),
         )
 
-        Spacer(Modifier.height(16.dp))
-        HexConnectButton(
+        HexPowerButton3D(
             running = home.isRunning,
-            size = 220.dp,
             onClick = { onAction(MainAction.ToggleService) },
         )
         Text(
@@ -209,42 +240,84 @@ private fun HomeStyleA(
             color = colors.onSurfaceVariant,
         )
 
-        Spacer(Modifier.height(18.dp))
         Column(
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            StatsRow3D(home)
+            SpeedSparkline(home.speedHistory)
+        }
+
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(colors.surfaceContainer)
-                .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(start = 20.dp, end = 8.dp, top = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = stringResource(R.string.home_active_server),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.onSurfaceVariant,
-                    )
-                    Text(
-                        text = home.serverName.ifBlank { stringResource(R.string.home_no_server) },
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    TagRow(home.serverTags, light = false)
-                }
-                TextTile(
-                    label = stringResource(R.string.home_change),
-                    onClick = onOpenConfigs,
+            Text(
+                text = stringResource(R.string.home_quick_servers),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                modifier = Modifier
+                    .heightIn(min = 44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(role = Role.Button, onClick = onOpenConfigs)
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.home_all_configs),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (dark) BrandGold else BrandBlueDeep,
                 )
             }
-            StatGrid(home, light = false)
         }
-        Spacer(Modifier.height(20.dp))
+        if (groupState.rows.isEmpty()) {
+            Text(
+                text = stringResource(R.string.home_no_server),
+                fontSize = 13.sp,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+        } else {
+            QuickServers(
+                rows = groupState.rows,
+                selectedGuid = uiState.selectedGuid,
+                onSelect = { guid -> onAction(MainAction.SelectServer(guid)) },
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+/** Square icon tile with a raised edge (style A header). */
+@Composable
+private fun RaisedIconTile(label: String, iconRes: Int, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    Raised3D(
+        shape = RoundedCornerShape(14.dp),
+        face = Brush.verticalGradient(listOf(colors.surfaceContainerHigh, colors.surfaceContainer)),
+        side = if (LocalDarkTheme.current) Color(0xFF0A0E1C) else colors.outlineVariant,
+        pressed = pressed,
+        border = colors.outlineVariant,
+        modifier = Modifier
+            .size(width = 44.dp, height = 48.dp)
+            .clickable(interactionSource = interaction, indication = null, onClickLabel = label, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+    ) {
+        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+            Icon(painter = painterResource(iconRes), contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        }
     }
 }
 
@@ -588,31 +661,6 @@ private fun StatusPill(running: Boolean, light: Boolean) {
     }
 }
 
-@Composable
-private fun TagRow(tags: List<String>, light: Boolean) {
-    if (tags.isEmpty()) return
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        tags.forEachIndexed { index, tag ->
-            val (bg, fg) = when (index) {
-                0 -> if (light) Color(0xFFFFEDC2) to Color(0xFF6B4A00) else Color(0xFF2A2410) to Color(0xFFF5C451)
-                1 -> if (light) Color(0xFFDCE4FF) to BrandBlueDeep else Color(0xFF1A2550) to Color(0xFF9DB4FF)
-                else -> if (light) Color(0xFFCDEFD9) to GreenTextLight else GreenBg to GreenText
-            }
-            Text(
-                text = tag,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = fg,
-                maxLines = 1,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(bg)
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
-            )
-        }
-    }
-}
-
 /** Ping, data today, download and upload; 2×2 tiles. */
 @Composable
 private fun StatGrid(home: HomeState, light: Boolean, large: Boolean = false) {
@@ -704,67 +752,6 @@ private fun RowScope.QuickTool(label: String, iconRes: Int, light: Boolean = fal
 }
 
 @Composable
-private fun IconTile(label: String, iconRes: Int, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(colors.surfaceContainer)
-            .border(1.dp, colors.outlineVariant, RoundedCornerShape(14.dp))
-            .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(painter = painterResource(iconRes), contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
-    }
-}
-
-@Composable
-private fun TextTile(label: String, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .heightIn(min = 44.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-    }
-}
-
-/** The logo-shaped hexagon connect button of style A. */
-@Composable
-private fun HexConnectButton(running: Boolean, size: Dp, onClick: () -> Unit) {
-    val label = stringResource(if (running) R.string.acc_stop else R.string.acc_start)
-    val transition = rememberInfiniteTransition(label = "hexPulse")
-    val pulse by transition.animateFloat(
-        initialValue = 0.15f,
-        targetValue = 0.45f,
-        animationSpec = infiniteRepeatable(tween(1400), RepeatMode.Reverse),
-        label = "hexPulseAlpha",
-    )
-    val idle = MaterialTheme.colorScheme.surfaceContainerHighest
-    val idleInner = MaterialTheme.colorScheme.outline
-    val iconColor = MaterialTheme.colorScheme.background
-    Canvas(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label },
-    ) {
-        val r = min(this.size.width, this.size.height) / 2f
-        drawPath(hexagon(center, r * 0.98f), color = (if (running) BrandGold else idleInner).copy(alpha = if (running) pulse else 0.2f), style = Stroke(width = r * 0.08f))
-        drawPath(hexagon(center, r * 0.86f), color = if (running) BrandBlue else idle)
-        drawPath(hexagon(center, r * 0.58f), color = if (running) BrandGold else idleInner)
-        drawPower(center, r * 0.22f, iconColor, r * 0.07f)
-    }
-}
-
-@Composable
 private fun PowerCircleButton(running: Boolean, onClick: () -> Unit) {
     val idleGlyph = MaterialTheme.colorScheme.onSurfaceVariant
     val label = stringResource(if (running) R.string.acc_stop else R.string.acc_start)
@@ -814,17 +801,28 @@ internal fun DrawScope.drawPower(center: Offset, radius: Float, color: Color, wi
 @Composable
 private fun BottomNav(current: HomeTab, onSelect: (HomeTab) -> Unit, onSettings: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    Row(
+    val shape = RoundedCornerShape(22.dp)
+    // Floating bar: lifted off the screen with a shadow and a light top edge.
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surfaceContainerLow)
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 12.dp),
     ) {
-        NavItem(stringResource(R.string.nav_home), R.drawable.ic_home_24dp, current == HomeTab.Home) { onSelect(HomeTab.Home) }
-        NavItem(stringResource(R.string.nav_config), R.drawable.ic_subscriptions_24dp, current == HomeTab.Config) { onSelect(HomeTab.Config) }
-        NavItem(stringResource(R.string.nav_tools), R.drawable.ic_routing_24dp, current == HomeTab.Tools) { onSelect(HomeTab.Tools) }
-        NavItem(stringResource(R.string.nav_settings), R.drawable.ic_settings_24dp, false, onSettings)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(12.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
+                .clip(shape)
+                .background(Brush.verticalGradient(listOf(colors.surfaceContainerHigh, colors.surfaceContainerLow)))
+                .border(1.dp, colors.outlineVariant, shape)
+                .padding(horizontal = 6.dp, vertical = 6.dp),
+        ) {
+            NavItem(stringResource(R.string.nav_home), R.drawable.ic_home_24dp, current == HomeTab.Home) { onSelect(HomeTab.Home) }
+            NavItem(stringResource(R.string.nav_config), R.drawable.ic_subscriptions_24dp, current == HomeTab.Config) { onSelect(HomeTab.Config) }
+            NavItem(stringResource(R.string.nav_tools), R.drawable.ic_routing_24dp, current == HomeTab.Tools) { onSelect(HomeTab.Tools) }
+            NavItem(stringResource(R.string.nav_settings), R.drawable.ic_settings_24dp, false, onSettings)
+        }
     }
 }
 
@@ -835,14 +833,22 @@ private fun RowScope.NavItem(label: String, iconRes: Int, selected: Boolean, onC
         modifier = Modifier
             .weight(1f)
             .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .clickable(role = Role.Tab, onClick = onClick)
             .semantics { this.selected = selected },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(painter = painterResource(iconRes), contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
-        Text(text = label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold, color = color)
+        if (selected) {
+            // Active tab: a small extruded gold hexagon, the logo shape.
+            Box(Modifier.size(30.dp), contentAlignment = Alignment.Center) {
+                HexChip3D(size = 30.dp, face = BrandGold, side = Color(0xFF8A5600))
+                Icon(painter = painterResource(iconRes), contentDescription = null, tint = OnGold, modifier = Modifier.size(15.dp))
+            }
+        } else {
+            Icon(painter = painterResource(iconRes), contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+        }
+        Text(text = label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold, color = color)
     }
 }
 

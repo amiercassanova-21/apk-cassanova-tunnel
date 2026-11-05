@@ -581,4 +581,12 @@
     <string name="title_ssh_engine">Mesin SSH (berlaku saat sambung ulang)</string>
     <string name="ssh_engine_native">Native (Go) — disarankan</string>
     <string name="ssh_engine_java">Java (JSch) — mesin lama</string>
+    <string name="about_experimental_on">Tampilan eksperimen aktif: pilih gaya di Pengaturan, bagian Pengaturan tampilan</string>
+    <string name="about_experimental_off">Tampilan eksperimen dimatikan: kembali ke gaya Cassanova</string>
+    <string name="home_today_short">Hari ini</string>
+    <string name="home_speed_graph">Kecepatan · 60 detik</string>
+    <string name="home_download_short">Unduh</string>
+    <string name="home_upload_short">Unggah</string>
+    <string name="home_quick_servers">SERVER CEPAT</string>
+    <string name="home_all_configs">Semua config</string>
 </resources>

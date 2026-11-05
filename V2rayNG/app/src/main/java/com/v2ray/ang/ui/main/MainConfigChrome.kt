@@ -58,6 +58,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.Brush
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.extension.toTrafficString
@@ -237,7 +240,7 @@ internal fun ConfigHeaderA(
                 )
             }
             ImportMenuButton(onAction) { open ->
-                HeaderIconTile(R.drawable.ic_add_24dp, stringResource(R.string.acc_add), BrandGold, OnBrandGold, open)
+                RaisedGoldTile(R.drawable.ic_add_24dp, stringResource(R.string.acc_add), open)
             }
             MoreMenuButton(onMoreMenuAction) { open ->
                 HeaderIconTile(R.drawable.ic_more_vert_24dp, stringResource(R.string.acc_more), colors.surfaceContainer, colors.onSurfaceVariant, open, border = colors.outlineVariant)
@@ -383,16 +386,39 @@ internal fun MiniStatusCardA(home: HomeState, onAction: (MainAction) -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        PowerTile(running = home.isRunning, size = 48.dp, corner = 14.dp) { onAction(MainAction.ToggleService) }
+        PowerTile(running = home.isRunning, size = 48.dp, corner = 14.dp, raised = true) { onAction(MainAction.ToggleService) }
     }
 }
 
 /** Gold square power button (A status card, B status bar). */
 @Composable
-internal fun PowerTile(running: Boolean, size: Dp, corner: Dp, onClick: () -> Unit) {
+internal fun PowerTile(running: Boolean, size: Dp, corner: Dp, raised: Boolean = false, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val label = stringResource(if (running) R.string.acc_stop else R.string.acc_start)
     val glyph = if (running) OnBrandGold else colors.onSurfaceVariant
+    if (raised) {
+        val interaction = remember { MutableInteractionSource() }
+        val pressed by interaction.collectIsPressedAsState()
+        Raised3D(
+            shape = RoundedCornerShape(corner),
+            face = if (running) {
+                Brush.verticalGradient(listOf(Color(0xFFFFD66E), Color(0xFFE39A12)))
+            } else {
+                Brush.verticalGradient(listOf(colors.surfaceContainerHighest, colors.surfaceContainerHigh))
+            },
+            side = if (running) Color(0xFF8A5600) else colors.outlineVariant,
+            pressed = pressed,
+            modifier = Modifier
+                .size(width = size, height = size + 4.dp)
+                .clickable(interactionSource = interaction, indication = null, onClickLabel = label, role = Role.Button, onClick = onClick)
+                .semantics { contentDescription = label },
+        ) {
+            Canvas(Modifier.size(size)) {
+                drawPower(center, this.size.minDimension * 0.2f, glyph, this.size.minDimension * 0.06f)
+            }
+        }
+        return
+    }
     Canvas(
         modifier = Modifier
             .size(size)
@@ -402,6 +428,27 @@ internal fun PowerTile(running: Boolean, size: Dp, corner: Dp, onClick: () -> Un
             .semantics { contentDescription = label },
     ) {
         drawPower(center, this.size.minDimension * 0.2f, glyph, this.size.minDimension * 0.06f)
+    }
+}
+
+/** Gold square tile with a raised edge (style A "add"). */
+@Composable
+private fun RaisedGoldTile(iconRes: Int, label: String, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    Raised3D(
+        shape = RoundedCornerShape(14.dp),
+        face = Brush.verticalGradient(listOf(Color(0xFFFFD66E), Color(0xFFE39A12))),
+        side = Color(0xFF8A5600),
+        pressed = pressed,
+        modifier = Modifier
+            .size(width = 44.dp, height = 48.dp)
+            .clickable(interactionSource = interaction, indication = null, onClickLabel = label, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+    ) {
+        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+            Icon(painterResource(iconRes), contentDescription = null, tint = OnBrandGold, modifier = Modifier.size(22.dp))
+        }
     }
 }
 

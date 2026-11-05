@@ -678,4 +678,12 @@
     <string name="title_ssh_engine">SSH engine (applies on next connect)</string>
     <string name="ssh_engine_native">Native (Go) — recommended</string>
     <string name="ssh_engine_java">Java (JSch) — previous engine</string>
+    <string name="about_experimental_on">Experimental styles on: choose a style in Settings, UI settings</string>
+    <string name="about_experimental_off">Experimental styles off: back to the Cassanova style</string>
+    <string name="home_today_short">Today</string>
+    <string name="home_speed_graph">Speed · 60 s</string>
+    <string name="home_download_short">Down</string>
+    <string name="home_upload_short">Up</string>
+    <string name="home_quick_servers">QUICK SERVERS</string>
+    <string name="home_all_configs">All configs</string>
 </resources>

@@ -228,8 +228,21 @@ internal fun ConfigCardA(
 @Composable
 private fun HexBadge(text: String, background: Color, foreground: Color) {
     Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+        // Extruded badge: a darker side under the face and a light rim, like the home button.
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawPath(hexagon(center, size.minDimension / 2f * 0.95f), color = background)
+            val r = size.minDimension / 2f * 0.9f
+            val face = center.copy(y = center.y - r * 0.08f)
+            val side = Color(
+                red = background.red * 0.55f, green = background.green * 0.55f,
+                blue = background.blue * 0.55f, alpha = 1f,
+            )
+            drawPath(hexagon(face.copy(y = face.y + r * 0.16f), r), color = side)
+            drawPath(hexagon(face, r), color = background)
+            drawPath(
+                hexagon(face, r),
+                color = Color.White.copy(alpha = 0.18f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.06f),
+            )
         }
         Text(text = text, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = foreground, maxLines = 1)
     }
