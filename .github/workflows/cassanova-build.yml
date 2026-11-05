@@ -66,6 +66,7 @@ jobs:
         cache-dependency-path: |
           AndroidLibXrayLite/go.sum
           dnstt/go.sum
+          cassh/go.mod
 
     # libv2ray.aar is built here (not downloaded) so the Xray-core patches in patches/ apply:
     # xray-core-allow-plaintext.patch re-allows VLESS/Trojan without TLS (port 80).
@@ -118,6 +119,19 @@ jobs:
         CGO_ENABLED=1 GOOS=android GOARCH=arm GOARM=7 CC=$TC/armv7a-linux-androideabi24-clang \
           go build -trimpath -ldflags "-s -w" -o ../V2rayNG/app/libs/armeabi-v7a/libdnstt.so ./dnstt-client
         file ../V2rayNG/app/libs/*/libdnstt.so
+
+    - name: Build native SSH engine (cassh, arm64-v8a + armeabi-v7a)
+      run: |
+        TC=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin
+        cd cassh
+        go mod tidy
+        go vet ./...
+        go test -count=1 -timeout 120s ./...
+        CGO_ENABLED=1 GOOS=android GOARCH=arm64 CC=$TC/aarch64-linux-android24-clang \
+          go build -trimpath -ldflags "-s -w" -o ../V2rayNG/app/libs/arm64-v8a/libcassh.so .
+        CGO_ENABLED=1 GOOS=android GOARCH=arm GOARM=7 CC=$TC/armv7a-linux-androideabi24-clang \
+          go build -trimpath -ldflags "-s -w" -o ../V2rayNG/app/libs/armeabi-v7a/libcassh.so .
+        file ../V2rayNG/app/libs/*/libcassh.so
 
     - name: Setup Java
       uses: actions/setup-java@v6.1.0
@@ -195,7 +209,7 @@ jobs:
         check() { # apk abi...
           apk=$1; shift
           for abi in "$@"; do
-            for f in libdnstt libhev-socks5-tunnel libhevsockstun libgojni; do
+            for f in libdnstt libcassh libhev-socks5-tunnel libhevsockstun libgojni; do
               unzip -l "$apk" | grep -q "lib/$abi/$f.so" || { echo "missing $abi/$f.so in $apk"; exit 1; }
             done
           done

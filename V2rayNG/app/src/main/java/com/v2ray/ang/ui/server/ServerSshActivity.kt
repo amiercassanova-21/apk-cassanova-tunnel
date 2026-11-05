@@ -79,7 +79,8 @@ class ServerSshActivity : BaseServerActivity() {
             FormTextField(
                 stringResource(R.string.server_lab_ssh_proxy_host),
                 state.sshProxyHost,
-                { state.sshProxyHost = it }
+                { state.sshProxyHost = it },
+                placeholder = stringResource(R.string.server_lab_ssh_rotation_hint_hosts)
             )
             FormTextField(
                 stringResource(R.string.server_lab_ssh_proxy_port),
@@ -93,7 +94,8 @@ class ServerSshActivity : BaseServerActivity() {
             FormTextField(
                 stringResource(R.string.server_lab_ssh_sni),
                 state.sni,
-                { state.sni = it }
+                { state.sni = it },
+                placeholder = stringResource(R.string.server_lab_ssh_rotation_hint_hosts)
             )
         }
 

@@ -48,6 +48,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.ui.base.BaseComponentActivity
@@ -93,7 +100,7 @@ class LogcatActivity : BaseComponentActivity() {
                 shareDir.listFiles()?.forEach { it.delete() }
 
                 val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
-                val logFile = File(shareDir, "v2rayNG_logcat_$timestamp.txt")
+                val logFile = File(shareDir, "Cassanova_logcat_$timestamp.txt")
                 logFile.writeText(logText, Charsets.UTF_8)
 
                 val uri = FileProvider.getUriForFile(
@@ -143,6 +150,7 @@ fun LogcatScreen(
     val scope = rememberCoroutineScope()
     val logs by viewModel.logEntries.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val sshOnly by viewModel.sshOnly.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
@@ -219,6 +227,15 @@ fun LogcatScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            LogFilterTabs(sshOnly = sshOnly, onChange = viewModel::setSshOnly)
+            if (logs.isEmpty() && sshOnly && !isLoading) {
+                Text(
+                    text = stringResource(R.string.logcat_ssh_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(24.dp)
+                )
+            }
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -268,6 +285,45 @@ private fun LogcatItem(log: String, onLongClick: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                 color = MaterialTheme.colorScheme.onSurface
             )
+        }
+    }
+}
+
+/** "All logs" / "SSH connection" switch above the list. */
+@Composable
+private fun LogFilterTabs(sshOnly: Boolean, onChange: (Boolean) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.surfaceContainer)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        listOf(false to R.string.logcat_tab_all, true to R.string.logcat_tab_ssh).forEach { (value, label) ->
+            val selected = value == sshOnly
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) cassanovaAccent() else Color.Transparent)
+                    .selectable(selected = selected, role = Role.Tab) { onChange(value) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(label),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    color = when {
+                        !selected -> colors.onSurfaceVariant
+                        cassanovaAccent() == BrandGold -> OnBrandGold
+                        else -> Color.White
+                    }
+                )
+            }
         }
     }
 }

@@ -55,7 +55,7 @@
     <string name="ssh_mode_ssl_payload">SSL + payload</string>
     <string name="ssh_mode_slowdns">SlowDNS (DNSTT)</string>
     <string name="server_lab_ssh_payload">Payload</string>
-    <string name="server_lab_ssh_payload_hint">e.g. GET / HTTP/1.1[crlf]Host: [host][crlf]Upgrade: websocket[crlf][crlf]</string>
+    <string name="server_lab_ssh_payload_hint">e.g. GET / HTTP/1.1[crlf]Host: [host][crlf]Upgrade: websocket[crlf][crlf]\n---\n between payloads = rotate on failure</string>
     <string name="server_lab_ssh_proxy_host">Remote proxy host (optional)</string>
     <string name="server_lab_ssh_proxy_port">Remote proxy port (optional)</string>
     <string name="server_lab_ssh_sni">SNI / bug host</string>
@@ -669,4 +669,13 @@
     <string name="routing_preset_indonesia">Indonesia (local sites direct)</string>
     <string name="backup_section_local">On this device</string>
     <string name="backup_section_cloud">Cloud (WebDAV)</string>
+    <string name="logcat_tab_all">All logs</string>
+    <string name="logcat_tab_ssh">SSH connection</string>
+    <string name="logcat_ssh_empty">No SSH lines yet. Connect an SSH profile, then refresh.</string>
+    <string name="server_lab_ssh_rotation_hint_hosts">bug1.com, bug2.com (comma = rotate on failure)</string>
+    <string name="widget_status_label">Cassanova status</string>
+    <string name="widget_status_description">Connection state, data today, ping and a power button</string>
+    <string name="title_ssh_engine">SSH engine (applies on next connect)</string>
+    <string name="ssh_engine_native">Native (Go) — recommended</string>
+    <string name="ssh_engine_java">Java (JSch) — previous engine</string>
 </resources>

@@ -148,6 +148,7 @@ fun SettingsScreen(
     var observatoryLeastLoadTimeout by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_LOAD_TIMEOUT, AppConfig.OBSERVATORY_LEAST_LOAD_TIMEOUT)
 
     var mode by rememberMmkvString(AppConfig.PREF_MODE, VPN)
+    var sshEngine by rememberMmkvString(AppConfig.PREF_SSH_ENGINE, AppConfig.SSH_ENGINE_NATIVE)
     var enableRootMode by rememberMmkvBool(AppConfig.PREF_ROOT_MODE_ENABLE, false)
     var lanSharing by rememberMmkvBool(AppConfig.PREF_ROOT_LAN_SHARING, false)
 
@@ -722,6 +723,16 @@ fun SettingsScreen(
                 SettingsMenuItem(
                     title = stringResource(R.string.title_mode_help),
                     onClick = onModeHelpClicked
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_ssh_engine),
+                    entries = listOf(
+                        stringResource(R.string.ssh_engine_native),
+                        stringResource(R.string.ssh_engine_java)
+                    ),
+                    values = listOf(AppConfig.SSH_ENGINE_NATIVE, AppConfig.SSH_ENGINE_JAVA),
+                    selectedValue = sshEngine,
+                    onSelected = { sshEngine = it }
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_root_mode_enabled),

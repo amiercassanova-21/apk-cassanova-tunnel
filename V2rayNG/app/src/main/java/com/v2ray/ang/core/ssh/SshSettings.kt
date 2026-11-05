@@ -36,6 +36,38 @@ data class SshSettings(
     val dnsPublicKey: String = "",
     val dnsRecordType: String = DNS_TYPE_TXT,
 ) {
+    /** Payload alternatives: blocks separated by a line holding only `---`. */
+    val payloadOptions: List<String>
+        get() {
+            val parts = payload.split(Regex("\\r?\\n\\s*---\\s*\\r?\\n")).map { it.trim() }.filter { it.isNotEmpty() }
+            return if (parts.size <= 1) listOf(payload) else parts
+        }
+
+    /** SNI alternatives, comma separated. */
+    val sniOptions: List<String>
+        get() = sni.split(',').map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { listOf(sni) }
+
+    /** Remote proxy (bug host) alternatives, comma separated. */
+    val proxyHostOptions: List<String>
+        get() = proxyHost.split(',').map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { listOf(proxyHost) }
+
+    /** How many distinct variants rotation goes through (1 = no rotation). */
+    val variantCount: Int
+        get() = maxOf(payloadOptions.size, sniOptions.size, proxyHostOptions.size)
+
+    /**
+     * Settings for rotation step [index]: each list advances on its own, so with 3 payloads and
+     * 2 SNIs the steps are (p1,s1) (p2,s2) (p3,s1) … Used when a connection attempt fails.
+     */
+    fun variant(index: Int): SshSettings {
+        val i = if (index < 0) 0 else index
+        return copy(
+            payload = payloadOptions[i % payloadOptions.size],
+            sni = sniOptions[i % sniOptions.size],
+            proxyHost = proxyHostOptions[i % proxyHostOptions.size],
+        )
+    }
+
     companion object {
         const val DEFAULT_UDPGW_PORT = 7300
         const val DNS_TYPE_TXT = "txt"

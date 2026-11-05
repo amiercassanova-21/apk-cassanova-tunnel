@@ -11,6 +11,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.receiver.StatusWidgetProvider
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.dto.entities.ProfileItem
@@ -33,6 +34,7 @@ object NotificationManager {
     private const val NOTIFICATION_PENDING_INTENT_RESTART_V2RAY = 2
     private const val NOTIFICATION_ICON_THRESHOLD = 3000
     private const val QUERY_INTERVAL_MS = 3000L
+    private const val WIDGET_REFRESH_TICKS = 5
 
     private var lastQueryTime = 0L
     private var mBuilder: NotificationCompat.Builder? = null
@@ -55,8 +57,13 @@ object NotificationManager {
         var lastZeroSpeed = false
 
         speedNotificationJob = CoroutineScope(Dispatchers.IO).launch {
+            var tick = 0
             while (isActive) {
                 lastZeroSpeed = updateSpeedNotificationOnce(lastZeroSpeed)
+                // Cassanova status widget: data today and ping, every few ticks.
+                if (tick++ % WIDGET_REFRESH_TICKS == 0) {
+                    getService()?.let { StatusWidgetProvider.refresh(it, running = true) }
+                }
                 delay(QUERY_INTERVAL_MS)
             }
         }

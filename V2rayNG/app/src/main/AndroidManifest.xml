@@ -294,6 +294,19 @@
             </intent-filter>
         </receiver>
         <receiver
+            android:name=".receiver.StatusWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_status_label"
+            android:process=":daemon">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_status" />
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="${applicationId}.action.activity" />
+            </intent-filter>
+        </receiver>
+        <receiver
             android:name=".receiver.BootReceiver"
             android:exported="true"
             android:label="BootReceiver">

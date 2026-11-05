@@ -15,6 +15,7 @@ object TrafficTracker {
     private const val KEY_SPEED_UP = "cassanova_speed_up"
     private const val KEY_SPEED_DOWN = "cassanova_speed_down"
     private const val KEY_CONNECTED_AT = "cassanova_connected_at"
+    private const val KEY_LAST_PING = "cassanova_last_ping"
 
     data class Snapshot(
         val todayBytes: Long,
@@ -39,13 +40,23 @@ object TrafficTracker {
 
     /** Daemon: the core just started. */
     fun markConnected(now: Long = System.currentTimeMillis()) {
+        MmkvManager.encodeSettings(KEY_LAST_PING, 0L)
         MmkvManager.encodeSettings(KEY_CONNECTED_AT, now)
         MmkvManager.encodeSettings(KEY_SPEED_UP, 0L)
         MmkvManager.encodeSettings(KEY_SPEED_DOWN, 0L)
     }
 
+    /** UI: latest real-delay result of the running server (-1 failed); read by the widget. */
+    fun recordPing(delayMillis: Long) {
+        MmkvManager.encodeSettings(KEY_LAST_PING, delayMillis)
+    }
+
+    /** Latest ping, 0 when none since the connection started. */
+    fun lastPing(): Long = MmkvManager.decodeSettingsLong(KEY_LAST_PING, 0L)
+
     /** Daemon: the core stopped. */
     fun markDisconnected() {
+        MmkvManager.encodeSettings(KEY_LAST_PING, 0L)
         MmkvManager.encodeSettings(KEY_CONNECTED_AT, 0L)
         MmkvManager.encodeSettings(KEY_SPEED_UP, 0L)
         MmkvManager.encodeSettings(KEY_SPEED_DOWN, 0L)

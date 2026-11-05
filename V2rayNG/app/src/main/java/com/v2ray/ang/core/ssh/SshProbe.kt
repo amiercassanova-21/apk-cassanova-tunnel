@@ -5,7 +5,6 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.util.LogUtil
-import java.io.File
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -30,14 +29,13 @@ object SshProbe {
     fun measure(context: Context, profile: ProfileItem, testUrl: String): Long {
         val settings = SshTunnelManager.toSettings(ConfigLockManager.unlock(profile))
         if (settings.validate() != null) return FAILED
-        val dnstt = File(context.applicationInfo.nativeLibraryDir, "libdnstt.so").takeIf { it.exists() }
         val connectTimeout = if (settings.mode == SshMode.SLOWDNS) SLOWDNS_CONNECT_MS else CONNECT_MS
 
         slots.acquire()
-        var tunnel: SshTunnel? = null
+        var tunnel: SshEngine? = null
         return try {
             val port = SshTunnel.freePort()
-            val t = SshTunnel(settings, port, dnstt, logger = { /* probes stay out of the log */ })
+            val t = SshTunnelManager.createEngine(context, settings, port, logger = { /* probes stay out of the log */ })
             tunnel = t
             t.start()
             if (!awaitConnected(t, connectTimeout)) {
@@ -58,7 +56,7 @@ object SshProbe {
         }
     }
 
-    private fun awaitConnected(tunnel: SshTunnel, timeoutMs: Long): Boolean {
+    private fun awaitConnected(tunnel: SshEngine, timeoutMs: Long): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             if (tunnel.isConnected()) return true

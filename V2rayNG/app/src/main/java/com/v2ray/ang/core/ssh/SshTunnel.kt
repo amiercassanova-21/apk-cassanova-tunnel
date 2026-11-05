@@ -10,6 +10,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 enum class SshStatus { CONNECTING, CONNECTED, RECONNECTING }
 
+/** An SSH engine exposing the tunnel as a local SOCKS5 proxy: Java (JSch) or native (Go). */
+interface SshEngine {
+    fun start()
+    fun stop()
+    fun isConnected(): Boolean
+}
+
 /**
  * SSH tunnel exposed as a local SOCKS5 proxy on 127.0.0.1:[socksPort].
  * Keeps the SSH session alive and reconnects it until [stop] is called.
@@ -20,7 +27,7 @@ class SshTunnel(
     private val dnsttBinary: File?,
     private val logger: SshLogger,
     private val onStatus: (SshStatus) -> Unit = {},
-) {
+) : SshEngine {
     private val running = AtomicBoolean(false)
     private val lock = Object()
 
@@ -31,6 +38,9 @@ class SshTunnel(
     private var socks: SshSocksServer? = null
     private var worker: Thread? = null
     private var everConnected = false
+    // Rotation step of payload / SNI / bug host; advances after each failed attempt (B2).
+    @Volatile
+    private var variantIndex = 0
     private var lastStatus: SshStatus? = null
 
     private fun report(status: SshStatus) {
@@ -40,7 +50,7 @@ class SshTunnel(
     }
 
     /** Starts the SOCKS listener (and dnstt) right away; the SSH session connects in background. */
-    fun start() {
+    override fun start() {
         if (!running.compareAndSet(false, true)) return
         try {
             if (settings.mode == SshMode.SLOWDNS) {
@@ -56,7 +66,7 @@ class SshTunnel(
         worker = SshSocksServer.thread("ssh-connect") { connectLoop() }
     }
 
-    fun stop() {
+    override fun stop() {
         if (!running.getAndSet(false) && socks == null && dnstt == null) return
         worker?.interrupt()
         worker = null
@@ -70,7 +80,7 @@ class SshTunnel(
         logger.log("SSH stopped")
     }
 
-    fun isConnected(): Boolean = session?.isConnected == true
+    override fun isConnected(): Boolean = session?.isConnected == true
 
     private fun awaitSession(timeoutMs: Long): Session? {
         val deadline = System.currentTimeMillis() + timeoutMs
@@ -113,7 +123,9 @@ class SshTunnel(
             }
             attempt++
             try {
-                val s = openSession()
+                val variants = settings.variantCount
+                if (variants > 1) logger.log("SSH trying variant ${variantIndex % variants + 1}/$variants")
+                val s = openSession(settings.variant(variantIndex))
                 synchronized(lock) {
                     if (!running.get()) {
                         s.disconnect()
@@ -129,6 +141,7 @@ class SshTunnel(
             } catch (e: Exception) {
                 if (!running.get()) return
                 logger.log("SSH connect failed (attempt $attempt): ${e.message}")
+                if (settings.variantCount > 1) variantIndex++
                 try {
                     Thread.sleep(backoffMs(attempt))
                 } catch (_: InterruptedException) {
@@ -138,18 +151,18 @@ class SshTunnel(
         }
     }
 
-    private fun openSession(): Session {
+    private fun openSession(current: SshSettings): Session {
         val jsch = JSch()
-        val s = jsch.getSession(settings.username, settings.host, settings.port)
-        s.setPassword(settings.password)
-        s.userInfo = PasswordUserInfo(settings.password)
+        val s = jsch.getSession(current.username, current.host, current.port)
+        s.setPassword(current.password)
+        s.userInfo = PasswordUserInfo(current.password)
         s.setConfig("StrictHostKeyChecking", "no")
         s.setConfig("PreferredAuthentications", "password,keyboard-interactive")
         // Older Dropbear/OpenSSH builds on tunnel VPS still offer only these.
         s.setConfig("server_host_key", s.getConfig("server_host_key") + ",ssh-rsa,ssh-dss")
         s.setConfig("PubkeyAcceptedAlgorithms", s.getConfig("PubkeyAcceptedAlgorithms") + ",ssh-rsa")
         s.setConfig("kex", s.getConfig("kex") + ",diffie-hellman-group14-sha1,diffie-hellman-group1-sha1")
-        s.setProxy(SshTransport(settings, logger, dnsttPort))
+        s.setProxy(SshTransport(current, logger, dnsttPort))
         s.setServerAliveInterval(KEEPALIVE_MS)
         s.setServerAliveCountMax(KEEPALIVE_COUNT)
         s.connect(CONNECT_TIMEOUT_MS)

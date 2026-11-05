@@ -6,6 +6,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.handler.ConfigLockManager
+import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.util.LogUtil
 import java.io.File
@@ -25,7 +26,7 @@ object SshTunnelManager {
     private const val TAG = AppConfig.TAG
     private const val DNSTT_LIB = "libdnstt.so"
 
-    private var tunnel: SshTunnel? = null
+    private var tunnel: SshEngine? = null
 
     /** Starts (or restarts) the tunnel when [profile] is an SSH profile; stops it otherwise. */
     @Synchronized
@@ -34,10 +35,9 @@ object SshTunnelManager {
         if (profile.configType != EConfigType.SSH) return
 
         val settings = toSettings(ConfigLockManager.unlock(profile))
-        val dnstt = File(context.applicationInfo.nativeLibraryDir, DNSTT_LIB).takeIf { it.exists() }
         LogUtil.i(TAG, "SSH: starting tunnel, mode=${settings.mode.key}")
-        val t = SshTunnel(
-            settings, AppConfig.PORT_SSH_SOCKS, dnstt,
+        val t = createEngine(
+            context, settings, AppConfig.PORT_SSH_SOCKS,
             logger = { LogUtil.i(TAG, "SSH: $it") },
             onStatus = { status ->
                 NotificationManager.updateSshStatus(
@@ -61,6 +61,32 @@ object SshTunnelManager {
         tunnel = null
         NotificationManager.updateSshStatus(null)
     }
+
+    /**
+     * The SSH engine chosen in Settings: the native Go engine when it is packaged (default), else
+     * the Java (JSch) engine. Both serve the same local SOCKS5 port.
+     */
+    fun createEngine(
+        context: Context,
+        settings: SshSettings,
+        socksPort: Int,
+        logger: SshLogger,
+        onStatus: (SshStatus) -> Unit = {},
+    ): SshEngine {
+        val libDir = context.applicationInfo.nativeLibraryDir
+        val dnstt = File(libDir, DNSTT_LIB).takeIf { it.exists() }
+        val native = File(libDir, NativeSshTunnel.LIB_NAME).takeIf { it.exists() }
+        val choice = MmkvManager.decodeSettingsString(AppConfig.PREF_SSH_ENGINE, AppConfig.SSH_ENGINE_NATIVE)
+        return if (useNativeEngine(choice, native != null)) {
+            NativeSshTunnel(native!!, settings, socksPort, dnstt, logger, onStatus)
+        } else {
+            SshTunnel(settings, socksPort, dnstt, logger, onStatus)
+        }
+    }
+
+    /** Pure: native unless Java was chosen or the native binary is missing. */
+    fun useNativeEngine(choice: String?, nativeAvailable: Boolean): Boolean =
+        nativeAvailable && choice != AppConfig.SSH_ENGINE_JAVA
 
     fun toSettings(profile: ProfileItem): SshSettings = SshSettings(
         host = profile.server.orEmpty().trim(),

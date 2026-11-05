@@ -21,6 +21,10 @@ class LogcatViewModel(application: Application) : BaseViewModel(application) {
     private val logsetsAll: MutableList<String> = mutableListOf()
     private var currentFilter: String = ""
 
+    private val _sshOnly = MutableStateFlow(false)
+    /** "SSH connection" view: only the lines of the SSH / SlowDNS engine. */
+    val sshOnly: StateFlow<Boolean> = _sshOnly.asStateFlow()
+
     private val _filteredLogs = MutableStateFlow<List<String>>(emptyList())
     val filteredLogs: StateFlow<List<String>> = _filteredLogs.asStateFlow()
     val logEntries: StateFlow<List<LogcatEntry>> = filteredLogs
@@ -71,16 +75,22 @@ class LogcatViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
+    fun setSshOnly(enabled: Boolean) {
+        _sshOnly.value = enabled
+        applyFilter()
+    }
+
     fun filter(content: String?) {
         currentFilter = content?.trim() ?: ""
         applyFilter()
     }
 
     private fun applyFilter() {
+        val base = if (_sshOnly.value) logsetsAll.filter(::isSshLogLine) else logsetsAll.toList()
         _filteredLogs.value = if (currentFilter.isEmpty()) {
-            logsetsAll.toList()
+            base
         } else {
-            logsetsAll.filter { it.contains(currentFilter) }
+            base.filter { it.contains(currentFilter) }
         }
     }
 }
@@ -97,3 +107,7 @@ internal fun createLogcatEntries(logs: List<String>): List<LogcatEntry> {
         LogcatEntry("$occurrence:$line", line)
     }.asReversed()
 }
+
+/** Lines written by the SSH engine ("SSH: …", "SSH test …") or by the SlowDNS client. */
+internal fun isSshLogLine(line: String): Boolean =
+    line.contains("SSH:") || line.contains("SSH test") || line.contains("SlowDNS") || line.contains("dnstt")
