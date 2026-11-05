@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"net"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -351,5 +352,54 @@ func TestChunkLatin1Bytes(t *testing.T) {
 	c := Chunk{Text: "A\u00ff\u0080\r\n"}
 	if got := c.Bytes(); !bytes.Equal(got, []byte{'A', 0xff, 0x80, '\r', '\n'}) {
 		t.Fatalf("bytes %v", got)
+	}
+}
+
+func TestEscapeLine(t *testing.T) {
+	if got := escapeLine("a\\b\nc\r\td"); got != `a\\b\nc\r\td` {
+		t.Fatalf("escape %q", got)
+	}
+}
+
+func TestBannerIsEmitted(t *testing.T) {
+	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	signer, _ := ssh.NewSignerFromKey(key)
+	cfg := &ssh.ServerConfig{
+		PasswordCallback: func(m ssh.ConnMetadata, p []byte) (*ssh.Permissions, error) { return nil, nil },
+		BannerCallback:   func(m ssh.ConnMetadata) string { return "<b>Halo</b>\nBaris 2" },
+	}
+	cfg.AddHostKey(signer)
+	ln := listen(t)
+	go func() {
+		c, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		_, chans, reqs, err := ssh.NewServerConn(c, cfg)
+		if err != nil {
+			return
+		}
+		go ssh.DiscardRequests(reqs)
+		for nc := range chans {
+			_ = nc.Reject(ssh.Prohibited, "no")
+		}
+	}()
+	var out bytes.Buffer
+	outMu.Lock()
+	prev := output
+	output = &out
+	outMu.Unlock()
+	defer func() { outMu.Lock(); output = prev; outMu.Unlock() }()
+	tun := newTunnel(&Config{Host: "127.0.0.1", Port: port(ln), User: "u", Pass: "p", Mode: "direct"})
+	go tun.run()
+	defer tun.stop()
+	if tun.current(10*time.Second) == nil {
+		t.Fatal("no connection")
+	}
+	outMu.Lock()
+	got := out.String()
+	outMu.Unlock()
+	if !strings.Contains(got, "BANNER <b>Halo</b>\\nBaris 2\n") {
+		t.Fatalf("banner line missing in %q", got)
 	}
 }

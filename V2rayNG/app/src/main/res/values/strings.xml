@@ -686,4 +686,43 @@
     <string name="home_upload_short">Up</string>
     <string name="home_quick_servers">QUICK SERVERS</string>
     <string name="home_all_configs">All configs</string>
+    <string name="connlog_start">Starting %1$s (%2$s)…</string>
+    <string name="connlog_core_ok">Core running, connection ready</string>
+    <string name="connlog_reload">Network changed or reset, reconnecting…</string>
+    <string name="connlog_failed">Failed: %1$s</string>
+    <string name="connlog_stopped">Connection stopped</string>
+    <string name="connlog_ssh_start">Starting SSH (%1$s)…</string>
+    <string name="connlog_ssh_connecting">SSH: connecting…</string>
+    <string name="connlog_ssh_connected">SSH: connected</string>
+    <string name="connlog_ssh_reconnecting">SSH: disconnected, reconnecting…</string>
+    <string name="connlog_autoping_off">Auto Ping: off</string>
+    <string name="connlog_autoping_on">Auto Ping: %1$s · %2$s · every %3$d s</string>
+    <string name="connlog_autoping_result">Auto Ping: %1$d ms</string>
+    <string name="connlog_autoping_failed">Auto Ping: no reply</string>
+    <string name="connlog_autoping_reset">Auto Ping: %1$d failures in a row, resetting the connection</string>
+    <string name="connlog_udp_ok">UDP check OK</string>
+    <string name="connlog_udp_unavailable">UDP not available on this server, Auto Ping uses HTTP</string>
+    <string name="title_conn_log">Connection log</string>
+    <string name="connlog_empty">No log yet. Connect to see each step here.</string>
+    <string name="connlog_open_logcat">Logcat (technical)</string>
+    <string name="connlog_copied">Log copied</string>
+    <string name="banner_title">Server message</string>
+    <string name="title_autoping">Auto Ping</string>
+    <string name="title_autoping_mode">Mode</string>
+    <string name="title_autoping_method">Ping method</string>
+    <string name="title_autoping_target">STUN target</string>
+    <string name="title_autoping_interval">Ping interval (seconds)</string>
+    <string name="title_autoping_timeout">Ping timeout (seconds)</string>
+    <string name="title_autoping_fail_limit">Failures before reset</string>
+    <string name="summary_autoping">Pings through the tunnel to keep it from looking idle; Reset reconnects after repeated failures.</string>
+    <string-array name="autoping_mode_entries">
+        <item>Off</item>
+        <item>Keep-alive</item>
+        <item>Reset</item>
+        <item>Aggressive</item>
+    </string-array>
+    <string-array name="autoping_method_entries">
+        <item>STUN (UDP)</item>
+        <item>HTTP</item>
+    </string-array>
 </resources>

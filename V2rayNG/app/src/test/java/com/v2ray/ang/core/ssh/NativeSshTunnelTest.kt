@@ -67,4 +67,20 @@ class NativeSshTunnelTest {
         assertFalse(SshTunnelManager.useNativeEngine(AppConfig.SSH_ENGINE_JAVA, true))
         assertFalse(SshTunnelManager.useNativeEngine(AppConfig.SSH_ENGINE_NATIVE, false))
     }
+
+    @Test
+    fun bannerLineIsUnescaped() {
+        assertEquals(
+            NativeSshTunnel.EngineLine.Banner("<b>Hi</b>\nLine 2"),
+            NativeSshTunnel.parseEngineLine("BANNER <b>Hi</b>\\nLine 2")
+        )
+    }
+
+    @Test
+    fun engineLinesGetLevels() {
+        assertEquals(com.v2ray.ang.handler.ConnLog.Kind.OK, SshTunnelManager.engineLineLevel("SSH connected (SSH-2.0-dropbear)"))
+        assertEquals(com.v2ray.ang.handler.ConnLog.Kind.ERROR, SshTunnelManager.engineLineLevel("SSH connect failed (attempt 1): EOF"))
+        assertEquals(com.v2ray.ang.handler.ConnLog.Kind.WARN, SshTunnelManager.engineLineLevel("SSH keepalive missed (1/3): timeout"))
+        assertEquals(com.v2ray.ang.handler.ConnLog.Kind.INFO, SshTunnelManager.engineLineLevel("Connecting to 1.2.3.4:443 (ssl)"))
+    }
 }

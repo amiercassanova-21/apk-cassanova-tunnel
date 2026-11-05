@@ -6,6 +6,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.handler.ConfigLockManager
+import com.v2ray.ang.handler.ConnLog
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.util.LogUtil
@@ -36,10 +37,24 @@ object SshTunnelManager {
 
         val settings = toSettings(ConfigLockManager.unlock(profile))
         LogUtil.i(TAG, "SSH: starting tunnel, mode=${settings.mode.key}")
+        ConnLog.info(context.getString(R.string.connlog_ssh_start, settings.mode.key))
         val t = createEngine(
             context, settings, AppConfig.PORT_SSH_SOCKS,
-            logger = { LogUtil.i(TAG, "SSH: $it") },
+            logger = { line ->
+                LogUtil.i(TAG, "SSH: $line")
+                when (engineLineLevel(line)) {
+                    ConnLog.Kind.OK -> ConnLog.ok("SSH: $line")
+                    ConnLog.Kind.WARN -> ConnLog.warn("SSH: $line")
+                    ConnLog.Kind.ERROR -> ConnLog.error("SSH: $line")
+                    else -> ConnLog.info("SSH: $line")
+                }
+            },
             onStatus = { status ->
+                when (status) {
+                    SshStatus.CONNECTING -> ConnLog.info(context.getString(R.string.connlog_ssh_connecting))
+                    SshStatus.CONNECTED -> ConnLog.ok(context.getString(R.string.connlog_ssh_connected))
+                    SshStatus.RECONNECTING -> ConnLog.warn(context.getString(R.string.connlog_ssh_reconnecting))
+                }
                 NotificationManager.updateSshStatus(
                     context.getString(
                         when (status) {
@@ -50,6 +65,7 @@ object SshTunnelManager {
                     )
                 )
             },
+            onBanner = { html -> ConnLog.banner(html) },
         )
         t.start()
         tunnel = t
@@ -72,15 +88,27 @@ object SshTunnelManager {
         socksPort: Int,
         logger: SshLogger,
         onStatus: (SshStatus) -> Unit = {},
+        onBanner: (String) -> Unit = {},
     ): SshEngine {
         val libDir = context.applicationInfo.nativeLibraryDir
         val dnstt = File(libDir, DNSTT_LIB).takeIf { it.exists() }
         val native = File(libDir, NativeSshTunnel.LIB_NAME).takeIf { it.exists() }
         val choice = MmkvManager.decodeSettingsString(AppConfig.PREF_SSH_ENGINE, AppConfig.SSH_ENGINE_NATIVE)
         return if (useNativeEngine(choice, native != null)) {
-            NativeSshTunnel(native!!, settings, socksPort, dnstt, logger, onStatus)
+            NativeSshTunnel(native!!, settings, socksPort, dnstt, logger, onStatus, onBanner)
         } else {
-            SshTunnel(settings, socksPort, dnstt, logger, onStatus)
+            SshTunnel(settings, socksPort, dnstt, logger, onStatus, onBanner)
+        }
+    }
+
+    /** Pure: how an engine line is colored in the connection log. */
+    fun engineLineLevel(line: String): ConnLog.Kind {
+        val l = line.lowercase()
+        return when {
+            "failed" in l || "error" in l || "unavailable" in l || "exited" in l -> ConnLog.Kind.ERROR
+            "missed" in l || "reconnecting" in l || "disconnected" in l || "no reply" in l -> ConnLog.Kind.WARN
+            "connected" in l || "tls ready" in l || "server reply: http/1.1 101" in l || "server reply: http/1.1 200" in l -> ConnLog.Kind.OK
+            else -> ConnLog.Kind.INFO
         }
     }
 

@@ -207,7 +207,7 @@ private fun HomeStyleA(
             RaisedIconTile(
                 label = stringResource(R.string.tool_log),
                 iconRes = R.drawable.ic_logcat_24dp,
-                onClick = { onNavigate(MainDestination.Logcat) },
+                onClick = { onNavigate(MainDestination.ConnectionLog) },
             )
         }
 
@@ -472,7 +472,7 @@ private fun HomeStyleC(
             ) {
                 QuickTool(stringResource(R.string.tool_import_qr), R.drawable.ic_scan_24dp, light = true) { onAction(MainAction.ImportQRcode) }
                 QuickTool(stringResource(R.string.tool_import_clipboard), R.drawable.ic_copy, light = true) { onAction(MainAction.ImportClipboard) }
-                QuickTool(stringResource(R.string.tool_log), R.drawable.ic_logcat_24dp, light = true) { onNavigate(MainDestination.Logcat) }
+                QuickTool(stringResource(R.string.tool_log), R.drawable.ic_logcat_24dp, light = true) { onNavigate(MainDestination.ConnectionLog) }
                 QuickTool(stringResource(R.string.tool_test_all), R.drawable.ic_refresh_24dp, light = true) { onAction(MainAction.TestRealAllServers) }
             }
             Spacer(Modifier.height(16.dp))
@@ -602,7 +602,7 @@ private fun ToolsTab(onAction: (MainAction) -> Unit, onNavigate: (MainDestinatio
             QuickTool(stringResource(R.string.tool_test_all), R.drawable.ic_refresh_24dp) { onAction(MainAction.TestRealAllServers) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickTool(stringResource(R.string.tool_log), R.drawable.ic_logcat_24dp) { onNavigate(MainDestination.Logcat) }
+            QuickTool(stringResource(R.string.tool_log), R.drawable.ic_logcat_24dp) { onNavigate(MainDestination.ConnectionLog) }
             QuickTool(stringResource(R.string.tool_subscriptions), R.drawable.ic_subscriptions_24dp) { onNavigate(MainDestination.Subscriptions) }
             QuickTool(stringResource(R.string.tool_routing), R.drawable.ic_routing_24dp) { onNavigate(MainDestination.Routing) }
         }
@@ -636,27 +636,42 @@ private fun BrandTitle(dark: Boolean) {
 
 @Composable
 private fun StatusPill(running: Boolean, light: Boolean) {
-    val bg = if (running) GreenBg else MaterialTheme.colorScheme.surfaceContainerHigh
-    val fg = if (running) GreenText else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = RoundedCornerShape(999.dp)
+    val fg = when {
+        running && light -> GreenTextLight
+        running -> GreenText
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val bg = when {
+        running && light -> Brush.verticalGradient(listOf(Color(0xFFDDF6E6), Color(0xFFCDEFD9)))
+        running -> Brush.verticalGradient(listOf(Color(0xFF1B4A30), GreenBg))
+        else -> Brush.verticalGradient(
+            listOf(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.surfaceContainerHigh)
+        )
+    }
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (light && running) Color(0xFFCDEFD9) else bg)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            // Connected: a soft green glow around the pill.
+            .shadow(if (running) 10.dp else 0.dp, shape, ambientColor = GreenDot, spotColor = GreenDot)
+            .clip(shape)
+            .background(bg)
+            .border(1.dp, Color.White.copy(alpha = if (running) 0.12f else 0.06f), shape)
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(8.dp)
+                .shadow(if (running) 4.dp else 0.dp, CircleShape, ambientColor = GreenDot, spotColor = GreenDot)
                 .clip(CircleShape)
                 .background(if (running) GreenDot else MaterialTheme.colorScheme.outline)
         )
         Text(
             text = stringResource(if (running) R.string.home_protected else R.string.home_not_protected),
             fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (light && running) GreenTextLight else fg,
+            fontWeight = FontWeight.Bold,
+            color = fg,
         )
     }
 }

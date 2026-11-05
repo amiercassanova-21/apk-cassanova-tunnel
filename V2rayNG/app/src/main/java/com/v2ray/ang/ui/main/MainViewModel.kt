@@ -147,9 +147,33 @@ class MainViewModel(
     @Volatile
     private var speedHistory: List<SpeedSample> = emptyList()
 
+    // Server banner pop-up: shown once per connection session (the session start time).
+    private val _serverBanner = MutableStateFlow<ServerBanner?>(null)
+    val serverBanner: StateFlow<ServerBanner?> = _serverBanner.asStateFlow()
+    private var connLogModified = 0L
+
+    private fun checkServerBanner() {
+        val file = com.v2ray.ang.handler.ConnLog.file(app)
+        val modified = file.lastModified()
+        if (modified == 0L || modified == connLogModified) return
+        connLogModified = modified
+        val (session, html) = com.v2ray.ang.handler.ConnLog.sessionBanner(com.v2ray.ang.handler.ConnLog.read(app)) ?: return
+        val shown = com.v2ray.ang.handler.MmkvManager.decodeSettingsLong(KEY_BANNER_SHOWN_SESSION, 0L)
+        if (session != shown && _serverBanner.value?.session != session) {
+            _serverBanner.value = ServerBanner(session, html)
+        }
+    }
+
+    fun dismissServerBanner() {
+        val banner = _serverBanner.value ?: return
+        com.v2ray.ang.handler.MmkvManager.encodeSettings(KEY_BANNER_SHOWN_SESSION, banner.session)
+        _serverBanner.value = null
+    }
+
     private fun refreshHome() {
         val state = uiState.value
         val snapshot = TrafficTracker.snapshot()
+        if (state.isRunning) checkServerBanner()
         speedHistory = if (state.isRunning) {
             appendSpeedSample(speedHistory, SpeedSample(snapshot.downBytesPerSec, snapshot.upBytesPerSec))
         } else {
@@ -165,13 +189,19 @@ class MainViewModel(
             upBytesPerSec = if (state.isRunning) snapshot.upBytesPerSec else 0L,
             downBytesPerSec = if (state.isRunning) snapshot.downBytesPerSec else 0L,
             connectedAtMillis = if (state.isRunning) snapshot.connectedAtMillis else 0L,
-            pingMillis = lastPing?.delayMillis?.takeIf { state.isRunning && it >= 0 },
+            // The latest Auto Ping from the core, else the last test from the UI.
+            pingMillis = (TrafficTracker.lastPing().takeIf { it > 0 } ?: lastPing?.delayMillis)
+                ?.takeIf { state.isRunning && it >= 0 },
             pingFailed = state.isRunning && (lastPing?.delayMillis ?: 0L) < 0,
             speedHistory = speedHistory,
         )
     }
 
     private fun homeTags(profile: ProfileItem): List<String> {
+        // A locked SSH config keeps its mode sealed: show "Locked" instead of a guessed mode.
+        if (profile.configType == com.v2ray.ang.enums.EConfigType.SSH && profile.lockedData != null) {
+            return listOf("SSH", dataSource.getString(R.string.config_locked))
+        }
         if (profile.configType == com.v2ray.ang.enums.EConfigType.SSH) {
             val mode = com.v2ray.ang.core.ssh.SshMode.from(profile.sshMode)
             val modeLabel = dataSource.getString(
@@ -1069,6 +1099,11 @@ data class HomeState(
     val pingFailed: Boolean = false,
     val speedHistory: List<SpeedSample> = emptyList(),
 )
+
+/** A server's SSH banner (HTML) for the pop-up, keyed by the connection session. */
+data class ServerBanner(val session: Long, val html: String)
+
+private const val KEY_BANNER_SHOWN_SESSION = "cassanova_banner_shown_session"
 
 /** One second of traffic: download and upload bytes per second. */
 data class SpeedSample(val down: Long, val up: Long)

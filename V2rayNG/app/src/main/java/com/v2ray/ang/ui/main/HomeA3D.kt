@@ -531,7 +531,11 @@ internal fun QuickServers(
             val locked = ConfigLockManager.isLocked(row.profile)
             val family = ProtocolFilter.of(row.profile)
             val parts = typeParts(row.profile, locked)
-            val kind = if (row.profile.configType == EConfigType.SSH && parts.size > 1) parts[1] else parts.first()
+            val kind = when {
+                locked -> stringResource(R.string.config_locked)
+                row.profile.configType == EConfigType.SSH && parts.size > 1 -> parts[1]
+                else -> parts.first()
+            }
             val shape = RoundedCornerShape(18.dp)
             Column(
                 modifier = Modifier

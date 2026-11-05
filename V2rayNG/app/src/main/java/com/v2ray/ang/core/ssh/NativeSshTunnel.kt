@@ -1,5 +1,6 @@
 package com.v2ray.ang.core.ssh
 
+import com.v2ray.ang.handler.ConnLog
 import java.io.File
 import java.io.OutputStream
 import java.util.concurrent.atomic.AtomicBoolean
@@ -18,6 +19,7 @@ class NativeSshTunnel(
     private val dnsttBinary: File?,
     private val logger: SshLogger,
     private val onStatus: (SshStatus) -> Unit = {},
+    private val onBanner: (String) -> Unit = {},
 ) : SshEngine {
     private val running = AtomicBoolean(false)
     private val connected = AtomicBoolean(false)
@@ -63,6 +65,7 @@ class NativeSshTunnel(
                     }
 
                     is EngineLine.Log -> logger.log(event.text)
+                    is EngineLine.Banner -> onBanner(event.html)
                     null -> Unit
                 }
             }
@@ -113,6 +116,7 @@ class NativeSshTunnel(
     sealed interface EngineLine {
         data class Status(val status: SshStatus) : EngineLine
         data class Log(val text: String) : EngineLine
+        data class Banner(val html: String) : EngineLine
     }
 
     companion object {
@@ -178,6 +182,7 @@ class NativeSshTunnel(
             }
 
             line.startsWith("LOG ") -> EngineLine.Log(line.removePrefix("LOG "))
+            line.startsWith("BANNER ") -> EngineLine.Banner(ConnLog.unescape(line.removePrefix("BANNER ")))
             line.isBlank() -> null
             else -> EngineLine.Log(line)
         }

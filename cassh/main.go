@@ -56,12 +56,15 @@ type Config struct {
 func (c *Config) usesTLS() bool     { return c.Mode == "ssl" || c.Mode == "ssl_payload" }
 func (c *Config) usesPayload() bool { return c.Mode == "payload" || c.Mode == "ssl_payload" }
 
-var outMu sync.Mutex
+var (
+	outMu  sync.Mutex
+	output io.Writer = os.Stdout
+)
 
 func emit(kind, text string) {
 	outMu.Lock()
 	defer outMu.Unlock()
-	fmt.Fprintf(os.Stdout, "%s %s\n", kind, text)
+	fmt.Fprintf(output, "%s %s\n", kind, text)
 }
 
 func logf(format string, args ...any) { emit("LOG", fmt.Sprintf(format, args...)) }

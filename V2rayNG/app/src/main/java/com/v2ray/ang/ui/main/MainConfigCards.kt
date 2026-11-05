@@ -34,6 +34,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import com.v2ray.ang.R
 import com.v2ray.ang.core.ssh.SshMode
 import com.v2ray.ang.dto.entities.ProfileItem
@@ -157,8 +159,10 @@ internal fun ConfigCardA(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // Raised card: a soft shadow below and a lighter top edge.
+            .shadow(6.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
             .clip(shape)
-            .background(colors.surfaceContainer)
+            .background(Brush.verticalGradient(listOf(colors.surfaceContainerHigh, colors.surfaceContainer)))
             .border(if (isSelected) 1.5.dp else 1.dp, if (isSelected) BrandGold else colors.outlineVariant, shape)
             .selectedState(isSelected)
             .clickable(role = Role.Button) { actions.select(row.guid) }

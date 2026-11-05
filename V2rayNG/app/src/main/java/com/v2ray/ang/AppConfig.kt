@@ -94,6 +94,13 @@ object AppConfig {
     const val PREF_REAL_PING_CONCURRENCY = "pref_real_ping_concurrency"
     /** SSH engine: [SSH_ENGINE_NATIVE] (Go, default) or [SSH_ENGINE_JAVA] (JSch). */
     const val PREF_SSH_ENGINE = "pref_ssh_engine"
+    // Auto Ping (AutoPingManager): mode, method, STUN target, interval / timeout in s, failures before reset.
+    const val PREF_AUTOPING_MODE = "pref_autoping_mode"
+    const val PREF_AUTOPING_METHOD = "pref_autoping_method"
+    const val PREF_AUTOPING_TARGET = "pref_autoping_target"
+    const val PREF_AUTOPING_INTERVAL = "pref_autoping_interval"
+    const val PREF_AUTOPING_TIMEOUT = "pref_autoping_timeout"
+    const val PREF_AUTOPING_FAIL_LIMIT = "pref_autoping_fail_limit"
     const val SSH_ENGINE_NATIVE = "native"
     const val SSH_ENGINE_JAVA = "java"
 

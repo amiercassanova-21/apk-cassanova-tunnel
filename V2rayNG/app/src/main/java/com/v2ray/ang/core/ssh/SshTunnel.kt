@@ -27,6 +27,7 @@ class SshTunnel(
     private val dnsttBinary: File?,
     private val logger: SshLogger,
     private val onStatus: (SshStatus) -> Unit = {},
+    private val onBanner: (String) -> Unit = {},
 ) : SshEngine {
     private val running = AtomicBoolean(false)
     private val lock = Object()
@@ -155,7 +156,7 @@ class SshTunnel(
         val jsch = JSch()
         val s = jsch.getSession(current.username, current.host, current.port)
         s.setPassword(current.password)
-        s.userInfo = PasswordUserInfo(current.password)
+        s.userInfo = PasswordUserInfo(current.password, onBanner)
         s.setConfig("StrictHostKeyChecking", "no")
         s.setConfig("PreferredAuthentications", "password,keyboard-interactive")
         // Older Dropbear/OpenSSH builds on tunnel VPS still offer only these.
@@ -169,13 +170,19 @@ class SshTunnel(
         return s
     }
 
-    private class PasswordUserInfo(private val pass: String) : UserInfo, UIKeyboardInteractive {
+    private class PasswordUserInfo(
+        private val pass: String,
+        private val onBanner: (String) -> Unit,
+    ) : UserInfo, UIKeyboardInteractive {
         override fun getPassphrase(): String? = null
         override fun getPassword(): String = pass
         override fun promptPassword(message: String?): Boolean = true
         override fun promptPassphrase(message: String?): Boolean = false
         override fun promptYesNo(message: String?): Boolean = true
-        override fun showMessage(message: String?) {}
+        // JSch hands the server's SSH banner here.
+        override fun showMessage(message: String?) {
+            if (!message.isNullOrBlank()) onBanner(message)
+        }
         override fun promptKeyboardInteractive(
             destination: String?, name: String?, instruction: String?,
             prompt: Array<out String>?, echo: BooleanArray?

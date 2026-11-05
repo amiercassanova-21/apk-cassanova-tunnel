@@ -12,6 +12,9 @@ import android.os.ParcelFileDescriptor
 import android.system.OsConstants
 import androidx.core.content.ContextCompat
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.enums.EConfigType
+import com.v2ray.ang.R
+import com.v2ray.ang.handler.ConnLog
 import com.v2ray.ang.contracts.IDialerService
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.core.ssh.SshTunnelManager
@@ -108,6 +111,7 @@ object CoreServiceManager {
         } catch (e: Exception) {
             val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
             LogUtil.e(AppConfig.TAG, "StartCore-Manager: $message", e)
+            ConnLog.error(service.getString(R.string.connlog_failed, message))
             SshTunnelManager.stop()
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_FAILURE, message)
             NotificationManager.cancelNotification()
@@ -132,6 +136,13 @@ object CoreServiceManager {
     private fun launchCore(service: Service, vpnInterface: ParcelFileDescriptor?, isReload: Boolean = false) {
         val guid = MmkvManager.getSelectServer() ?: error("No server selected")
         val config = MmkvManager.decodeServerConfig(guid) ?: error("Failed to decode server config")
+        if (isReload) {
+            ConnLog.attach(service)
+            ConnLog.warn(service.getString(R.string.connlog_reload))
+        } else {
+            ConnLog.begin(service)
+            ConnLog.info(service.getString(R.string.connlog_start, config.remarks, connLogType(config)))
+        }
 
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config.remarks}")
         // SSH profiles: the core's outbound is the local SOCKS port of this tunnel.
@@ -184,9 +195,12 @@ object CoreServiceManager {
             else -> {}
         }
 
+        ConnLog.ok(service.getString(R.string.connlog_core_ok))
         if (!isReload) {
             TrafficTracker.markConnected()
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
+            // Auto Ping keeps running across reloads; it only (re)starts with a new connection.
+            AutoPingManager.start(service) { resetConnection() }
         }
         NotificationManager.startSpeedNotification()
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core started successfully")
@@ -215,8 +229,10 @@ object CoreServiceManager {
             }
         }
 
+        AutoPingManager.stop()
         SshTunnelManager.stop()
         TrafficTracker.markDisconnected()
+        ConnLog.info(service.getString(R.string.connlog_stopped))
 
         // Close existing browser dialer
         CoreNativeManager.reconcileBrowserDialer("")
@@ -283,12 +299,31 @@ object CoreServiceManager {
         } catch (e: Exception) {
             val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
             LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to reload core: $message", e)
+            ConnLog.error(service.getString(R.string.connlog_failed, message))
             SshTunnelManager.stop()
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_FAILURE, message)
             false
         } finally {
             isReloading = false
         }
+    }
+
+    /**
+     * Auto Ping reset: rebuilds the connection in place like a network handover (the SSH tunnel is
+     * restarted by launchCore). Called from AutoPingManager's IO coroutine, never the main thread.
+     */
+    fun resetConnection(): Boolean = reloadCore()
+
+    /** Short protocol description for the connection log, e.g. "VLESS · ws · tls" or "SSH · slowdns". */
+    private fun connLogType(config: ProfileItem): String {
+        if (config.configType == EConfigType.SSH) {
+            return if (config.lockedData != null) "SSH" else "SSH · ${config.sshMode ?: "direct"}"
+        }
+        return listOfNotNull(
+            config.configType.name,
+            config.network?.takeIf { it.isNotBlank() && it != "tcp" },
+            config.security?.takeIf { it.isNotBlank() && it != "none" },
+        ).joinToString(" · ")
     }
 
     /**

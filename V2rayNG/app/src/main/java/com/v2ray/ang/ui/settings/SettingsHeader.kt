@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.border
 import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.BrandBlue
@@ -96,8 +98,15 @@ fun CassanovaSettingsHeader(
                 modifier = Modifier
                     .padding(start = 12.dp)
                     .fillMaxWidth()
+                    // Raised identity card over the gradient.
+                    .shadow(10.dp, RoundedCornerShape(18.dp), ambientColor = Color.Black, spotColor = Color.Black)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.surface)
+                        )
+                    )
+                    .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

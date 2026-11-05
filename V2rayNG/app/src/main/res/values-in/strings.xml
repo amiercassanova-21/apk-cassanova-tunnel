@@ -589,4 +589,43 @@
     <string name="home_upload_short">Unggah</string>
     <string name="home_quick_servers">SERVER CEPAT</string>
     <string name="home_all_configs">Semua config</string>
+    <string name="connlog_start">Memulai %1$s (%2$s)…</string>
+    <string name="connlog_core_ok">Core aktif, koneksi siap</string>
+    <string name="connlog_reload">Jaringan berubah atau reset, menyambung ulang…</string>
+    <string name="connlog_failed">Gagal: %1$s</string>
+    <string name="connlog_stopped">Koneksi dihentikan</string>
+    <string name="connlog_ssh_start">Memulai SSH (%1$s)…</string>
+    <string name="connlog_ssh_connecting">SSH: menghubungkan…</string>
+    <string name="connlog_ssh_connected">SSH: berhasil terhubung</string>
+    <string name="connlog_ssh_reconnecting">SSH: terputus, menyambung ulang…</string>
+    <string name="connlog_autoping_off">Auto Ping: nonaktif</string>
+    <string name="connlog_autoping_on">Auto Ping: %1$s · %2$s · tiap %3$d detik</string>
+    <string name="connlog_autoping_result">Auto Ping: %1$d ms</string>
+    <string name="connlog_autoping_failed">Auto Ping: tidak ada balasan</string>
+    <string name="connlog_autoping_reset">Auto Ping: %1$d kali gagal berturut-turut, koneksi direset</string>
+    <string name="connlog_udp_ok">Diagnostik UDP OK</string>
+    <string name="connlog_udp_unavailable">UDP tidak tersedia di server ini, Auto Ping memakai HTTP</string>
+    <string name="title_conn_log">Log Koneksi</string>
+    <string name="connlog_empty">Belum ada log. Sambungkan untuk melihat setiap langkahnya di sini.</string>
+    <string name="connlog_open_logcat">Logcat (teknis)</string>
+    <string name="connlog_copied">Log disalin</string>
+    <string name="banner_title">Pesan server</string>
+    <string name="title_autoping">Auto Ping</string>
+    <string name="title_autoping_mode">Mode</string>
+    <string name="title_autoping_method">Metode ping</string>
+    <string name="title_autoping_target">Target STUN</string>
+    <string name="title_autoping_interval">Interval ping (detik)</string>
+    <string name="title_autoping_timeout">Batas waktu ping (detik)</string>
+    <string name="title_autoping_fail_limit">Gagal sebelum reset</string>
+    <string name="summary_autoping">Ping lewat terowongan agar koneksi tidak dianggap nganggur; mode Reset menyambung ulang setelah beberapa kali gagal.</string>
+    <string-array name="autoping_mode_entries">
+        <item>Nonaktif</item>
+        <item>Keep-alive</item>
+        <item>Reset</item>
+        <item>Agresif</item>
+    </string-array>
+    <string-array name="autoping_method_entries">
+        <item>STUN (UDP)</item>
+        <item>HTTP</item>
+    </string-array>
 </resources>

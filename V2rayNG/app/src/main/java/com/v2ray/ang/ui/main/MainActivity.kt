@@ -109,6 +109,8 @@ class MainActivity : HelperBaseComponentActivity() {
         val style by ThemeManager.uiStyle.collectAsStateWithLifecycle()
         val onAction: (MainAction) -> Unit = { action -> handleMainAction(action) }
         val onNavigate: (MainDestination) -> Unit = { route -> navigateTo(route) }
+        val banner by mainViewModel.serverBanner.collectAsStateWithLifecycle()
+        banner?.let { ServerBannerDialog(it.html, onDismiss = { mainViewModel.dismissServerBanner() }) }
         if (style == ThemeManager.STYLE_B) {
             MainScreen(mainViewModel = mainViewModel, onAction = onAction, onNavigate = onNavigate)
         } else {
@@ -178,6 +180,7 @@ class MainActivity : HelperBaseComponentActivity() {
             MainDestination.UserAssets -> Intent(this, UserAssetActivity::class.java)
             MainDestination.Settings -> Intent(this, SettingsActivity::class.java)
             MainDestination.Logcat -> Intent(this, LogcatActivity::class.java)
+            MainDestination.ConnectionLog -> Intent(this, com.v2ray.ang.ui.connlog.ConnLogActivity::class.java)
             MainDestination.CheckUpdate -> Intent(this, CheckUpdateActivity::class.java)
             MainDestination.BackupRestore -> Intent(this, BackupActivity::class.java)
             MainDestination.About -> Intent(this, AboutActivity::class.java)

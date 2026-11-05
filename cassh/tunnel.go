@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -335,6 +336,13 @@ func clientConfig(c *Config) *ssh.ClientConfig {
 		HostKeyCallback:   ssh.InsecureIgnoreHostKey(),
 		HostKeyAlgorithms: append(append([]string{}, supported.HostKeys...), insecure.HostKeys...),
 		Timeout:           connectTimeout,
+		// The server banner (often HTML from tunnel autoscripts) goes to the app's connection log.
+		BannerCallback: func(message string) error {
+			if strings.TrimSpace(message) != "" {
+				emit("BANNER", escapeLine(message))
+			}
+			return nil
+		},
 	}
 	// Older Dropbear/OpenSSH builds on tunnel VPS still offer only SHA-1 key exchanges and CBC.
 	cfg.KeyExchanges = append(append([]string{}, supported.KeyExchanges...), insecure.KeyExchanges...)
@@ -348,4 +356,10 @@ func orDash(s string) string {
 		return "-"
 	}
 	return s
+}
+
+// escapeLine keeps a multi-line text on one output line: \ \n \r \t are escaped.
+func escapeLine(s string) string {
+	r := strings.NewReplacer("\\", "\\\\", "\n", "\\n", "\r", "\\r", "\t", "\\t")
+	return r.Replace(s)
 }

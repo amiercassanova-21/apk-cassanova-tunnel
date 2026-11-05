@@ -33,6 +33,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
+import com.v2ray.ang.core.AutoPing
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.AppLocaleManager
@@ -122,6 +123,13 @@ fun SettingsScreen(
     var observatorySettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var advancedSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var modeSettingsExpanded by rememberSaveable { mutableStateOf(true) }
+    var autoPingExpanded by rememberSaveable { mutableStateOf(true) }
+    var autoPingMode by rememberMmkvString(AppConfig.PREF_AUTOPING_MODE, AutoPing.Mode.RESET.key)
+    var autoPingMethod by rememberMmkvString(AppConfig.PREF_AUTOPING_METHOD, AutoPing.Method.STUN.key)
+    var autoPingTarget by rememberMmkvString(AppConfig.PREF_AUTOPING_TARGET, AutoPing.DEFAULT_STUN_TARGET)
+    var autoPingInterval by rememberMmkvString(AppConfig.PREF_AUTOPING_INTERVAL, AutoPing.DEFAULT_INTERVAL_SEC.toString())
+    var autoPingTimeout by rememberMmkvString(AppConfig.PREF_AUTOPING_TIMEOUT, AutoPing.DEFAULT_TIMEOUT_SEC.toString())
+    var autoPingFailLimit by rememberMmkvString(AppConfig.PREF_AUTOPING_FAIL_LIMIT, AutoPing.DEFAULT_FAIL_LIMIT.toString())
 
     var localDns by rememberMmkvBool(AppConfig.PREF_LOCAL_DNS_ENABLED, false)
     var fakeDns by rememberMmkvBool(AppConfig.PREF_FAKE_DNS_ENABLED, false)
@@ -712,6 +720,55 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsSection(
+                title = stringResource(R.string.title_autoping),
+                expanded = autoPingExpanded,
+                onExpandedChange = { autoPingExpanded = it }
+            ) {
+                SettingsListItem(
+                    title = stringResource(R.string.title_autoping_mode),
+                    entries = stringArrayResource(R.array.autoping_mode_entries).toList(),
+                    values = AutoPing.Mode.entries.map { it.key },
+                    selectedValue = autoPingMode,
+                    onSelected = { autoPingMode = it }
+                )
+                if (autoPingMode != AutoPing.Mode.OFF.key) {
+                    SettingsListItem(
+                        title = stringResource(R.string.title_autoping_method),
+                        entries = stringArrayResource(R.array.autoping_method_entries).toList(),
+                        values = AutoPing.Method.entries.map { it.key },
+                        selectedValue = autoPingMethod,
+                        onSelected = { autoPingMethod = it }
+                    )
+                    if (autoPingMethod == AutoPing.Method.STUN.key) {
+                        SettingsEditItem(
+                            title = stringResource(R.string.title_autoping_target),
+                            value = autoPingTarget,
+                            onValueChanged = { autoPingTarget = it.trim() }
+                        )
+                    }
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_autoping_interval),
+                        value = autoPingInterval,
+                        onValueChanged = { autoPingInterval = it.trim() },
+                        keyboardNumber = true
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_autoping_timeout),
+                        value = autoPingTimeout,
+                        onValueChanged = { autoPingTimeout = it.trim() },
+                        keyboardNumber = true
+                    )
+                    if (autoPingMode == AutoPing.Mode.RESET.key || autoPingMode == AutoPing.Mode.AGGRESSIVE.key) {
+                        SettingsEditItem(
+                            title = stringResource(R.string.title_autoping_fail_limit),
+                            value = autoPingFailLimit,
+                            onValueChanged = { autoPingFailLimit = it.trim() },
+                            keyboardNumber = true
+                        )
+                    }
+                }
+            }
             SettingsSection(
                 title = stringResource(R.string.title_mode_settings),
                 expanded = modeSettingsExpanded,
