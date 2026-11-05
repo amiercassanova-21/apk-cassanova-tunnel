@@ -221,35 +221,35 @@ fun BackupScreen(
                 .padding(top = 8.dp)
         ) {
             CassanovaCard(title = stringResource(R.string.backup_section_local)) {
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_backup_24dp),
-                title = stringResource(R.string.title_configuration_backup),
-                onClick = { showBackupDialog = true }
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_share_24dp),
-                title = stringResource(R.string.title_configuration_share),
-                onClick = onShareClick
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_restore_24dp),
-                title = stringResource(R.string.title_configuration_restore),
-                onClick = { showRestoreDialog = true }
-            )
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_delete_24dp),
-                title = stringResource(R.string.title_profile_storage_cleanup),
-                subtitle = stringResource(R.string.summary_profile_storage_cleanup),
-                onClick = { showCleanupDialog = true }
-            )
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_backup_24dp),
+                    title = stringResource(R.string.title_configuration_backup),
+                    onClick = { showBackupDialog = true }
+                )
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_share_24dp),
+                    title = stringResource(R.string.title_configuration_share),
+                    onClick = onShareClick
+                )
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_restore_24dp),
+                    title = stringResource(R.string.title_configuration_restore),
+                    onClick = { showRestoreDialog = true }
+                )
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_delete_24dp),
+                    title = stringResource(R.string.title_profile_storage_cleanup),
+                    subtitle = stringResource(R.string.summary_profile_storage_cleanup),
+                    onClick = { showCleanupDialog = true }
+                )
             }
             CassanovaCard(title = stringResource(R.string.backup_section_cloud)) {
-            SettingsMenuItem(
-                icon = painterResource(R.drawable.ic_settings_24dp),
-                title = stringResource(R.string.title_webdav_config_setting),
-                subtitle = webDavSummary,
-                onClick = { showWebDavDialog = true }
-            )
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_settings_24dp),
+                    title = stringResource(R.string.title_webdav_config_setting),
+                    subtitle = webDavSummary,
+                    onClick = { showWebDavDialog = true }
+                )
             }
             NavigationBarsSpacer()
         }

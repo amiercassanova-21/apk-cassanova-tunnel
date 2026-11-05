@@ -273,13 +273,13 @@ fun RoutingSettingScreen(
         ) {
             item(key = "domain_strategy") {
                 CassanovaCard(modifier = Modifier.padding(top = 8.dp)) {
-                SettingsListItem(
-                    title = stringResource(R.string.routing_settings_domain_strategy),
-                    entries = domainStrategies,
-                    values = domainStrategies,
-                    selectedValue = domainStrategy,
-                    onSelected = { onDomainStrategySelected(it) }
-                )
+                    SettingsListItem(
+                        title = stringResource(R.string.routing_settings_domain_strategy),
+                        entries = domainStrategies,
+                        values = domainStrategies,
+                        selectedValue = domainStrategy,
+                        onSelected = { onDomainStrategySelected(it) }
+                    )
                 }
             }
             item {
