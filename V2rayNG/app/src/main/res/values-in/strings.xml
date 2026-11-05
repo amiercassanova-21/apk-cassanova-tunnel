@@ -635,6 +635,10 @@
     <string name="tether_copy">Salin</string>
     <string name="tether_qr">QR</string>
     <string name="tether_copied">Alamat proxy disalin</string>
+    <string name="tether_strip_no_hotspot">Proxy tethering aktif · nyalakan hotspot</string>
+    <string name="acc_tether_details">Tampilkan detail proxy tethering</string>
+    <string name="acc_tether_copy">Salin alamat proxy</string>
+    <string name="acc_tether_qr">Tampilkan QR proxy</string>
     <string name="title_tether">Proxy Tethering</string>
     <string name="title_tether_enabled">Bagikan terowongan lewat hotspot</string>
     <string name="summary_tether_enabled">HP lain memakai HP ini sebagai proxy SOCKS5/HTTP. Tanpa login: siapa pun di hotspot Anda bisa memakainya. Berlaku saat sambung berikutnya.</string>
