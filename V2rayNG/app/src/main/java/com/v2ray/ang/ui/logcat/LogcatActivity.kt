@@ -100,7 +100,7 @@ class LogcatActivity : BaseComponentActivity() {
                 shareDir.listFiles()?.forEach { it.delete() }
 
                 val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
-                val logFile = File(shareDir, "Cassanova_logcat_$timestamp.txt")
+                val logFile = File(shareDir, "AmierVPN_logcat_$timestamp.txt")
                 logFile.writeText(logText, Charsets.UTF_8)
 
                 val uri = FileProvider.getUriForFile(

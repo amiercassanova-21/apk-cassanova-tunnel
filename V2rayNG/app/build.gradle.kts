@@ -19,7 +19,7 @@ android {
         // Cassanova versioning: own version name, and a version code that grows with every CI build
         // (1000 + build number, above v2rayNG's 755 so older Cassanova builds update in place).
         versionCode = 1000 + cassanovaBuildNumber
-        versionName = "1.0.0"
+        versionName = "1.1.0"
 
         val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
         splits {
@@ -112,7 +112,7 @@ android {
                 .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
                 .forEach { output ->
                     val abi = output.getFilter("ABI") ?: "universal"
-                    output.outputFileName = "CassanovaTunnel_${variant.versionName}-b${cassanovaBuildNumber}-fdroid_${abi}.apk"
+                    output.outputFileName = "AmierVPN_${variant.versionName}-b${cassanovaBuildNumber}-fdroid_${abi}.apk"
                     if (versionCodes.containsKey(abi)) {
                         output.versionCodeOverride =
                             (100 * variant.versionCode + versionCodes[abi]!!).plus(5000000)
@@ -132,7 +132,7 @@ android {
                     else
                         "universal"
 
-                    output.outputFileName = "CassanovaTunnel_${variant.versionName}-b${cassanovaBuildNumber}_${abi}.apk"
+                    output.outputFileName = "AmierVPN_${variant.versionName}-b${cassanovaBuildNumber}_${abi}.apk"
                     if (versionCodes.containsKey(abi)) {
                         output.versionCodeOverride =
                             (1000000 * versionCodes[abi]!!).plus(variant.versionCode)

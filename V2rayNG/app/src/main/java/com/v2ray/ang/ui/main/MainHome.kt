@@ -632,12 +632,12 @@ private fun BrandTitle(dark: Boolean) {
             modifier = Modifier.size(44.dp),
         )
         Text(
-            text = "Cassanova ",
+            text = "Amier ",
             fontSize = 18.sp,
             fontWeight = FontWeight.ExtraBold,
             color = if (dark) MaterialTheme.colorScheme.onBackground else Color.White,
         )
-        Text(text = "Tunnel", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = BrandGold)
+        Text(text = "VPN", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = BrandGold)
     }
 }
 

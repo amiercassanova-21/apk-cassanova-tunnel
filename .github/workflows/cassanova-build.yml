@@ -1,4 +1,4 @@
-name: Build Cassanova Tunnel
+name: Build Amier VPN
 
 on:
   workflow_dispatch:
@@ -205,7 +205,7 @@ jobs:
     - name: Upload APK artifact
       uses: actions/upload-artifact@v7
       with:
-        name: cassanova-tunnel-apks
+        name: amier-vpn-apks
         path: V2rayNG/app/build/outputs/apk/playstore/release/*.apk
 
     - name: Publish release
@@ -217,7 +217,7 @@ jobs:
         VERSION=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' V2rayNG/app/build.gradle.kts | head -1)
         PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)
         {
-          echo "## Cassanova Tunnel $VERSION (build ${{ github.run_number }})"
+          echo "## Amier VPN $VERSION (build ${{ github.run_number }})"
           echo
           if [ -n "$PREV" ]; then
             echo "### Perubahan sejak $PREV"
@@ -239,5 +239,5 @@ jobs:
         } > "$RUNNER_TEMP/notes.md"
         gh release create "$TAG" $OUT/*.apk \
           --latest --target "${{ github.sha }}" \
-          --title "Cassanova Tunnel $VERSION (build ${{ github.run_number }})" \
+          --title "Amier VPN $VERSION (build ${{ github.run_number }})" \
           --notes-file "$RUNNER_TEMP/notes.md"

@@ -11,7 +11,7 @@
     <string name="action_cancel">Batal</string>
     <string name="migration_fail">Migrasi data gagal!</string>
     <string name="pull_down_to_refresh">Tarik ke bawah untuk menyegarkan!</string>
-    <string name="notification_channel_service">Layanan Cassanova Tunnel</string>
+    <string name="notification_channel_service">Layanan Amier VPN</string>
     <string name="notification_channel_subscription_updates">Pembaruan langganan</string>
     <string name="notification_channel_connection_checks">Pemeriksaan koneksi</string>
     <string name="notification_action_stop_v2ray">Hentikan</string>
@@ -567,8 +567,8 @@
     <string name="about_credits">Kredit</string>
     <string name="about_based_on">Berbasis v2rayNG</string>
     <string name="about_based_on_desc">oleh 2dust · lisensi GPL-3.0</string>
-    <string name="update_source_cassanova">Mengecek rilis Cassanova Tunnel di GitHub</string>
-    <string name="routing_preset_cassanova_default">Default Cassanova</string>
+    <string name="update_source_cassanova">Mengecek rilis Amier VPN di GitHub</string>
+    <string name="routing_preset_cassanova_default">Default Amier VPN</string>
     <string name="routing_preset_indonesia">Indonesia (situs lokal langsung)</string>
     <string name="backup_section_local">Di perangkat ini</string>
     <string name="backup_section_cloud">Cloud (WebDAV)</string>
@@ -576,13 +576,13 @@
     <string name="logcat_tab_ssh">Koneksi SSH</string>
     <string name="logcat_ssh_empty">Belum ada baris SSH. Sambungkan profil SSH, lalu muat ulang.</string>
     <string name="server_lab_ssh_rotation_hint_hosts">bug1.com, bug2.com (koma = rotasi saat gagal)</string>
-    <string name="widget_status_label">Status Cassanova</string>
+    <string name="widget_status_label">Status Amier VPN</string>
     <string name="widget_status_description">Status koneksi, data hari ini, ping, dan tombol power</string>
     <string name="title_ssh_engine">Mesin SSH (berlaku saat sambung ulang)</string>
     <string name="ssh_engine_native">Native (Go) — disarankan</string>
     <string name="ssh_engine_java">Java (JSch) — mesin lama</string>
     <string name="about_experimental_on">Tampilan eksperimen aktif: pilih gaya di Pengaturan, bagian Pengaturan tampilan</string>
-    <string name="about_experimental_off">Tampilan eksperimen dimatikan: kembali ke gaya Cassanova</string>
+    <string name="about_experimental_off">Tampilan eksperimen dimatikan: kembali ke gaya Amier VPN</string>
     <string name="home_today_short">Hari ini</string>
     <string name="home_speed_graph">Kecepatan · 60 detik</string>
     <string name="home_download_short">Unduh</string>

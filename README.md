@@ -1,4 +1,6 @@
-# Cassanova Tunnel
+# Amier VPN
+
+(Sebelumnya bernama *Cassanova Tunnel*; nama paket Android tetap `com.cassanova.tunnel` agar update bisa menimpa versi lama.)
 
 Aplikasi tunnel Android: **Xray** (VMess, VLESS, Trojan, semua transport termasuk XHTTP/REALITY),
 **Hysteria2**, dan **SSH** (Direct, HTTP Payload, SSL/SNI, SSL + Payload, SlowDNS TXT/NULL).
@@ -19,7 +21,7 @@ setiap ada perubahan di branch `main`).
   - SlowDNS: resolver `8.8.8.8`, `1.1.1.1:53`, `https://dns.google/dns-query`, `tls://1.1.1.1`; record type TXT atau NULL.
   - UDP (game, telepon WA) lewat BadVPN UDPGW (default port 7300); DNS tetap jalan lewat TCP bila UDPGW tidak ada.
   - Sambung ulang otomatis bila koneksi SSH putus.
-- Nama & ikon Cassanova Tunnel.
+- Nama & ikon Amier VPN.
 
 ## Komponen pihak ketiga
 

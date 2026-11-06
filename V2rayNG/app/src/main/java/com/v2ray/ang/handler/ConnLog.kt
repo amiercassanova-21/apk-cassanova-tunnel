@@ -49,7 +49,7 @@ object ConnLog {
             linesWritten = 0
         }
         write(Kind.SESSION, "")
-        info("Cassanova Tunnel ${BuildConfig.VERSION_NAME} (build ${BuildConfig.CASSANOVA_BUILD})")
+        info("Amier VPN ${BuildConfig.VERSION_NAME} (build ${BuildConfig.CASSANOVA_BUILD})")
         info("${Build.MANUFACTURER} ${Build.MODEL}")
         info("Android ${Build.VERSION.RELEASE} API-${Build.VERSION.SDK_INT} (${Build.SUPPORTED_ABIS.firstOrNull().orEmpty()})")
     }
