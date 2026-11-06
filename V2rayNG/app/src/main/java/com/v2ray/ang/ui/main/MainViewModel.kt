@@ -156,6 +156,27 @@ class MainViewModel(
     private var tetherInfo: TetherInfo? = null
     private var tetherTick = 0
 
+    private fun toggleTether() {
+        viewModelScope.launch(ioDispatcher) {
+            val enabled = !com.v2ray.ang.handler.TetherManager.isEnabled()
+            // Saved before the state changes, so the 1 s home refresh cannot read the old value.
+            com.v2ray.ang.handler.MmkvManager.encodeSettings(AppConfig.PREF_TETHER_ENABLED, enabled)
+            _home.update { it.copy(tetherEnabled = enabled) }
+            val running = uiState.value.isRunning
+            if (running) com.v2ray.ang.core.LauncherManager.restartService(app)
+            withContext(Dispatchers.Main) {
+                toast(
+                    when {
+                        enabled && running -> R.string.tether_toggle_on_restart
+                        enabled -> R.string.tether_toggle_on
+                        running -> R.string.tether_toggle_off_restart
+                        else -> R.string.tether_toggle_off
+                    }
+                )
+            }
+        }
+    }
+
     private fun refreshTether(running: Boolean) {
         if (!running || !com.v2ray.ang.handler.TetherManager.isEnabled()) {
             tetherInfo = null
@@ -214,6 +235,7 @@ class MainViewModel(
             pingFailed = state.isRunning && (lastPing?.delayMillis ?: 0L) < 0,
             speedHistory = speedHistory,
             tether = tetherInfo,
+            tetherEnabled = com.v2ray.ang.handler.TetherManager.isEnabled(),
         )
     }
 
@@ -429,6 +451,7 @@ class MainViewModel(
             is MainAction.Search -> filterConfig(action.query)
             is MainAction.ImportBatchConfig -> importBatchConfig(action.configText)
             MainAction.LocateHandled -> consumeLocateTarget()
+            MainAction.ToggleTether -> toggleTether()
             is MainAction.ShareQRCode -> {
                 val bitmap = dataSource.share2QRCode(action.guid)
                 _uiState.update { it.copy(shareQRCodeBitmap = bitmap) }
@@ -1119,6 +1142,7 @@ data class HomeState(
     val pingFailed: Boolean = false,
     val speedHistory: List<SpeedSample> = emptyList(),
     val tether: TetherInfo? = null,
+    val tetherEnabled: Boolean = false,
 )
 
 /** Proxy Tethering as shown on the home card; [ip] is null while the hotspot is off. */

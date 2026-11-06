@@ -50,6 +50,7 @@ enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRe
     Settings(R.drawable.ic_settings_24dp, R.string.title_settings),
     ConnectionLog(R.drawable.ic_logcat_24dp, R.string.title_conn_log),
     HostToIp(R.drawable.ic_dns_24dp, R.string.title_host_to_ip),
+    HostChecker(R.drawable.ic_host_check_24dp, R.string.title_host_checker),
     Logcat(R.drawable.ic_logcat_24dp, R.string.title_logcat),
     CheckUpdate(R.drawable.ic_check_update_24dp, R.string.update_check_for_update),
     BackupRestore(R.drawable.ic_restore_24dp, R.string.title_configuration_backup_restore),

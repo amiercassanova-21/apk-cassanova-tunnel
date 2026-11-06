@@ -141,7 +141,7 @@ internal fun Raised3D(
 }
 
 /** A tile pressed into its card: dark fill, inner shadow at the top, faint light at the bottom. */
-internal fun Modifier.sunken(shape: Shape, fill: Color): Modifier =
+internal fun Modifier.sunken(shape: Shape, fill: Color, topShadow: Float = 0.45f): Modifier =
     this
         .clip(shape)
         .background(fill)
@@ -149,7 +149,7 @@ internal fun Modifier.sunken(shape: Shape, fill: Color): Modifier =
             drawContent()
             drawRect(
                 brush = Brush.verticalGradient(
-                    0f to Color.Black.copy(alpha = 0.45f),
+                    0f to Color.Black.copy(alpha = topShadow),
                     0.25f to Color.Transparent,
                     0.96f to Color.Transparent,
                     1f to Color.White.copy(alpha = 0.06f),
@@ -160,6 +160,14 @@ internal fun Modifier.sunken(shape: Shape, fill: Color): Modifier =
 @Composable
 internal fun sunkenFill(): Color =
     if (LocalDarkTheme.current) Color(0xFF0C1020) else MaterialTheme.colorScheme.surfaceContainerHigh
+
+/** Inner-shadow strength for [sunken]: the dark-theme shadow looks dirty on a light surface. */
+@Composable
+internal fun sunkenShadow(): Float = if (LocalDarkTheme.current) 0.45f else 0.10f
+
+/** Gold for text: the brand gold is too faint on a light surface, so light mode uses a deep gold. */
+@Composable
+internal fun goldText(): Color = if (LocalDarkTheme.current) BrandGold else Color(0xFF8A5E00)
 
 // ---------- Tilt sensor ----------
 
@@ -253,6 +261,7 @@ internal fun HexPowerButton3D(
 
     val press by animateFloatAsState(if (pressed) 1f else 0f, tween(110), label = "hexPress")
     val on by animateFloatAsState(if (running) 1f else 0f, tween(350), label = "hexOn")
+    val floorShadow = if (LocalDarkTheme.current) 0.6f else 0.25f
     val spin = rememberInfiniteTransition(label = "hexRing")
     val angle by spin.animateFloat(
         initialValue = 0f,
@@ -301,7 +310,7 @@ internal fun HexPowerButton3D(
         val ox = (size.width - 220f * s) / 2f
         val oy = (size.height - 245f * s) / 2f
         translate(ox, oy) {
-            drawHexButton(s, on, press, if (running) currentAngle else 0f)
+            drawHexButton(s, on, press, if (running) currentAngle else 0f, floorShadow)
         }
     }
 }
@@ -316,7 +325,7 @@ private fun lerp(a: Color, b: Color, t: Float): Color = Color(
 private fun hexPath(cx: Float, cy: Float, r: Float, s: Float, dy: Float = 0f): Path =
     hexagon(Offset(cx * s, (cy + dy) * s), r * s)
 
-private fun DrawScope.drawHexButton(s: Float, on: Float, press: Float, angle: Float) {
+private fun DrawScope.drawHexButton(s: Float, on: Float, press: Float, angle: Float, floorShadow: Float) {
     val c = Offset(110f * s, 112f * s)
     // Glow behind (connected) and the floor shadow.
     if (on > 0f) {
@@ -330,7 +339,7 @@ private fun DrawScope.drawHexButton(s: Float, on: Float, press: Float, angle: Fl
     }
     drawOval(
         brush = Brush.radialGradient(
-            listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent),
+            listOf(Color.Black.copy(alpha = floorShadow), Color.Transparent),
             center = Offset(110f * s, 230f * s), radius = 92f * s,
         ),
         topLeft = Offset(18f * s, 216f * s), size = Size(184f * s, 28f * s),
@@ -433,7 +442,7 @@ private fun androidx.compose.foundation.layout.RowScope.MiniStat(label: String, 
     Column(
         modifier = Modifier
             .weight(1f)
-            .sunken(RoundedCornerShape(14.dp), sunkenFill())
+            .sunken(RoundedCornerShape(14.dp), sunkenFill(), sunkenShadow())
             .padding(horizontal = 4.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -463,12 +472,12 @@ private fun androidx.compose.foundation.layout.RowScope.MiniStat(label: String, 
 @Composable
 internal fun SpeedSparkline(history: List<SpeedSample>) {
     val colors = MaterialTheme.colorScheme
-    val downColor = Color(0xFF7C9BFF)
+    val downColor = if (LocalDarkTheme.current) Color(0xFF7C9BFF) else Color(0xFF1E3FB0)
     val graphLabel = stringResource(R.string.home_speed_graph)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .sunken(RoundedCornerShape(14.dp), sunkenFill())
+            .sunken(RoundedCornerShape(14.dp), sunkenFill(), sunkenShadow())
             .padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 6.dp)
             .semantics { contentDescription = graphLabel },
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -482,7 +491,7 @@ internal fun SpeedSparkline(history: List<SpeedSample>) {
             )
             Text(text = "↓ " + stringResource(R.string.home_download_short), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = downColor)
             Text(text = "  ·  ", fontSize = 11.sp, color = colors.onSurfaceVariant)
-            Text(text = "↑ " + stringResource(R.string.home_upload_short), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BrandGold)
+            Text(text = "↑ " + stringResource(R.string.home_upload_short), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = goldText())
         }
         Canvas(
             modifier = Modifier
@@ -683,18 +692,18 @@ internal fun TetherCard(info: TetherInfo) {
             confirmButton = {
                 if (lines != null) {
                     androidx.compose.material3.TextButton(onClick = { copy(); details = false }) {
-                        Text(text = stringResource(R.string.tether_copy), color = BrandGold, fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(R.string.tether_copy), color = goldText(), fontWeight = FontWeight.Bold)
                     }
                 }
             },
             dismissButton = {
                 if (lines != null) {
                     androidx.compose.material3.TextButton(onClick = { showQr(); details = false }) {
-                        Text(text = stringResource(R.string.tether_qr), color = BrandGold, fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(R.string.tether_qr), color = goldText(), fontWeight = FontWeight.Bold)
                     }
                 } else {
                     androidx.compose.material3.TextButton(onClick = { details = false }) {
-                        Text(text = stringResource(R.string.action_ok), color = BrandGold, fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(R.string.action_ok), color = goldText(), fontWeight = FontWeight.Bold)
                     }
                 }
             },

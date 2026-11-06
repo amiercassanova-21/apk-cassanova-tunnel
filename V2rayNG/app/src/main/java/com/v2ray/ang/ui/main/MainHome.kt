@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -154,7 +155,7 @@ fun CassanovaShell(
                 }
 
                 HomeTab.Config -> configContent()
-                HomeTab.Tools -> ToolsTab(onAction, onNavigate)
+                HomeTab.Tools -> ToolsTab(home, onAction, onNavigate)
             }
         }
     }
@@ -212,7 +213,7 @@ private fun HomeStyleA(
         }
 
         Spacer(Modifier.height(10.dp))
-        StatusPill(home.isRunning, light = false)
+        StatusPill(home.isRunning, light = !dark)
         Spacer(Modifier.height(4.dp))
         Text(
             text = formatDuration(home.connectedAtMillis),
@@ -580,7 +581,7 @@ private fun ServerCarousel(
 // ---------- Tools tab (style A) ----------
 
 @Composable
-private fun ToolsTab(onAction: (MainAction) -> Unit, onNavigate: (MainDestination) -> Unit) {
+private fun ToolsTab(home: HomeState, onAction: (MainAction) -> Unit, onNavigate: (MainDestination) -> Unit) {
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
@@ -598,24 +599,24 @@ private fun ToolsTab(onAction: (MainAction) -> Unit, onNavigate: (MainDestinatio
             color = colors.onBackground,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickTool(stringResource(R.string.tool_import_qr), R.drawable.ic_scan_24dp) { onAction(MainAction.ImportQRcode) }
-            QuickTool(stringResource(R.string.tool_import_clipboard), R.drawable.ic_copy) { onAction(MainAction.ImportClipboard) }
-            QuickTool(stringResource(R.string.tool_test_all), R.drawable.ic_refresh_24dp) { onAction(MainAction.TestRealAllServers) }
+            QuickTool(stringResource(R.string.tool_import_qr), R.drawable.ic_scan_24dp, light = true) { onAction(MainAction.ImportQRcode) }
+            QuickTool(stringResource(R.string.tool_import_clipboard), R.drawable.ic_copy, light = true) { onAction(MainAction.ImportClipboard) }
+            QuickTool(stringResource(R.string.tool_test_all), R.drawable.ic_refresh_24dp, light = true) { onAction(MainAction.TestRealAllServers) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickTool(stringResource(R.string.tool_log), R.drawable.ic_logcat_24dp) { onNavigate(MainDestination.ConnectionLog) }
-            QuickTool(stringResource(R.string.tool_subscriptions), R.drawable.ic_subscriptions_24dp) { onNavigate(MainDestination.Subscriptions) }
-            QuickTool(stringResource(R.string.tool_routing), R.drawable.ic_routing_24dp) { onNavigate(MainDestination.Routing) }
+            QuickTool(stringResource(R.string.tool_log), R.drawable.ic_logcat_24dp, light = true) { onNavigate(MainDestination.ConnectionLog) }
+            QuickTool(stringResource(R.string.tool_subscriptions), R.drawable.ic_subscriptions_24dp, light = true) { onNavigate(MainDestination.Subscriptions) }
+            QuickTool(stringResource(R.string.tool_routing), R.drawable.ic_routing_24dp, light = true) { onNavigate(MainDestination.Routing) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickTool(stringResource(R.string.tool_per_app), R.drawable.ic_per_apps_24dp) { onNavigate(MainDestination.PerAppProxy) }
-            QuickTool(stringResource(R.string.tool_backup), R.drawable.ic_backup_24dp) { onNavigate(MainDestination.BackupRestore) }
-            QuickTool(stringResource(R.string.nav_settings), R.drawable.ic_settings_24dp) { onNavigate(MainDestination.Settings) }
+            QuickTool(stringResource(R.string.tool_per_app), R.drawable.ic_per_apps_24dp, light = true) { onNavigate(MainDestination.PerAppProxy) }
+            QuickTool(stringResource(R.string.tool_backup), R.drawable.ic_backup_24dp, light = true) { onNavigate(MainDestination.BackupRestore) }
+            QuickTool(stringResource(R.string.nav_settings), R.drawable.ic_settings_24dp, light = true) { onNavigate(MainDestination.Settings) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickTool(stringResource(R.string.tool_host_to_ip), R.drawable.ic_dns_24dp) { onNavigate(MainDestination.HostToIp) }
-            Spacer(Modifier.weight(1f))
-            Spacer(Modifier.weight(1f))
+            QuickTool(stringResource(R.string.tool_host_to_ip), R.drawable.ic_dns_24dp, light = true) { onNavigate(MainDestination.HostToIp) }
+            QuickTool(stringResource(R.string.tool_host_checker), R.drawable.ic_host_check_24dp, light = true) { onNavigate(MainDestination.HostChecker) }
+            TetherTool(enabled = home.tetherEnabled) { onAction(MainAction.ToggleTether) }
         }
     }
 }
@@ -772,6 +773,47 @@ private fun RowScope.QuickTool(label: String, iconRes: Int, light: Boolean = fal
     }
 }
 
+/** Proxy Tethering on/off: a switch-like tile, gold while on. */
+@Composable
+private fun RowScope.TetherTool(enabled: Boolean, onToggle: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    val label = stringResource(R.string.tool_tether)
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .heightIn(min = 76.dp)
+            .clip(shape)
+            .background(if (enabled) BrandGold.copy(alpha = 0.16f) else colors.surfaceContainer)
+            .border(1.dp, if (enabled) BrandGold else Color.Transparent, shape)
+            .toggleable(value = enabled, role = Role.Switch, onValueChange = { onToggle() })
+            .padding(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_wifi_tethering_24dp),
+            contentDescription = null,
+            tint = if (enabled) BrandGold else colors.onSurfaceVariant,
+            modifier = Modifier.size(22.dp),
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.onSurface,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+        Text(
+            text = stringResource(if (enabled) R.string.tool_tether_on else R.string.tool_tether_off),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = if (enabled) BrandGold else colors.onSurfaceVariant,
+        )
+    }
+}
+
 @Composable
 private fun PowerCircleButton(running: Boolean, onClick: () -> Unit) {
     val idleGlyph = MaterialTheme.colorScheme.onSurfaceVariant
@@ -849,7 +891,7 @@ private fun BottomNav(current: HomeTab, onSelect: (HomeTab) -> Unit, onSettings:
 
 @Composable
 private fun RowScope.NavItem(label: String, iconRes: Int, selected: Boolean, onClick: () -> Unit) {
-    val color = if (selected) BrandGold else MaterialTheme.colorScheme.onSurfaceVariant
+    val color = if (selected) goldText() else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = Modifier
             .weight(1f)

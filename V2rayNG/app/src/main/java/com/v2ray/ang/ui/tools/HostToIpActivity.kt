@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.v2ray.ang.R
+import com.v2ray.ang.handler.HostCheck
 import com.v2ray.ang.handler.HostLookup
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.base.BaseViewModel
@@ -70,9 +71,20 @@ import kotlinx.coroutines.launch
 
 private val OnGold = Color(0xFF1B1608)
 
-/** "Host to IP" tool from the Tools tab. */
+/** "Host to IP" and "Host Checker" tools from the Tools tab (one screen, two modes). */
 class HostToIpActivity : BaseComponentActivity() {
     private val viewModel: HostToIpViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (savedInstanceState == null && intent.getBooleanExtra(EXTRA_CHECKER, false)) {
+            viewModel.setMode(ToolMode.CHECK)
+        }
+    }
+
+    companion object {
+        const val EXTRA_CHECKER = "host_checker"
+    }
 
     @Composable
     override fun ScreenContent() {
@@ -80,11 +92,15 @@ class HostToIpActivity : BaseComponentActivity() {
     }
 }
 
+enum class ToolMode { LOOKUP, CHECK }
+
 data class HostToIpState(
+    val mode: ToolMode = ToolMode.LOOKUP,
     val source: HostLookup.Source = HostLookup.Source.SYSTEM,
     val history: List<String> = emptyList(),
     val running: Boolean = false,
     val results: List<HostLookup.Result> = emptyList(),
+    val checks: List<HostCheck.Result> = emptyList(),
 )
 
 class HostToIpViewModel(application: Application) : BaseViewModel(application) {
@@ -98,6 +114,12 @@ class HostToIpViewModel(application: Application) : BaseViewModel(application) {
             val history = HostLookup.history()
             _state.update { it.copy(source = source, history = history) }
         }
+    }
+
+    fun setMode(mode: ToolMode) {
+        if (_state.value.mode == mode) return
+        job?.cancel()
+        _state.update { it.copy(mode = mode, results = emptyList(), checks = emptyList()) }
     }
 
     fun setSource(source: HostLookup.Source) {
@@ -115,16 +137,22 @@ class HostToIpViewModel(application: Application) : BaseViewModel(application) {
         previous?.cancel()
         val source = _state.value.source
         val history = HostLookup.pushHistory(_state.value.history, hosts)
-        _state.update { it.copy(running = true, results = emptyList(), history = history) }
+        val mode = _state.value.mode
+        _state.update { it.copy(running = true, results = emptyList(), checks = emptyList(), history = history) }
         job = viewModelScope.launch(Dispatchers.IO) {
             // A newer search replaces the previous one; wait so its cleanup cannot clear our state.
             previous?.join()
-            _state.update { it.copy(running = true, results = emptyList()) }
+            _state.update { it.copy(running = true, results = emptyList(), checks = emptyList()) }
             HostLookup.saveHistory(history)
             try {
                 for (host in hosts) {
-                    val result = HostLookup.lookup(host, source)
-                    _state.update { it.copy(results = it.results + result) }
+                    if (mode == ToolMode.CHECK) {
+                        val check = HostCheck.check(host)
+                        _state.update { it.copy(checks = it.checks + check) }
+                    } else {
+                        val result = HostLookup.lookup(host, source)
+                        _state.update { it.copy(results = it.results + result) }
+                    }
                 }
             } finally {
                 _state.update { it.copy(running = false) }
@@ -147,8 +175,13 @@ class HostToIpViewModel(application: Application) : BaseViewModel(application) {
     }
 
     fun copyAll() {
-        val text = _state.value.results.joinToString("\n") { r ->
-            if (r.ips.isEmpty()) "${r.host} -" else "${r.host} ${r.ips.joinToString(" ")}"
+        val state = _state.value
+        val text = if (state.mode == ToolMode.CHECK) {
+            state.checks.joinToString("\n") { HostCheck.summary(it) }
+        } else {
+            state.results.joinToString("\n") { r ->
+                if (r.ips.isEmpty()) "${r.host} -" else "${r.host} ${r.ips.joinToString(" ")}"
+            }
         }
         copy(text)
     }
@@ -162,7 +195,12 @@ fun HostToIpScreen(viewModel: HostToIpViewModel, onBackClick: () -> Unit) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        topBar = { AppTopBar(title = stringResource(R.string.title_host_to_ip), onBackClick = onBackClick) },
+        topBar = {
+            AppTopBar(
+                title = stringResource(if (state.mode == ToolMode.CHECK) R.string.title_host_checker else R.string.title_host_to_ip),
+                onBackClick = onBackClick,
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -174,6 +212,18 @@ fun HostToIpScreen(viewModel: HostToIpViewModel, onBackClick: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = state.mode == ToolMode.LOOKUP,
+                    onClick = { viewModel.setMode(ToolMode.LOOKUP) },
+                    label = { Text(stringResource(R.string.title_host_to_ip)) },
+                )
+                FilterChip(
+                    selected = state.mode == ToolMode.CHECK,
+                    onClick = { viewModel.setMode(ToolMode.CHECK) },
+                    label = { Text(stringResource(R.string.title_host_checker)) },
+                )
+            }
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
@@ -185,27 +235,36 @@ fun HostToIpScreen(viewModel: HostToIpViewModel, onBackClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Text(
-                text = stringResource(R.string.host_to_ip_dns),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.onSurfaceVariant,
-            )
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SourceChip(HostLookup.Source.SYSTEM, R.string.host_to_ip_dns_system, state.source, viewModel::setSource)
-                SourceChip(HostLookup.Source.CLOUDFLARE, R.string.host_to_ip_dns_cloudflare, state.source, viewModel::setSource)
-                SourceChip(HostLookup.Source.GOOGLE, R.string.host_to_ip_dns_google, state.source, viewModel::setSource)
+            if (state.mode == ToolMode.LOOKUP) {
+                Text(
+                    text = stringResource(R.string.host_to_ip_dns),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.onSurfaceVariant,
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SourceChip(HostLookup.Source.SYSTEM, R.string.host_to_ip_dns_system, state.source, viewModel::setSource)
+                    SourceChip(HostLookup.Source.CLOUDFLARE, R.string.host_to_ip_dns_cloudflare, state.source, viewModel::setSource)
+                    SourceChip(HostLookup.Source.GOOGLE, R.string.host_to_ip_dns_google, state.source, viewModel::setSource)
+                }
+                Text(
+                    text = stringResource(
+                        if (state.source == HostLookup.Source.SYSTEM) R.string.host_to_ip_dns_system_note else R.string.host_to_ip_dns_doh_note
+                    ),
+                    fontSize = 12.sp,
+                    color = colors.onSurfaceVariant,
+                )
+
+            } else {
+                Text(
+                    text = stringResource(R.string.host_checker_note),
+                    fontSize = 12.sp,
+                    color = colors.onSurfaceVariant,
+                )
             }
-            Text(
-                text = stringResource(
-                    if (state.source == HostLookup.Source.SYSTEM) R.string.host_to_ip_dns_system_note else R.string.host_to_ip_dns_doh_note
-                ),
-                fontSize = 12.sp,
-                color = colors.onSurfaceVariant,
-            )
 
             Button(
                 onClick = { if (state.running) viewModel.cancel() else viewModel.lookup(input) },
@@ -219,12 +278,19 @@ fun HostToIpScreen(viewModel: HostToIpViewModel, onBackClick: () -> Unit) {
                     Spacer(Modifier.size(10.dp))
                 }
                 Text(
-                    text = stringResource(if (state.running) R.string.host_to_ip_cancel else R.string.host_to_ip_run),
+                    text = stringResource(
+                        when {
+                            state.running -> R.string.host_to_ip_cancel
+                            state.mode == ToolMode.CHECK -> R.string.host_checker_run
+                            else -> R.string.host_to_ip_run
+                        }
+                    ),
                     fontWeight = FontWeight.Bold,
                 )
             }
 
-            if (state.history.isNotEmpty() && state.results.isEmpty() && !state.running) {
+            val hasResults = state.results.isNotEmpty() || state.checks.isNotEmpty()
+            if (state.history.isNotEmpty() && !hasResults && !state.running) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = stringResource(R.string.host_to_ip_history),
@@ -247,7 +313,7 @@ fun HostToIpScreen(viewModel: HostToIpViewModel, onBackClick: () -> Unit) {
                 }
             }
 
-            if (state.results.isNotEmpty()) {
+            if (hasResults) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = stringResource(R.string.host_to_ip_results),
@@ -261,6 +327,7 @@ fun HostToIpScreen(viewModel: HostToIpViewModel, onBackClick: () -> Unit) {
                     }
                 }
                 state.results.forEach { result -> ResultCard(result, viewModel::copy) }
+                state.checks.forEach { check -> CheckCard(check, viewModel::copy) }
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -347,6 +414,74 @@ private fun IpRow(ip: String, onCopy: (String) -> Unit) {
                 contentDescription = copyLabel,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckCard(result: HostCheck.Result, onCopy: (String) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.surfaceContainer)
+            .padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 8.dp),
+    ) {
+        Text(
+            text = result.host,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = colors.onSurface,
+        )
+        val ip = result.ip
+        if (ip == null) {
+            FailureText(stringResource(R.string.host_to_ip_not_found))
+            return@Column
+        }
+        IpRow(ip, onCopy)
+        result.probes.forEach { probe -> ProbeRow(probe) }
+    }
+}
+
+@Composable
+private fun ProbeRow(probe: HostCheck.Probe) {
+    val colors = MaterialTheme.colorScheme
+    val good = probe.state == HostCheck.State.RESPONDED
+    val label = if (probe.port == 443) "HTTPS 443" else "HTTP 80"
+    val detail = when (probe.state) {
+        HostCheck.State.RESPONDED -> listOfNotNull(probe.code?.toString(), probe.server).joinToString(" · ")
+        HostCheck.State.OPEN_NO_HTTP -> stringResource(R.string.host_checker_open_no_http)
+        HostCheck.State.TLS_ERROR -> stringResource(R.string.host_checker_tls_error)
+        HostCheck.State.CLOSED -> stringResource(R.string.host_checker_closed)
+        HostCheck.State.TIMEOUT -> stringResource(R.string.host_checker_timeout)
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 10.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.onSurfaceVariant,
+            modifier = Modifier.padding(end = 10.dp),
+        )
+        Text(
+            text = detail,
+            fontSize = 13.sp,
+            fontFamily = FontFamily.Monospace,
+            color = if (good) colors.onSurface else colors.error,
+            modifier = Modifier.weight(1f),
+        )
+        if (probe.state != HostCheck.State.CLOSED && probe.state != HostCheck.State.TIMEOUT) {
+            Text(
+                text = stringResource(R.string.host_to_ip_ms, probe.millis),
+                fontSize = 12.sp,
+                color = colors.onSurfaceVariant,
             )
         }
     }

@@ -70,4 +70,7 @@ sealed interface MainAction {
     data class ImportBatchConfig(val configText: String) : MainAction
 
     data object LocateHandled : MainAction
+
+    /** Proxy Tethering on/off from the Tools tab; restarts the connection when it is running. */
+    data object ToggleTether : MainAction
 }
