@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Amier VPN 1x1 widget: hexagon like the home power button. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="46dp"
+    android:height="46dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#FF1C2882" android:pathData="M24.00,3.20 L43.05,14.20 L43.05,36.20 L24.00,47.20 L4.95,36.20 L4.95,14.20 Z" />
+    <path android:fillColor="#FF3F5BD8" android:pathData="M24.00,1.00 L43.05,12.00 L43.05,34.00 L24.00,45.00 L4.95,34.00 L4.95,12.00 Z" />
+    <path android:fillColor="#FFF5B530" android:pathData="M24.00,9.00 L36.12,16.00 L36.12,30.00 L24.00,37.00 L11.88,30.00 L11.88,16.00 Z" />
+</vector>

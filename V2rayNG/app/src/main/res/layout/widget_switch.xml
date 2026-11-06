@@ -13,16 +13,16 @@
         android:layout_width="46dp"
         android:layout_height="46dp"
         android:layout_gravity="center"
-        android:background="@drawable/ic_rounded_corner_inactive">
+        android:background="@drawable/widget_hex_off">
 
         <ImageView
             android:id="@+id/image_switch"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:layout_gravity="center"
             android:importantForAccessibility="no"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_play_24dp" />
+            android:src="@drawable/widget_glyph_power_gold" />
     </FrameLayout>
 
     <TextView
