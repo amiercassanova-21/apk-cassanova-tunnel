@@ -3,6 +3,7 @@ package com.v2ray.ang.receiver
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -32,14 +33,6 @@ class StatusWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         when (intent.action) {
-            ACTION_TOGGLE -> {
-                if (CoreServiceManager.isRunning()) {
-                    LauncherManager.stopService(context)
-                } else {
-                    LauncherManager.startServiceFromToggle(context)
-                }
-            }
-
             AppConfig.BROADCAST_ACTION_ACTIVITY -> when (intent.getIntExtra("key", 0)) {
                 AppConfig.MSG_STATE_RUNNING, AppConfig.MSG_STATE_START_SUCCESS -> refresh(context, running = true)
                 AppConfig.MSG_STATE_NOT_RUNNING, AppConfig.MSG_STATE_START_FAILURE,
@@ -49,7 +42,7 @@ class StatusWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        private const val ACTION_TOGGLE = "${AppConfig.ANG_PACKAGE}.action.status_widget.toggle"
+        internal const val ACTION_TOGGLE = "${AppConfig.ANG_PACKAGE}.action.status_widget.toggle"
 
         /** Redraws every placed status widget; cheap no-op when none is placed. */
         fun refresh(context: Context, running: Boolean = CoreServiceManager.isRunning()) {
@@ -96,7 +89,7 @@ class StatusWidgetProvider : AppWidgetProvider() {
                 context.getString(if (running) R.string.acc_stop else R.string.acc_start)
             )
 
-            val toggle = Intent(context, StatusWidgetProvider::class.java).setAction(ACTION_TOGGLE)
+            val toggle = Intent(context, StatusWidgetToggleReceiver::class.java).setAction(ACTION_TOGGLE)
             views.setOnClickPendingIntent(
                 R.id.widget_status_power,
                 PendingIntent.getBroadcast(
@@ -120,5 +113,21 @@ class StatusWidgetProvider : AppWidgetProvider() {
         private const val COLOR_MUTED = 0xFFC9CFE0.toInt()
         private const val COLOR_WHITE = 0xFFFFFFFF.toInt()
         private const val COLOR_ON_GOLD = 0xFF1B1608.toInt()
+    }
+}
+
+/**
+ * The widget's power button. Separate from [StatusWidgetProvider] and not exported: the provider
+ * must stay exported for the launcher, but then any app could broadcast the toggle and start or
+ * stop the tunnel. The widget's PendingIntent runs as this app, so it still reaches this receiver.
+ */
+class StatusWidgetToggleReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != StatusWidgetProvider.ACTION_TOGGLE) return
+        if (CoreServiceManager.isRunning()) {
+            LauncherManager.stopService(context)
+        } else {
+            LauncherManager.startServiceFromToggle(context)
+        }
     }
 }
