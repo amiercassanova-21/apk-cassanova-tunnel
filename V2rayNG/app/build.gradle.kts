@@ -5,6 +5,9 @@ plugins {
     id("com.jaredsburrows.license")
 }
 
+// Cassanova build number (CI run number, from -PcassanovaBuild); 0 for local builds.
+val cassanovaBuildNumber = (project.findProperty("cassanovaBuild") as String?)?.trim()?.toIntOrNull() ?: 0
+
 android {
     namespace = "com.v2ray.ang"
     compileSdk = 37
@@ -13,8 +16,10 @@ android {
         applicationId = "com.cassanova.tunnel"
         minSdk = 24
         targetSdk = 37
-        versionCode = 755
-        versionName = "2.3.15"
+        // Cassanova versioning: own version name, and a version code that grows with every CI build
+        // (1000 + build number, above v2rayNG's 755 so older Cassanova builds update in place).
+        versionCode = 1000 + cassanovaBuildNumber
+        versionName = "1.0.0"
 
         val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
         splits {
@@ -50,9 +55,7 @@ android {
             ""
         }
         buildConfigField("String", "LOCK_KEY", "\"$maskedLockKey\"")
-        // Cassanova build number (CI run number, from -PcassanovaBuild); 0 for local builds.
-        val cassanovaBuild = (project.findProperty("cassanovaBuild") as String?)?.trim()?.toIntOrNull() ?: 0
-        buildConfigField("int", "CASSANOVA_BUILD", "$cassanovaBuild")
+        buildConfigField("int", "CASSANOVA_BUILD", "$cassanovaBuildNumber")
     }
 
     buildTypes {
@@ -109,7 +112,7 @@ android {
                 .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
                 .forEach { output ->
                     val abi = output.getFilter("ABI") ?: "universal"
-                    output.outputFileName = "CassanovaTunnel_${variant.versionName}-fdroid_${abi}.apk"
+                    output.outputFileName = "CassanovaTunnel_${variant.versionName}-b${cassanovaBuildNumber}-fdroid_${abi}.apk"
                     if (versionCodes.containsKey(abi)) {
                         output.versionCodeOverride =
                             (100 * variant.versionCode + versionCodes[abi]!!).plus(5000000)
@@ -129,7 +132,7 @@ android {
                     else
                         "universal"
 
-                    output.outputFileName = "CassanovaTunnel_${variant.versionName}_${abi}.apk"
+                    output.outputFileName = "CassanovaTunnel_${variant.versionName}-b${cassanovaBuildNumber}_${abi}.apk"
                     if (versionCodes.containsKey(abi)) {
                         output.versionCodeOverride =
                             (1000000 * versionCodes[abi]!!).plus(variant.versionCode)

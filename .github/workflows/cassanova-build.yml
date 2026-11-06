@@ -139,15 +139,8 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    # Signing key: repository secrets when set (stable across builds); otherwise a key kept in
-    # the Actions cache so consecutive builds can update each other.
-    - name: Restore fallback keystore
-      id: ks-cache
-      uses: actions/cache/restore@v6
-      with:
-        path: ${{ runner.temp }}/fallback.jks
-        key: cassanova-fallback-keystore-v1
-
+    # Signing key: repository secrets only. Without them the build fails instead of signing with a
+    # throwaway key, so every published APK can update the previous one and nobody else's can.
     - name: Prepare signing
       env:
         KS_B64: ${{ secrets.APP_KEYSTORE_BASE64 }}
@@ -155,35 +148,19 @@ jobs:
         KS_ALIAS: ${{ secrets.APP_KEYSTORE_ALIAS }}
         KEY_PASS: ${{ secrets.APP_KEY_PASSWORD }}
       run: |
-        if [ -n "$KS_B64" ]; then
-          echo "$KS_B64" | base64 -d > $RUNNER_TEMP/release.jks
-          echo "SIGN_FILE=$RUNNER_TEMP/release.jks" >> $GITHUB_ENV
-          echo "SIGN_STORE_PASS=$KS_PASS" >> $GITHUB_ENV
-          echo "SIGN_ALIAS=$KS_ALIAS" >> $GITHUB_ENV
-          echo "SIGN_KEY_PASS=$KEY_PASS" >> $GITHUB_ENV
-          echo "SIGN_SOURCE=secrets" >> $GITHUB_ENV
-          # Locked-config key: derived from the keystore password, stable across builds.
-          LOCK_KEY=$(printf 'cassanova-lock-v1:%s' "$KS_PASS" | sha256sum | cut -d' ' -f1)
-          echo "::add-mask::$LOCK_KEY"
-          echo "LOCK_KEY=$LOCK_KEY" >> $GITHUB_ENV
-        else
-          if [ ! -f $RUNNER_TEMP/fallback.jks ]; then
-            keytool -genkeypair -v -keystore $RUNNER_TEMP/fallback.jks -storepass cassanova -keypass cassanova \
-              -alias cassanova -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Cassanova Tunnel"
-          fi
-          echo "SIGN_FILE=$RUNNER_TEMP/fallback.jks" >> $GITHUB_ENV
-          echo "SIGN_STORE_PASS=cassanova" >> $GITHUB_ENV
-          echo "SIGN_ALIAS=cassanova" >> $GITHUB_ENV
-          echo "SIGN_KEY_PASS=cassanova" >> $GITHUB_ENV
-          echo "SIGN_SOURCE=fallback" >> $GITHUB_ENV
+        if [ -z "$KS_B64" ]; then
+          echo "::error::Signing secret APP_KEYSTORE_BASE64 is not set; refusing to build an unsigned or throwaway-signed release."
+          exit 1
         fi
-
-    - name: Save fallback keystore
-      if: ${{ env.SIGN_SOURCE == 'fallback' && steps.ks-cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v6
-      with:
-        path: ${{ runner.temp }}/fallback.jks
-        key: cassanova-fallback-keystore-v1
+        echo "$KS_B64" | base64 -d > $RUNNER_TEMP/release.jks
+        echo "SIGN_FILE=$RUNNER_TEMP/release.jks" >> $GITHUB_ENV
+        echo "SIGN_STORE_PASS=$KS_PASS" >> $GITHUB_ENV
+        echo "SIGN_ALIAS=$KS_ALIAS" >> $GITHUB_ENV
+        echo "SIGN_KEY_PASS=$KEY_PASS" >> $GITHUB_ENV
+        # Locked-config key: derived from the keystore password, stable across builds.
+        LOCK_KEY=$(printf 'cassanova-lock-v1:%s' "$KS_PASS" | sha256sum | cut -d' ' -f1)
+        echo "::add-mask::$LOCK_KEY"
+        echo "LOCK_KEY=$LOCK_KEY" >> $GITHUB_ENV
 
     - name: Unit tests
       run: |
@@ -231,12 +208,36 @@ jobs:
         name: cassanova-tunnel-apks
         path: V2rayNG/app/build/outputs/apk/playstore/release/*.apk
 
-    - name: Publish pre-release
+    - name: Publish release
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
         TAG="build-${{ github.run_number }}"
-        gh release create "$TAG" V2rayNG/app/build/outputs/apk/playstore/release/*.apk \
+        OUT=V2rayNG/app/build/outputs/apk/playstore/release
+        VERSION=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' V2rayNG/app/build.gradle.kts | head -1)
+        PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)
+        {
+          echo "## Cassanova Tunnel $VERSION (build ${{ github.run_number }})"
+          echo
+          if [ -n "$PREV" ]; then
+            echo "### Perubahan sejak $PREV"
+            git log --no-merges --format='- %s' "$PREV..${{ github.sha }}"
+          else
+            echo "### Perubahan"
+            git log --no-merges -n 10 --format='- %s' "${{ github.sha }}"
+          fi
+          echo
+          echo "### Pilih file"
+          echo "- **arm64-v8a**: hampir semua HP Android sekarang (64-bit). Pilih ini kalau ragu."
+          echo "- **armeabi-v7a**: HP lama 32-bit."
+          echo "- **universal**: berjalan di semua HP, ukurannya lebih besar."
+          echo
+          echo "### SHA-256"
+          echo '```'
+          (cd $OUT && sha256sum *.apk)
+          echo '```'
+        } > "$RUNNER_TEMP/notes.md"
+        gh release create "$TAG" $OUT/*.apk \
           --latest --target "${{ github.sha }}" \
-          --title "Cassanova Tunnel build ${{ github.run_number }}" \
-          --notes "Automatic build of ${{ github.sha }} (arm64-v8a, armeabi-v7a, universal; signed with ${SIGN_SOURCE} key)."
+          --title "Cassanova Tunnel $VERSION (build ${{ github.run_number }})" \
+          --notes-file "$RUNNER_TEMP/notes.md"
