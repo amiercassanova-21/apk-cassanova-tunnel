@@ -13,7 +13,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.cassanova.tunnel"
+        applicationId = "com.amier.vpn"
         minSdk = 24
         targetSdk = 37
         // Cassanova versioning: own version name, and a version code that grows with every CI build

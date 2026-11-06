@@ -1,6 +1,6 @@
 # Amier VPN
 
-(Sebelumnya bernama *Cassanova Tunnel*; nama paket Android tetap `com.cassanova.tunnel` agar update bisa menimpa versi lama.)
+(Sebelumnya bernama *Cassanova Tunnel*, nama paket `com.cassanova.tunnel`. Sejak versi 1.1.0 nama paketnya `com.amier.vpn`, jadi terpasang sebagai aplikasi baru: backup config di aplikasi lama, pasang Amier VPN, lalu restore.)
 
 Aplikasi tunnel Android: **Xray** (VMess, VLESS, Trojan, semua transport termasuk XHTTP/REALITY),
 **Hysteria2**, dan **SSH** (Direct, HTTP Payload, SSL/SNI, SSL + Payload, SlowDNS TXT/NULL).
