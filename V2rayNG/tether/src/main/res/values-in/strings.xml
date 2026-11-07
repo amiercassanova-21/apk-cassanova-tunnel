@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subtitle">Pakai VPN HP hotspot lewat proxy-nya</string>
+    <string name="channel_name">Koneksi tether</string>
+    <string name="action_connect">Hubungkan</string>
+    <string name="action_stop">Putuskan</string>
+    <string name="acc_toggle">Nyalakan atau matikan Amier Tether</string>
+    <string name="status_off">Tidak terhubung</string>
+    <string name="status_searching">Mencari proxy…</string>
+    <string name="status_lost">Proxy hilang, mencari ulang…</string>
+    <string name="status_connected">Terhubung</string>
+    <string name="status_connected_to">Terhubung ke %1$s</string>
+    <string name="label_proxy">Proxy SOCKS5</string>
+    <string name="label_source">Ditemukan lewat</string>
+    <string name="label_duration">Lama terhubung</string>
+    <string name="label_traffic">Data terpakai</string>
+    <string name="source_amier">Amier VPN (otomatis)</string>
+    <string name="source_gateway">Gateway hotspot (otomatis)</string>
+    <string name="source_manual">Manual</string>
+    <string name="label_auto">Deteksi otomatis</string>
+    <string name="summary_auto">Mencari proxy HP hotspot sendiri, juga saat alamatnya berubah</string>
+    <string name="label_host">IP proxy</string>
+    <string name="label_port">Port</string>
+    <string name="hint_port_auto">Opsional: port aplikasi lain, dicoba lebih dulu</string>
+    <string name="help_title">Cara pakai</string>
+    <string name="help_text">1. Di HP utama: nyalakan hotspot dan Proxy Tethering di Amier VPN (atau fitur berbagi proxy di aplikasi tunnel lain).\n2. Di HP ini: sambungkan Wi-Fi ke hotspot tersebut.\n3. Ketuk Hubungkan. Alamat proxy terisi sendiri.</string>
+    <string name="error_vpn_denied">Izin VPN diperlukan untuk menghubungkan</string>
+    <string name="error_manual_missing">Isi IP dan port proxy, atau nyalakan deteksi otomatis</string>
+</resources>

@@ -167,7 +167,7 @@ jobs:
         cd V2rayNG
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         chmod 755 gradlew
-        ./gradlew :app:testPlaystoreDebugUnitTest
+        ./gradlew :app:testPlaystoreDebugUnitTest :tether:testDebugUnitTest
 
     - name: Build APK
       run: |
@@ -185,6 +185,9 @@ jobs:
         ./gradlew :app:assembleLiteRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
           -PcassanovaSlim=true \
           -PcassanovaLockKey=$LOCK_KEY \
+          -PcassanovaBuild=${{ github.run_number }}
+        # Amier Tether: the small client for the phone that joins the hotspot.
+        ./gradlew :tether:assembleRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
           -PcassanovaBuild=${{ github.run_number }}
 
     - name: Verify APK contents
@@ -225,6 +228,19 @@ jobs:
           ls -la "$apk"
         done
 
+        # Amier Tether: only hev-socks5-tunnel, nothing of the VPN engines.
+        TETHER=V2rayNG/tether/build/outputs/apk/release
+        for abi in arm64-v8a armeabi-v7a; do
+          apk=$(ls $TETHER/AmierTether_*_$abi.apk)
+          unzip -l "$apk" | grep -q "lib/$abi/libhev-socks5-tunnel.so" || { echo "missing hev in $apk"; exit 1; }
+          for f in libgojni libcassh libdnstt libhevsockstun; do
+            if unzip -l "$apk" | grep -q "lib/$abi/$f.so"; then echo "$f.so must not be in $apk"; exit 1; fi
+          done
+          $ANDROID_HOME/build-tools/37.0.0/apksigner verify --print-certs "$apk" | grep "SHA-256"
+          $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging "$apk" | grep -E "^package|application-label:|native-code"
+          ls -la "$apk"
+        done
+
     - name: Upload APK artifact
       uses: actions/upload-artifact@v7
       with:
@@ -232,6 +248,7 @@ jobs:
         path: |
           V2rayNG/app/build/outputs/apk/playstore/release/*.apk
           V2rayNG/app/build/outputs/apk/lite/release/*.apk
+          V2rayNG/tether/build/outputs/apk/release/*.apk
 
     - name: Publish release
       env:
@@ -240,6 +257,7 @@ jobs:
         TAG="build-${{ github.run_number }}"
         OUT=V2rayNG/app/build/outputs/apk/playstore/release
         LITE=V2rayNG/app/build/outputs/apk/lite/release
+        TETHER=V2rayNG/tether/build/outputs/apk/release
         VERSION=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' V2rayNG/app/build.gradle.kts | head -1)
         PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)
         {
@@ -263,14 +281,20 @@ jobs:
           echo "- **AmierVPN_Lite_…arm64-v8a**: hampir semua HP Android sekarang."
           echo "- **AmierVPN_Lite_…armeabi-v7a**: HP lama 32-bit."
           echo
+          echo "### Amier Tether"
+          echo "Untuk HP kedua yang tersambung ke hotspot HP utama: semua lalu lintasnya lewat proxy SOCKS5 HP utama (Proxy Tethering Amier VPN atau aplikasi tunnel lain). IP dan port terdeteksi otomatis."
+          echo "- **AmierTether_…arm64-v8a**: hampir semua HP Android sekarang."
+          echo "- **AmierTether_…armeabi-v7a**: HP lama 32-bit."
+          echo
           echo "### SHA-256"
           echo '```'
           (cd $OUT && sha256sum *.apk)
           (cd $LITE && sha256sum *.apk)
+          (cd $TETHER && sha256sum *.apk)
           echo '```'
         } > "$RUNNER_TEMP/notes.md"
         # Main files first, Lite below.
-        gh release create "$TAG" $OUT/*.apk $LITE/*.apk \
+        gh release create "$TAG" $OUT/*.apk $LITE/*.apk $TETHER/*.apk \
           --latest --target "${{ github.sha }}" \
           --title "Amier VPN $VERSION (build ${{ github.run_number }})" \
           --notes-file "$RUNNER_TEMP/notes.md"

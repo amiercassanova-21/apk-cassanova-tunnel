@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Amier Tether</string>
+    <string name="subtitle">Use the hotspot phone\'s VPN through its proxy</string>
+    <string name="channel_name">Tether connection</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_stop">Disconnect</string>
+    <string name="acc_toggle">Turn Amier Tether on or off</string>
+    <string name="status_off">Not connected</string>
+    <string name="status_searching">Looking for the proxy…</string>
+    <string name="status_lost">Proxy lost, looking again…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_connected_to">Connected to %1$s</string>
+    <string name="label_proxy">SOCKS5 proxy</string>
+    <string name="label_source">Found by</string>
+    <string name="label_duration">Connected for</string>
+    <string name="label_traffic">Data used</string>
+    <string name="source_amier">Amier VPN (automatic)</string>
+    <string name="source_gateway">Hotspot gateway (automatic)</string>
+    <string name="source_manual">Manual</string>
+    <string name="label_auto">Detect automatically</string>
+    <string name="summary_auto">Finds the hotspot phone\'s proxy by itself, also when its address changes</string>
+    <string name="label_host">Proxy IP</string>
+    <string name="label_port">Port</string>
+    <string name="hint_port_auto">Optional: another app\'s port, tried first</string>
+    <string name="help_title">How to use</string>
+    <string name="help_text">1. On the main phone: turn on the hotspot and Proxy Tethering in Amier VPN (or the proxy sharing of another tunnel app).\n2. On this phone: join that hotspot\'s Wi-Fi.\n3. Tap Connect. The proxy address is filled in by itself.</string>
+    <string name="error_vpn_denied">VPN permission is needed to connect</string>
+    <string name="error_manual_missing">Fill in the proxy IP and port, or turn on automatic detection</string>
+</resources>

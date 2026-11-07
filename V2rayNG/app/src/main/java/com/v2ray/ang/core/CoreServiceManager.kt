@@ -205,6 +205,8 @@ object CoreServiceManager {
             TrafficTracker.markConnected()
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
             logTetherGuide(service)
+            // Lets Amier Tether on the other phone find this proxy by itself.
+            TetherManager.advertise(service)
             // Auto Ping keeps running across reloads; it only (re)starts with a new connection.
             AutoPingManager.start(service) { resetConnection() }
         }
@@ -236,6 +238,7 @@ object CoreServiceManager {
         }
 
         AutoPingManager.stop()
+        TetherManager.stopAdvertising(service)
         SshTunnelManager.stop()
         TrafficTracker.markDisconnected()
         ConnLog.info(service.getString(R.string.connlog_stopped))

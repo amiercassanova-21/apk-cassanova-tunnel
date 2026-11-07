@@ -1,6 +1,10 @@
 package com.v2ray.ang.handler
 
+import android.content.Context
+import android.net.nsd.NsdManager
+import android.net.nsd.NsdServiceInfo
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.util.LogUtil
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
@@ -31,6 +35,54 @@ object TetherManager {
         pickAddress(candidates)
     } catch (_: Exception) {
         null
+    }
+
+    /** NSD (mDNS) service type that Amier Tether looks for on the hotspot network. */
+    const val NSD_SERVICE_TYPE = "_amiertether._tcp."
+
+    private var nsdListener: NsdManager.RegistrationListener? = null
+
+    /**
+     * Daemon: announces the proxy on the local network so Amier Tether on the other phone finds
+     * its address and port by itself. No-op when tethering is off or already announced.
+     */
+    @Synchronized
+    fun advertise(context: Context) {
+        if (!isEnabled() || nsdListener != null) return
+        val nsd = context.getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return
+        val info = NsdServiceInfo().apply {
+            serviceName = "Amier VPN"
+            serviceType = NSD_SERVICE_TYPE
+            port = socksPort()
+            setAttribute("http", httpPort().toString())
+        }
+        val listener = object : NsdManager.RegistrationListener {
+            override fun onServiceRegistered(serviceInfo: NsdServiceInfo) {}
+            override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
+                LogUtil.w(AppConfig.TAG, "Tether NSD: registration failed ($errorCode)")
+            }
+            override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) {}
+            override fun onUnregistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {}
+        }
+        try {
+            nsd.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener)
+            nsdListener = listener
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Tether NSD: registerService failed", e)
+        }
+    }
+
+    /** Daemon: stops the announcement when the connection stops. */
+    @Synchronized
+    fun stopAdvertising(context: Context) {
+        val listener = nsdListener ?: return
+        nsdListener = null
+        val nsd = context.getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return
+        try {
+            nsd.unregisterService(listener)
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Tether NSD: unregisterService failed", e)
+        }
     }
 
     // ---------- pure helpers (unit tested) ----------
