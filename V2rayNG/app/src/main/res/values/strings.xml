@@ -630,11 +630,18 @@
         <item>Style C — light dashboard</item>
     </string-array>
     <string name="settings_version_style">Version %1$s · %2$s</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_admin_mode_note">Admin mode is on. Tap the version line 7 times in About to hide it again.</string>
+    <plurals name="about_taps_left">
+        <item quantity="one">%1$d more tap…</item>
+        <item quantity="other">%1$d more taps…</item>
+    </plurals>
     <string name="drawer_section_main">Main menu</string>
     <string name="drawer_section_other">Others</string>
     <string name="config_count_groups">%1$d configs · %2$d groups</string>
     <string name="config_list_title">CONFIG LIST</string>
     <string name="config_in_use">IN USE</string>
+    <string name="config_show_full_name">Show full name</string>
     <string name="config_locked">Locked</string>
     <string name="config_filter_all">All</string>
     <string name="config_filter_protocol">Protocol filter</string>
@@ -695,13 +702,33 @@
     <string name="connlog_ssh_connecting">SSH: connecting…</string>
     <string name="connlog_ssh_connected">SSH: connected</string>
     <string name="connlog_ssh_reconnecting">SSH: disconnected, reconnecting…</string>
+    <string name="connlog_custom_summary">Custom config: local SOCKS port %1$d (%2$s, UDP %3$s) · %4$d proxy outbounds · %5$d balancers</string>
+    <string name="connlog_custom_auth_none">no login</string>
+    <string name="connlog_custom_auth_password">with login</string>
+    <string name="connlog_custom_udp_on">on</string>
+    <string name="connlog_custom_udp_off">off</string>
+    <string name="connlog_custom_no_socks">This custom config has no local SOCKS inbound. VPN mode (Hev TUN) and Auto Ping use SOCKS on port %1$d, so traffic may not pass.</string>
+    <string name="connlog_custom_port_mismatch">The local proxy port in Settings (%1$d) differs from this config\'s SOCKS inbound (%2$d). VPN (Hev TUN) and Auto Ping use the Settings port; make them the same.</string>
+    <string name="connlog_custom_traffic_ok">Custom config: data is flowing</string>
+    <string name="connlog_custom_up_only">Custom config: data is sent but the server has not answered yet. Check the outbounds, SNI/host or DNS in the config.</string>
+    <string name="connlog_custom_no_traffic">Custom config: no data in 20 seconds. If sites do not open, check the inbounds, routing or DNS in the config.</string>
     <string name="connlog_autoping_off">Auto Ping: off</string>
     <string name="connlog_autoping_on">Auto Ping: %1$s · %2$s · every %3$d s</string>
+    <string name="connlog_autoping_method_auto">Automatic (%1$s)</string>
     <string name="connlog_autoping_result">Auto Ping: %1$d ms</string>
     <string name="connlog_autoping_failed">Auto Ping: no reply</string>
     <string name="connlog_autoping_reset">Auto Ping: %1$d failures in a row, resetting the connection</string>
     <string name="connlog_udp_ok">UDP check OK</string>
     <string name="lite_unsupported_config">Amier VPN Lite does not support this config type (only VLESS, VMess, Trojan and Hysteria2)</string>
+    <string name="lite_unsupported_custom">Amier VPN Lite cannot use this custom config: it contains the \"%1$s\" protocol (only VLESS, VMess, Trojan and Hysteria2)</string>
+    <string name="custom_check_title">Check custom config</string>
+    <string name="custom_check_httpupgrade">Outbound \"%1$s\" uses httpupgrade but its settings are in wsSettings, so Xray ignores the path and host. It should be httpupgradeSettings.</string>
+    <string name="custom_check_selector">Selector \"%1$s\" matches no outbound tag.</string>
+    <string name="custom_check_rule_outbound">A rule points to outbound \"%1$s\", which does not exist.</string>
+    <string name="custom_check_rule_balancer">A rule points to balancer \"%1$s\", which does not exist.</string>
+    <string name="custom_check_lite_geo">\"%1$s\" is not available in Amier VPN Lite (trimmed geo data); the config may fail to start.</string>
+    <string name="custom_check_fix">Fix automatically</string>
+    <string name="custom_check_save_anyway">Save anyway</string>
     <string name="connlog_udp_back">UDP OK, Auto Ping is back on STUN</string>
     <string name="connlog_udp_unavailable">No UDP reply yet, Auto Ping uses HTTP for now (retrying every 60 s)</string>
     <string name="title_conn_log">Connection log</string>
@@ -724,6 +751,7 @@
         <item>Aggressive</item>
     </string-array>
     <string-array name="autoping_method_entries">
+        <item>Automatic</item>
         <item>STUN (UDP)</item>
         <item>HTTP</item>
     </string-array>

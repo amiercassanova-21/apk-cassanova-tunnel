@@ -41,7 +41,7 @@ object CoreConfigManager {
                     errorMessage = "Failed to build config context"
                 )
             if (configContext.isCustom) {
-                return buildV2rayCustomConfig(configContext)
+                return buildV2rayCustomConfig(configContext, withTether = true)
             }
             return toConfigResult(configContext, buildUnifiedConfig(configContext))
         } catch (e: Exception) {
@@ -87,7 +87,7 @@ object CoreConfigManager {
     /**
      * Build configuration for custom profiles.
      */
-    private fun buildV2rayCustomConfig(configContext: CoreConfigContext): ConfigResult {
+    private fun buildV2rayCustomConfig(configContext: CoreConfigContext, withTether: Boolean = false): ConfigResult {
         val context = configContext.context
         val raw = MmkvManager.decodeServerRaw(configContext.guid)
             ?: return ConfigResult(
@@ -111,6 +111,15 @@ object CoreConfigManager {
                 systemObj.addProperty("statsOutboundDownlink", true)
                 policyObj.add("system", systemObj)
                 json.add("policy", policyObj)
+            } else {
+                // A config with its own policy levels but no outbound stats: add them, keeping
+                // every value the user set (the connection log's traffic check needs them too).
+                json.get("policy")?.takeIf { it.isJsonObject }?.asJsonObject?.let { policy ->
+                    val system = policy.get("system")?.takeIf { it.isJsonObject }?.asJsonObject
+                        ?: JsonObject().also { policy.add("system", it) }
+                    if (!system.has("statsOutboundUplink")) system.addProperty("statsOutboundUplink", true)
+                    if (!system.has("statsOutboundDownlink")) system.addProperty("statsOutboundDownlink", true)
+                }
             }
         } else {
             json.remove("stats")
@@ -121,6 +130,11 @@ object CoreConfigManager {
                     json.remove("policy")
                 }
             }
+        }
+
+        // Cassanova: proxy tethering also serves custom configs (not their speed tests).
+        if (withTether && TetherManager.isEnabled()) {
+            TetherManager.addCustomInbounds(json, TetherManager.socksPort(), TetherManager.httpPort())
         }
 
         if (!needTun()) {

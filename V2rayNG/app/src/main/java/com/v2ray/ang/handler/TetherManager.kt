@@ -3,6 +3,8 @@ package com.v2ray.ang.handler
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.util.LogUtil
 import java.net.Inet4Address
@@ -24,6 +26,45 @@ object TetherManager {
     fun socksPort(): Int = parsePort(MmkvManager.decodeSettingsString(AppConfig.PREF_TETHER_SOCKS_PORT), DEFAULT_SOCKS_PORT)
 
     fun httpPort(): Int = parsePort(MmkvManager.decodeSettingsString(AppConfig.PREF_TETHER_HTTP_PORT), DEFAULT_HTTP_PORT)
+
+    const val CUSTOM_SOCKS_TAG = "tether-socks"
+    const val CUSTOM_HTTP_TAG = "tether-http"
+
+    /**
+     * Adds the tethering inbounds (SOCKS5 [socksPort] and HTTP [httpPort] on all interfaces, no
+     * login) to a custom JSON config, copying the sniffing of its first SOCKS inbound. An inbound
+     * whose tag or port the config already uses is skipped, so the user's own inbounds win.
+     * Returns the ports added.
+     */
+    fun addCustomInbounds(json: JsonObject, socksPort: Int, httpPort: Int): List<Int> {
+        val inbounds = json.get("inbounds")?.takeIf { it.isJsonArray }?.asJsonArray
+            ?: JsonArray().also { json.add("inbounds", it) }
+        val existing = inbounds.mapNotNull { it.takeIf { e -> e.isJsonObject }?.asJsonObject }
+        val usedTags = existing.mapNotNull { it.get("tag")?.takeIf { t -> t.isJsonPrimitive }?.asString }.toSet()
+        val usedPorts = existing.mapNotNull { it.get("port")?.takeIf { p -> p.isJsonPrimitive }?.asString?.toIntOrNull() }.toSet()
+        val sniffing = existing.firstOrNull { it.get("protocol")?.takeIf { p -> p.isJsonPrimitive }?.asString == "socks" }
+            ?.get("sniffing")?.takeIf { it.isJsonObject }?.deepCopy()
+            ?: JsonObject().apply {
+                addProperty("enabled", true)
+                add("destOverride", JsonArray().apply { add("http"); add("tls") })
+            }
+        val added = mutableListOf<Int>()
+        fun add(tag: String, protocol: String, port: Int, settings: JsonObject) {
+            if (tag in usedTags || port in usedPorts) return
+            inbounds.add(JsonObject().apply {
+                addProperty("tag", tag)
+                addProperty("protocol", protocol)
+                addProperty("listen", "0.0.0.0")
+                addProperty("port", port)
+                add("settings", settings)
+                add("sniffing", sniffing.deepCopy())
+            })
+            added.add(port)
+        }
+        add(CUSTOM_SOCKS_TAG, "socks", socksPort, JsonObject().apply { addProperty("auth", "noauth"); addProperty("udp", true) })
+        add(CUSTOM_HTTP_TAG, "http", httpPort, JsonObject())
+        return added
+    }
 
     /** The phone's address on its hotspot (or USB/Bluetooth tethering) network, if any. */
     fun detectAddress(): String? = try {

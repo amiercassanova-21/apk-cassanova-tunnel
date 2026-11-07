@@ -57,6 +57,7 @@ import com.v2ray.ang.ui.compose.ThemeManager
 @Composable
 fun CassanovaSettingsHeader(
     style: String,
+    showStyle: Boolean,
     themeMode: String,
     onThemeModeChange: (String) -> Unit,
     onBackClick: () -> Unit,
@@ -124,7 +125,12 @@ fun CassanovaSettingsHeader(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = stringResource(R.string.settings_version_style, BuildConfig.VERSION_NAME, styleName),
+                        // Cassanova: the style name shows only while the hidden admin mode is on.
+                        text = if (showStyle) {
+                            stringResource(R.string.settings_version_style, BuildConfig.VERSION_NAME, styleName)
+                        } else {
+                            stringResource(R.string.settings_version, BuildConfig.VERSION_NAME)
+                        },
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

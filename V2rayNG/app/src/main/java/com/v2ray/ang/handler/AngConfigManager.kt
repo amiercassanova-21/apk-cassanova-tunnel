@@ -359,8 +359,6 @@ object AngConfigManager {
      * @return The number of configurations parsed.
      */
     private fun parseCustomConfigServer(server: String?, subid: String, append: Boolean): Int {
-        // Lite: no custom JSON or WireGuard configs.
-        if (Edition.isLite) return 0
         if (server == null) {
             return 0
         }
@@ -372,8 +370,11 @@ object AngConfigManager {
                 val serverList: Array<Any> =
                     JsonUtil.fromJson(server, Array<Any>::class.java) ?: arrayOf()
 
-                if (serverList.isNotEmpty()) {
-                    val configs = serverList.reversed().map { srv ->
+                // Lite: only custom configs whose outbounds it can run (see Edition).
+                val supportedList = serverList.filter { Edition.supportsCustom(JsonUtil.toJson(it)) }
+                if (serverList.isNotEmpty() && supportedList.isEmpty()) return 0
+                if (supportedList.isNotEmpty()) {
+                    val configs = supportedList.reversed().map { srv ->
                         val config = CustomFmt.parse(JsonUtil.toJson(srv))
                         config.subscriptionId = subid
                         config.description = generateDescription(config)
@@ -391,6 +392,8 @@ object AngConfigManager {
                 LogUtil.e(AppConfig.TAG, "Failed to parse custom config server JSON array", e)
             }
 
+            // Lite: only custom configs whose outbounds it can run (see Edition).
+            if (!Edition.supportsCustom(server)) return 0
             try {
                 // For compatibility
                 val config = CustomFmt.parse(server)
@@ -409,6 +412,8 @@ object AngConfigManager {
             }
             return 0
         } else if (server.startsWith("[Interface]") && server.contains("[Peer]")) {
+            // Lite: no WireGuard configs.
+            if (!Edition.supports(EConfigType.WIREGUARD)) return 0
             try {
                 val config = WireguardFmt.parseWireguardConfFile(server)
                 config.subscriptionId = subid

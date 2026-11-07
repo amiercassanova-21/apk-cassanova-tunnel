@@ -3,6 +3,7 @@ package com.v2ray.ang.core
 import android.content.Context
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
+import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.handler.ConnLog
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
@@ -50,17 +51,32 @@ object AutoPingManager {
             ?: AutoPing.DEFAULT_FAIL_LIMIT,
     )
 
+    /** Whether the selected config carries UDP on its own (see [AutoPing.carriesUdp]). */
+    private fun selectedCarriesUdp(): Boolean {
+        val guid = MmkvManager.getSelectServer() ?: return false
+        val profile = MmkvManager.decodeServerConfig(guid) ?: return false
+        val raw = if (profile.configType == EConfigType.CUSTOM) MmkvManager.decodeServerRaw(guid) else null
+        return AutoPing.carriesUdp(profile.configType, raw)
+    }
+
     @Synchronized
     fun start(context: Context, onReset: () -> Unit) {
         stop()
-        val cfg = loadConfig()
-        if (cfg.mode == AutoPing.Mode.OFF) {
+        val saved = loadConfig()
+        if (saved.mode == AutoPing.Mode.OFF) {
             ConnLog.info(context.getString(R.string.connlog_autoping_off))
             return
         }
+        // "Automatic" picks STUN or HTTP for the config that is connecting now.
+        val cfg = saved.copy(method = AutoPing.resolveMethod(saved.method, selectedCarriesUdp()))
         val modeName = context.resources.getStringArray(R.array.autoping_mode_entries)
             .getOrNull(AutoPing.Mode.entries.indexOf(cfg.mode)).orEmpty()
-        ConnLog.info(context.getString(R.string.connlog_autoping_on, modeName, cfg.method.key.uppercase(), cfg.effectiveIntervalSec))
+        val methodName = if (saved.method == AutoPing.Method.AUTO) {
+            context.getString(R.string.connlog_autoping_method_auto, cfg.method.key.uppercase())
+        } else {
+            cfg.method.key.uppercase()
+        }
+        ConnLog.info(context.getString(R.string.connlog_autoping_on, modeName, methodName, cfg.effectiveIntervalSec))
         job = scope.launch { loop(context, cfg, onReset) }
     }
 

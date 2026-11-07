@@ -18,6 +18,7 @@ import com.v2ray.ang.extension.delay
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.moveItem
+import com.v2ray.ang.handler.Edition
 import com.v2ray.ang.handler.SubscriptionInfoParser
 import com.v2ray.ang.handler.TrafficTracker
 import com.v2ray.ang.ui.base.BaseViewModel
@@ -707,7 +708,15 @@ class MainViewModel(
                         }
 
                         countSub > 0 -> setupGroupTab(forceRefresh = true)
-                        else -> toastError(R.string.toast_failure)
+                        else -> {
+                            // Lite: say which protocol of a custom JSON config it cannot run.
+                            val rejected = if (Edition.isLite) Edition.unsupportedCustomProtocol(configText) else null
+                            if (rejected != null) {
+                                toastError(dataSource.getString(R.string.lite_unsupported_custom, rejected))
+                            } else {
+                                toastError(R.string.toast_failure)
+                            }
+                        }
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled

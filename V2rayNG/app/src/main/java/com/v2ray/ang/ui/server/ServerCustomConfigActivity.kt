@@ -3,6 +3,7 @@ package com.v2ray.ang.ui.server
 import android.os.Bundle
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,11 +23,13 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +64,8 @@ import com.v2ray.ang.extension.toast
 import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.fmt.CustomFmt
 import com.v2ray.ang.handler.AngConfigManager
+import com.v2ray.ang.handler.CustomConfigCheck
+import com.v2ray.ang.handler.Edition
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
@@ -100,6 +105,8 @@ class ServerCustomConfigActivity : BaseComponentActivity() {
             initialContent = initialContent,
             onBackClick = { finish() },
             onSave = { remarks, content -> saveServer(remarks, content) },
+            onCheck = { content -> CustomConfigCheck.check(content, Edition.isLite) },
+            onAutoFix = { content -> CustomConfigCheck.autoFix(content) },
             onDelete = { deleteServer() }
         )
     }
@@ -130,6 +137,14 @@ class ServerCustomConfigActivity : BaseComponentActivity() {
                 }
             )
             return false
+        }
+
+        // Lite: a custom JSON config may only use outbounds Lite can run.
+        if (Edition.isLite) {
+            Edition.unsupportedCustomProtocol(content)?.let {
+                toast(getString(R.string.lite_unsupported_custom, it))
+                return false
+            }
         }
 
         val config =
@@ -203,6 +218,8 @@ fun ServerCustomConfigScreen(
     initialContent: String,
     onBackClick: () -> Unit,
     onSave: (String, String) -> Boolean,
+    onCheck: (String) -> List<CustomConfigCheck.Issue> = { emptyList() },
+    onAutoFix: (String) -> String? = { null },
     onDelete: () -> Unit
 ) {
     var remarks by rememberSaveable { mutableStateOf(initialRemarks) }
@@ -210,6 +227,8 @@ fun ServerCustomConfigScreen(
     val textFieldState = rememberTextFieldState(initialText = initialContent)
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val showDelete = editGuid.isNotEmpty() && !isRunning
+    // Cassanova: issues found when saving; the dialog lets the user fix, save anyway or go back.
+    var checkIssues by remember { mutableStateOf<List<CustomConfigCheck.Issue>>(emptyList()) }
 
     val verticalScroll = rememberScrollState()
     val horizontalScroll = rememberScrollState()
@@ -310,6 +329,45 @@ fun ServerCustomConfigScreen(
         }
     }
 
+    if (checkIssues.isNotEmpty()) {
+        val issues = checkIssues
+        AlertDialog(
+            onDismissRequest = { checkIssues = emptyList() },
+            title = { Text(stringResource(R.string.custom_check_title)) },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    issues.forEach { Text(text = "• " + customCheckMessage(it), fontSize = 14.sp) }
+                }
+            },
+            confirmButton = {
+                Row {
+                    if (issues.any { it.fixable }) {
+                        TextButton(onClick = {
+                            val fixed = onAutoFix(textFieldState.text.toString())
+                            if (fixed != null) {
+                                textFieldState.edit { replace(0, length, fixed) }
+                            }
+                            val content = textFieldState.text.toString()
+                            val remaining = onCheck(content)
+                            checkIssues = remaining
+                            if (remaining.isEmpty()) onSave(remarks, content)
+                        }) { Text(stringResource(R.string.custom_check_fix)) }
+                    }
+                    TextButton(onClick = {
+                        checkIssues = emptyList()
+                        onSave(remarks, textFieldState.text.toString())
+                    }) { Text(stringResource(R.string.custom_check_save_anyway)) }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { checkIssues = emptyList() }) { Text(stringResource(R.string.action_cancel)) }
+            }
+        )
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = {
@@ -331,7 +389,9 @@ fun ServerCustomConfigScreen(
 
                         val hasError = remarksErr
                         if (!hasError) {
-                            onSave(remarks, textFieldState.text.toString())
+                            val content = textFieldState.text.toString()
+                            val issues = onCheck(content)
+                            if (issues.isEmpty()) onSave(remarks, content) else checkIssues = issues
                         }
                     }) {
                         Icon(
@@ -504,3 +564,15 @@ fun ServerCustomConfigScreen(
         )
     }
 }
+
+@Composable
+private fun customCheckMessage(issue: CustomConfigCheck.Issue): String = stringResource(
+    when (issue.kind) {
+        CustomConfigCheck.Kind.HTTPUPGRADE_WS_SETTINGS -> R.string.custom_check_httpupgrade
+        CustomConfigCheck.Kind.SELECTOR_NO_MATCH -> R.string.custom_check_selector
+        CustomConfigCheck.Kind.RULE_UNKNOWN_OUTBOUND -> R.string.custom_check_rule_outbound
+        CustomConfigCheck.Kind.RULE_UNKNOWN_BALANCER -> R.string.custom_check_rule_balancer
+        CustomConfigCheck.Kind.LITE_GEO_MISSING -> R.string.custom_check_lite_geo
+    },
+    issue.subject
+)

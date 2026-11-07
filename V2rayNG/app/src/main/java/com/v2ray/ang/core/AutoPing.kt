@@ -1,5 +1,6 @@
 package com.v2ray.ang.core
 
+import com.v2ray.ang.enums.EConfigType
 import java.io.ByteArrayOutputStream
 import java.security.SecureRandom
 
@@ -17,11 +18,51 @@ object AutoPing {
     }
 
     enum class Method(val key: String) {
-        STUN("stun"), HTTP("http");
+        /** Picked per connected config by [resolveMethod]. */
+        AUTO("auto"), STUN("stun"), HTTP("http");
 
         companion object {
-            fun from(key: String?): Method = entries.firstOrNull { it.key == key } ?: STUN
+            fun from(key: String?): Method = entries.firstOrNull { it.key == key } ?: AUTO
         }
+    }
+
+    /** Custom JSON outbounds that are not proxies and say nothing about the link. */
+    private val nonProxyOutbounds = setOf("freedom", "blackhole", "dns", "loopback")
+
+    /** Proxy outbound protocols of the custom JSON [raw] (lowercase); empty if it does not parse. */
+    fun customProxyProtocols(raw: String?): List<String> {
+        val json = try {
+            raw?.let { com.google.gson.JsonParser.parseString(it) }?.takeIf { it.isJsonObject }?.asJsonObject
+        } catch (e: Exception) {
+            null
+        } ?: return emptyList()
+        val outbounds = json.get("outbounds")?.takeIf { it.isJsonArray }?.asJsonArray ?: return emptyList()
+        return outbounds.mapNotNull { outbound ->
+            outbound.takeIf { it.isJsonObject }?.asJsonObject
+                ?.get("protocol")?.takeIf { it.isJsonPrimitive }?.asString
+                ?.trim()?.lowercase()
+                ?.takeIf { it.isNotEmpty() && it !in nonProxyOutbounds }
+        }
+    }
+
+    /**
+     * Whether the connected config carries UDP on its own, so a STUN (UDP) ping fits: SSH
+     * (direct, payload, SSL, SlowDNS) and Hysteria2, or a custom JSON config whose proxy
+     * outbounds are all Hysteria2 (Xray names it `hysteria`). VLESS, VMess, Trojan, groups and
+     * other custom configs get the HTTP ping.
+     */
+    fun carriesUdp(type: EConfigType?, customRaw: String? = null): Boolean = when (type) {
+        EConfigType.SSH, EConfigType.HYSTERIA2, EConfigType.HYSTERIA -> true
+        EConfigType.CUSTOM -> customProxyProtocols(customRaw).let { protocols ->
+            protocols.isNotEmpty() && protocols.all { it == "hysteria" || it == "hysteria2" }
+        }
+        else -> false
+    }
+
+    /** The method actually used: [Method.AUTO] becomes STUN or HTTP; a manual choice stays. */
+    fun resolveMethod(method: Method, carriesUdp: Boolean): Method = when (method) {
+        Method.AUTO -> if (carriesUdp) Method.STUN else Method.HTTP
+        else -> method
     }
 
     const val DEFAULT_STUN_TARGET = "stun.cloudflare.com:3478"
@@ -31,7 +72,7 @@ object AutoPing {
 
     data class Config(
         val mode: Mode = Mode.RESET,
-        val method: Method = Method.STUN,
+        val method: Method = Method.AUTO,
         val stunTarget: String = DEFAULT_STUN_TARGET,
         val intervalSec: Int = DEFAULT_INTERVAL_SEC,
         val timeoutSec: Int = DEFAULT_TIMEOUT_SEC,

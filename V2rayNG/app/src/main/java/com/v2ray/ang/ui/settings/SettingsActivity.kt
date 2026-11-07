@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -130,7 +133,7 @@ fun SettingsScreen(
     var tetherSocksPort by rememberMmkvString(AppConfig.PREF_TETHER_SOCKS_PORT, TetherManager.DEFAULT_SOCKS_PORT.toString())
     var tetherHttpPort by rememberMmkvString(AppConfig.PREF_TETHER_HTTP_PORT, TetherManager.DEFAULT_HTTP_PORT.toString())
     var autoPingMode by rememberMmkvString(AppConfig.PREF_AUTOPING_MODE, AutoPing.Mode.RESET.key)
-    var autoPingMethod by rememberMmkvString(AppConfig.PREF_AUTOPING_METHOD, AutoPing.Method.STUN.key)
+    var autoPingMethod by rememberMmkvString(AppConfig.PREF_AUTOPING_METHOD, AutoPing.Method.AUTO.key)
     var autoPingTarget by rememberMmkvString(AppConfig.PREF_AUTOPING_TARGET, AutoPing.DEFAULT_STUN_TARGET)
     var autoPingInterval by rememberMmkvString(AppConfig.PREF_AUTOPING_INTERVAL, AutoPing.DEFAULT_INTERVAL_SEC.toString())
     var autoPingTimeout by rememberMmkvString(AppConfig.PREF_AUTOPING_TIMEOUT, AutoPing.DEFAULT_TIMEOUT_SEC.toString())
@@ -269,6 +272,7 @@ fun SettingsScreen(
             if (brandHeader) {
                 CassanovaSettingsHeader(
                     style = currentStyle,
+                    showStyle = experimentalUi,
                     themeMode = uiModeNight,
                     onThemeModeChange = {
                         uiModeNight = it
@@ -301,6 +305,12 @@ fun SettingsScreen(
                             ThemeManager.setUiStyle(it)
                             uiModeNight = ThemeManager.themeMode.value
                         }
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_admin_mode_note),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
                 SettingsSwitchItem(
@@ -771,7 +781,7 @@ fun SettingsScreen(
                         selectedValue = autoPingMethod,
                         onSelected = { autoPingMethod = it }
                     )
-                    if (autoPingMethod == AutoPing.Method.STUN.key) {
+                    if (autoPingMethod != AutoPing.Method.HTTP.key) {
                         SettingsEditItem(
                             title = stringResource(R.string.title_autoping_target),
                             value = autoPingTarget,

@@ -39,8 +39,10 @@ import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,6 +61,9 @@ object CoreServiceManager {
     private var browserDialer: IDialerService? = null
     private var networkMonitor: NetworkMonitor? = null
     private val connectionTestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Cassanova: the delayed traffic check of a custom config; cancelled on stop and restart.
+    private val connLogScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var customTrafficJob: Job? = null
 
     @Volatile
     private var isReloading = false
@@ -141,12 +146,21 @@ object CoreServiceManager {
         if (!com.v2ray.ang.handler.Edition.supports(config.configType)) {
             error(service.getString(R.string.lite_unsupported_config))
         }
+        // Lite: a custom JSON config may only use outbounds Lite can run.
+        if (config.configType == EConfigType.CUSTOM && com.v2ray.ang.handler.Edition.isLite) {
+            com.v2ray.ang.handler.Edition.unsupportedCustomProtocol(MmkvManager.decodeServerRaw(guid))?.let {
+                error(service.getString(R.string.lite_unsupported_custom, it))
+            }
+        }
         if (isReload) {
             ConnLog.attach(service)
             ConnLog.warn(service.getString(R.string.connlog_reload))
         } else {
             ConnLog.begin(service)
             ConnLog.info(service.getString(R.string.connlog_start, config.remarks, connLogType(config)))
+        }
+        if (config.configType == EConfigType.CUSTOM) {
+            logCustomSummary(service, guid)
         }
 
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config.remarks}")
@@ -209,6 +223,9 @@ object CoreServiceManager {
             TetherManager.advertise(service)
             // Auto Ping keeps running across reloads; it only (re)starts with a new connection.
             AutoPingManager.start(service) { resetConnection() }
+            if (config.configType == EConfigType.CUSTOM) {
+                scheduleCustomTrafficCheck(service)
+            }
         }
         NotificationManager.startSpeedNotification()
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core started successfully")
@@ -238,6 +255,8 @@ object CoreServiceManager {
         }
 
         AutoPingManager.stop()
+        customTrafficJob?.cancel()
+        customTrafficJob = null
         TetherManager.stopAdvertising(service)
         SshTunnelManager.stop()
         TrafficTracker.markDisconnected()
@@ -338,6 +357,47 @@ object CoreServiceManager {
     }
 
     /** Short protocol description for the connection log, e.g. "VLESS · ws · tls" or "SSH · slowdns". */
+    /**
+     * Connection log for a custom config: its local SOCKS inbound and outbound count, and a
+     * warning when VPN (Hev TUN) and Auto Ping cannot reach that inbound.
+     */
+    private fun logCustomSummary(service: Service, guid: String) {
+        val summary = CustomConnInfo.summarize(MmkvManager.decodeServerRaw(guid)) ?: return
+        val settingsPort = SettingsManager.getSocksPort()
+        val socksPort = summary.socksPort
+        if (socksPort == null) {
+            ConnLog.warn(service.getString(R.string.connlog_custom_no_socks, settingsPort))
+            return
+        }
+        ConnLog.info(
+            service.getString(
+                R.string.connlog_custom_summary,
+                socksPort,
+                service.getString(if (summary.socksAuth) R.string.connlog_custom_auth_password else R.string.connlog_custom_auth_none),
+                service.getString(if (summary.socksUdp) R.string.connlog_custom_udp_on else R.string.connlog_custom_udp_off),
+                summary.proxyOutbounds,
+                summary.balancers,
+            )
+        )
+        if (socksPort != settingsPort) {
+            ConnLog.warn(service.getString(R.string.connlog_custom_port_mismatch, settingsPort, socksPort))
+        }
+    }
+
+    /** About 20 s after connecting a custom config, says whether any data came back. */
+    private fun scheduleCustomTrafficCheck(service: Service) {
+        customTrafficJob?.cancel()
+        customTrafficJob = connLogScope.launch {
+            delay(CustomConnInfo.TRAFFIC_CHECK_MS)
+            if (!isRunning()) return@launch
+            when (CustomConnInfo.traffic(TrafficTracker.speedHistory())) {
+                CustomConnInfo.Traffic.OK -> ConnLog.ok(service.getString(R.string.connlog_custom_traffic_ok))
+                CustomConnInfo.Traffic.UP_ONLY -> ConnLog.warn(service.getString(R.string.connlog_custom_up_only))
+                CustomConnInfo.Traffic.NONE -> ConnLog.warn(service.getString(R.string.connlog_custom_no_traffic))
+            }
+        }
+    }
+
     private fun connLogType(config: ProfileItem): String {
         if (config.configType == EConfigType.SSH) {
             return if (config.lockedData != null) "SSH" else "SSH · ${config.sshMode ?: "direct"}"

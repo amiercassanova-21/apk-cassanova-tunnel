@@ -38,6 +38,7 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.BuildConfig
@@ -75,6 +76,8 @@ fun AboutScreen(
     val context = LocalContext.current
     var showOssDialog by remember { mutableStateOf(false) }
     var versionTaps by remember { mutableIntStateOf(0) }
+    var lastVersionTap by remember { mutableLongStateOf(0L) }
+    var tapToast by remember { mutableStateOf<Toast?>(null) }
 
     val libVersion = CoreNativeManager.getLibVersion()
     val appIdText = BuildConfig.APPLICATION_ID
@@ -123,15 +126,28 @@ fun AboutScreen(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
-                                versionTaps++
-                                if (versionTaps >= EXPERIMENTAL_TAPS) {
+                                val now = System.currentTimeMillis()
+                                versionTaps = VersionTaps.next(versionTaps, lastVersionTap, now)
+                                lastVersionTap = now
+                                tapToast?.cancel()
+                                tapToast = null
+                                if (VersionTaps.switches(versionTaps)) {
                                     versionTaps = 0
+                                    lastVersionTap = 0L
                                     val on = ThemeManager.toggleExperimentalUi()
-                                    Toast.makeText(
+                                    tapToast = Toast.makeText(
                                         context,
                                         if (on) R.string.about_experimental_on else R.string.about_experimental_off,
                                         Toast.LENGTH_LONG
-                                    ).show()
+                                    ).also { it.show() }
+                                } else {
+                                    VersionTaps.remaining(versionTaps)?.let { left ->
+                                        tapToast = Toast.makeText(
+                                            context,
+                                            context.resources.getQuantityString(R.plurals.about_taps_left, left, left),
+                                            Toast.LENGTH_SHORT
+                                        ).also { it.show() }
+                                    }
                                 }
                             }
                         )
@@ -211,5 +227,3 @@ fun AboutScreen(
         )
     }
 }
-
-private const val EXPERIMENTAL_TAPS = 7

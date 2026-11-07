@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +15,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -156,6 +163,16 @@ internal fun ConfigCardA(
     val parts = typeParts(row.profile, locked).let { if (row.profile.configType == EConfigType.SSH && it.size > 1) it.drop(1) else it }
     val typeLine = if (locked) (listOf(stringResource(R.string.config_locked)) + parts).joinToString(" · ") else parts.joinToString(" · ")
     val shape = RoundedCornerShape(18.dp)
+    var showFullName by rememberSaveable { mutableStateOf(false) }
+    if (showFullName) {
+        AlertDialog(
+            onDismissRequest = { showFullName = false },
+            text = { Text(text = row.remarks) },
+            confirmButton = {
+                TextButton(onClick = { showFullName = false }) { Text(stringResource(R.string.action_close)) }
+            },
+        )
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -165,23 +182,33 @@ internal fun ConfigCardA(
             .background(Brush.verticalGradient(listOf(colors.surfaceContainerHigh, colors.surfaceContainer)))
             .border(if (isSelected) 1.5.dp else 1.dp, if (isSelected) BrandGold else colors.outlineVariant, shape)
             .selectedState(isSelected)
-            .clickable(role = Role.Button) { actions.select(row.guid) }
+            // Cassanova: long-press shows the full config name, which may not fit in three lines.
+            .combinedClickable(
+                role = Role.Button,
+                onLongClickLabel = stringResource(R.string.config_show_full_name),
+                onLongClick = { showFullName = true },
+                onClick = { actions.select(row.guid) },
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         HexBadge(protocolBadge(row.profile), palette.familyBg(family), palette.familyColor(family))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Cassanova: long names wrap to three lines; the "in use" badge sits on the type line.
+            Text(
+                text = row.remarks,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.onSurface,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val address = maskedAddress(row.profile.server, row.profile.serverPort)
+            if (address.isNotEmpty()) {
+                Text(text = address, fontSize = 12.sp, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = row.remarks,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
                 if (isSelected) {
                     Text(
                         text = stringResource(R.string.config_in_use),
@@ -197,23 +224,20 @@ internal fun ConfigCardA(
                 } else if (locked) {
                     Icon(painterResource(R.drawable.ic_lock_24dp), contentDescription = null, tint = palette.lock, modifier = Modifier.size(14.dp))
                 }
+                Text(
+                    text = typeLine,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        locked -> palette.lock
+                        family == ProtocolFilter.HY2 -> palette.sky
+                        else -> palette.blue
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
             }
-            val address = maskedAddress(row.profile.server, row.profile.serverPort)
-            if (address.isNotEmpty()) {
-                Text(text = address, fontSize = 12.sp, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Text(
-                text = typeLine,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = when {
-                    locked -> palette.lock
-                    family == ProtocolFilter.HY2 -> palette.sky
-                    else -> palette.blue
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val (pingColor, _) = palette.pingColors(row.testDelayMillis, colors.onSurfaceVariant, Color.Transparent)

@@ -540,11 +540,17 @@
         <item>Gaya C — dasbor terang</item>
     </string-array>
     <string name="settings_version_style">Versi %1$s · %2$s</string>
+    <string name="settings_version">Versi %1$s</string>
+    <string name="settings_admin_mode_note">Mode admin aktif. Ketuk baris versi 7 kali di Tentang untuk menyembunyikan lagi.</string>
+    <plurals name="about_taps_left">
+        <item quantity="other">%1$d ketukan lagi…</item>
+    </plurals>
     <string name="drawer_section_main">Menu utama</string>
     <string name="drawer_section_other">Lainnya</string>
     <string name="config_count_groups">%1$d config · %2$d grup</string>
     <string name="config_list_title">DAFTAR CONFIG</string>
     <string name="config_in_use">DIPAKAI</string>
+    <string name="config_show_full_name">Lihat nama lengkap</string>
     <string name="config_locked">Terkunci</string>
     <string name="config_filter_all">Semua</string>
     <string name="config_filter_protocol">Filter protokol</string>
@@ -598,13 +604,33 @@
     <string name="connlog_ssh_connecting">SSH: menghubungkan…</string>
     <string name="connlog_ssh_connected">SSH: berhasil terhubung</string>
     <string name="connlog_ssh_reconnecting">SSH: terputus, menyambung ulang…</string>
+    <string name="connlog_custom_summary">Config custom: SOCKS lokal port %1$d (%2$s, UDP %3$s) · %4$d outbound proxy · %5$d balancer</string>
+    <string name="connlog_custom_auth_none">tanpa login</string>
+    <string name="connlog_custom_auth_password">pakai login</string>
+    <string name="connlog_custom_udp_on">aktif</string>
+    <string name="connlog_custom_udp_off">mati</string>
+    <string name="connlog_custom_no_socks">Config custom ini tidak punya inbound SOCKS lokal. Mode VPN (Hev TUN) dan Auto Ping memakai SOCKS di port %1$d, jadi lalu lintas bisa tidak lewat.</string>
+    <string name="connlog_custom_port_mismatch">Port proxy lokal di Pengaturan (%1$d) beda dengan inbound SOCKS config ini (%2$d). VPN (Hev TUN) dan Auto Ping memakai port Pengaturan, samakan salah satunya.</string>
+    <string name="connlog_custom_traffic_ok">Config custom: data mengalir</string>
+    <string name="connlog_custom_up_only">Config custom: data terkirim tapi belum ada balasan dari server. Periksa outbound, SNI/host, atau DNS di config.</string>
+    <string name="connlog_custom_no_traffic">Config custom: belum ada data lewat dalam 20 detik. Kalau situs tidak terbuka, periksa inbound, routing, atau DNS di config.</string>
     <string name="connlog_autoping_off">Auto Ping: nonaktif</string>
     <string name="connlog_autoping_on">Auto Ping: %1$s · %2$s · tiap %3$d detik</string>
+    <string name="connlog_autoping_method_auto">Otomatis (%1$s)</string>
     <string name="connlog_autoping_result">Auto Ping: %1$d ms</string>
     <string name="connlog_autoping_failed">Auto Ping: tidak ada balasan</string>
     <string name="connlog_autoping_reset">Auto Ping: %1$d kali gagal berturut-turut, koneksi direset</string>
     <string name="connlog_udp_ok">Diagnostik UDP OK</string>
     <string name="lite_unsupported_config">Amier VPN Lite tidak mendukung jenis config ini (hanya VLESS, VMess, Trojan, dan Hysteria2)</string>
+    <string name="lite_unsupported_custom">Amier VPN Lite tidak bisa memakai config custom ini: berisi protokol \"%1$s\" (hanya VLESS, VMess, Trojan, dan Hysteria2)</string>
+    <string name="custom_check_title">Periksa config custom</string>
+    <string name="custom_check_httpupgrade">Outbound \"%1$s\" memakai httpupgrade tapi pengaturannya ditulis di wsSettings, sehingga path dan host diabaikan Xray. Seharusnya httpupgradeSettings.</string>
+    <string name="custom_check_selector">Selector \"%1$s\" tidak cocok dengan tag outbound mana pun.</string>
+    <string name="custom_check_rule_outbound">Ada rule menuju outbound \"%1$s\" yang tidak ada.</string>
+    <string name="custom_check_rule_balancer">Ada rule menuju balancer \"%1$s\" yang tidak ada.</string>
+    <string name="custom_check_lite_geo">\"%1$s\" tidak tersedia di Amier VPN Lite (data geo diperkecil), config bisa gagal berjalan.</string>
+    <string name="custom_check_fix">Perbaiki otomatis</string>
+    <string name="custom_check_save_anyway">Simpan saja</string>
     <string name="connlog_udp_back">UDP OK, Auto Ping kembali memakai STUN</string>
     <string name="connlog_udp_unavailable">UDP belum terdeteksi, Auto Ping sementara memakai HTTP (dicoba lagi tiap 60 detik)</string>
     <string name="title_conn_log">Log Koneksi</string>
@@ -627,6 +653,7 @@
         <item>Agresif</item>
     </string-array>
     <string-array name="autoping_method_entries">
+        <item>Otomatis</item>
         <item>STUN (UDP)</item>
         <item>HTTP</item>
     </string-array>
