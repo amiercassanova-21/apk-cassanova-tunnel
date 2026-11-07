@@ -2,6 +2,11 @@ name: Build Amier VPN
 
 on:
   workflow_dispatch:
+    inputs:
+      rebuild_all:
+        description: 'Bangun ulang semua aplikasi (abaikan deteksi perubahan)'
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -23,6 +28,45 @@ jobs:
       with:
         submodules: 'recursive'
         fetch-depth: '0'
+
+    # Each app keeps its own build number: only an app whose files changed since its last build is
+    # rebuilt (as build N); the others are re-published unchanged from the latest release, so every
+    # release still carries all three apps. Path lists are deliberately broad.
+    - name: Plan release (which apps changed)
+      env:
+        GH_TOKEN: ${{ github.token }}
+        FORCE: ${{ github.event.inputs.rebuild_all }}
+      run: |
+        gh api "repos/${{ github.repository }}/releases/latest" --jq '.tag_name, .assets[].name' > "$RUNNER_TEMP/latest.txt" 2>/dev/null || : > "$RUNNER_TEMP/latest.txt"
+        PREV_TAG=$(head -1 "$RUNNER_TEMP/latest.txt")
+        echo "PREV_TAG=$PREV_TAG" >> $GITHUB_ENV
+        COMMON=(V2rayNG/app ':(exclude)V2rayNG/app/src/lite' ':(exclude)V2rayNG/app/src/fdroid' ':(exclude)V2rayNG/app/src/test'
+                V2rayNG/build.gradle.kts V2rayNG/settings.gradle.kts V2rayNG/gradle V2rayNG/gradle.properties
+                AndroidLibXrayLite patches hev-socks5-tunnel compile-hevtun.sh .github/workflows/cassanova-build.yml)
+        # decide KEY FILE-REGEX PATHSPEC... -> KEY_BUILD=true, or KEY_BUILD=false and KEY_KEEP=<old N>
+        decide() {
+          key=$1; re=$2; shift 2
+          file=$(tail -n +2 "$RUNNER_TEMP/latest.txt" | grep -E "$re" | head -1 || true)
+          old=$(printf '%s' "$file" | sed -n 's/.*-b\([0-9][0-9]*\)_.*/\1/p')
+          if [ "$FORCE" = "true" ] || [ -z "$old" ] || ! git rev-parse -q --verify "refs/tags/build-$old" >/dev/null; then
+            echo "${key}_BUILD=true" >> $GITHUB_ENV; echo "$key: build (no earlier build to compare)"
+          elif git diff --quiet "build-$old" HEAD -- "$@"; then
+            echo "${key}_BUILD=false" >> $GITHUB_ENV; echo "${key}_KEEP=$old" >> $GITHUB_ENV; echo "$key: unchanged since build-$old"
+          else
+            echo "${key}_BUILD=true" >> $GITHUB_ENV; echo "$key: changed since build-$old:"
+            git diff --name-only "build-$old" HEAD -- "$@" | head -20 || true
+          fi
+        }
+        decide MAIN '^AmierVPN_[0-9]' "${COMMON[@]}" dnstt cassh
+        decide LITE '^AmierVPN_Lite_' "${COMMON[@]}" V2rayNG/app/src/lite tools/geotrim.py
+        decide TETHER '^AmierTether_' V2rayNG/tether ':(exclude)V2rayNG/tether/src/test' \
+          V2rayNG/build.gradle.kts V2rayNG/settings.gradle.kts V2rayNG/gradle V2rayNG/gradle.properties \
+          hev-socks5-tunnel compile-hevtun.sh .github/workflows/cassanova-build.yml
+        # Nothing changed for any app (e.g. only docs): no new release.
+        if ! grep -q '_BUILD=true' $GITHUB_ENV; then
+          echo "SKIP_RELEASE=true" >> $GITHUB_ENV
+          echo "::notice::Tidak ada aplikasi yang berubah sejak $PREV_TAG; rilis baru tidak dibuat."
+        fi
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v4
@@ -173,22 +217,28 @@ jobs:
       run: |
         cd V2rayNG
         SIGN="-Pandroid.injected.signing.store.file=$SIGN_FILE -Pandroid.injected.signing.store.password=$SIGN_STORE_PASS -Pandroid.injected.signing.key.alias=$SIGN_ALIAS -Pandroid.injected.signing.key.password=$SIGN_KEY_PASS"
-        ./gradlew :app:assemblePlaystoreRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
-          -PcassanovaLockKey=$LOCK_KEY \
-          -PcassanovaBuild=${{ github.run_number }}
-        # Amier VPN Lite: slim build (R8, Indonesian + English only) with trimmed routing data:
-        # only the categories its presets and DNS settings use (see tools/geotrim.py).
-        mkdir -p app/src/lite/assets
-        unzip -o -j app/libs/libv2ray.aar assets/geoip.dat assets/geosite.dat -d $RUNNER_TEMP/geo
-        python3 ../tools/geotrim.py $RUNNER_TEMP/geo/geoip.dat app/src/lite/assets/geoip.dat private id cn
-        python3 ../tools/geotrim.py $RUNNER_TEMP/geo/geosite.dat app/src/lite/assets/geosite.dat private cn google category-ads-all
-        ./gradlew :app:assembleLiteRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
-          -PcassanovaSlim=true \
-          -PcassanovaLockKey=$LOCK_KEY \
-          -PcassanovaBuild=${{ github.run_number }}
-        # Amier Tether: the small client for the phone that joins the hotspot.
-        ./gradlew :tether:assembleRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
-          -PcassanovaBuild=${{ github.run_number }}
+        if [ "$MAIN_BUILD" = "true" ]; then
+          ./gradlew :app:assemblePlaystoreRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
+            -PcassanovaLockKey=$LOCK_KEY \
+            -PcassanovaBuild=${{ github.run_number }}
+        fi
+        if [ "$LITE_BUILD" = "true" ]; then
+          # Amier VPN Lite: slim build (R8, Indonesian + English only) with trimmed routing data:
+          # only the categories its presets and DNS settings use (see tools/geotrim.py).
+          mkdir -p app/src/lite/assets
+          unzip -o -j app/libs/libv2ray.aar assets/geoip.dat assets/geosite.dat -d $RUNNER_TEMP/geo
+          python3 ../tools/geotrim.py $RUNNER_TEMP/geo/geoip.dat app/src/lite/assets/geoip.dat private id cn
+          python3 ../tools/geotrim.py $RUNNER_TEMP/geo/geosite.dat app/src/lite/assets/geosite.dat private cn google category-ads-all
+          ./gradlew :app:assembleLiteRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
+            -PcassanovaSlim=true \
+            -PcassanovaLockKey=$LOCK_KEY \
+            -PcassanovaBuild=${{ github.run_number }}
+        fi
+        if [ "$TETHER_BUILD" = "true" ]; then
+          # Amier Tether: the small client for the phone that joins the hotspot.
+          ./gradlew :tether:assembleRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
+            -PcassanovaBuild=${{ github.run_number }}
+        fi
 
     - name: Verify APK contents
       run: |
@@ -208,14 +258,16 @@ jobs:
           $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging "$apk" | grep -E "^package|application-label:|native-code"
           ls -la "$apk"
         }
-        check $OUT/*_arm64-v8a.apk arm64-v8a
-        check $OUT/*_armeabi-v7a.apk armeabi-v7a
-        check $OUT/*_universal.apk arm64-v8a armeabi-v7a
+        if [ "$MAIN_BUILD" = "true" ]; then
+          check $OUT/*_arm64-v8a.apk arm64-v8a
+          check $OUT/*_armeabi-v7a.apk armeabi-v7a
+          check $OUT/*_universal.apk arm64-v8a armeabi-v7a
+        fi
 
         # Amier VPN Lite: Xray engine and tun2socks present, SSH/SlowDNS engines absent; two files only.
         LITE=V2rayNG/app/build/outputs/apk/lite/release
         rm -f $LITE/*_universal.apk
-        for abi in arm64-v8a armeabi-v7a; do
+        [ "$LITE_BUILD" = "true" ] && for abi in arm64-v8a armeabi-v7a; do
           apk=$(ls $LITE/AmierVPN_Lite_*_$abi.apk)
           for f in libgojni libhev-socks5-tunnel libhevsockstun; do
             unzip -l "$apk" | grep -q "lib/$abi/$f.so" || { echo "missing $abi/$f.so in $apk"; exit 1; }
@@ -230,7 +282,7 @@ jobs:
 
         # Amier Tether: only hev-socks5-tunnel, nothing of the VPN engines.
         TETHER=V2rayNG/tether/build/outputs/apk/release
-        for abi in arm64-v8a armeabi-v7a; do
+        [ "$TETHER_BUILD" = "true" ] && for abi in arm64-v8a armeabi-v7a; do
           apk=$(ls $TETHER/AmierTether_*_$abi.apk)
           unzip -l "$apk" | grep -q "lib/$abi/libhev-socks5-tunnel.so" || { echo "missing hev in $apk"; exit 1; }
           for f in libgojni libcassh libdnstt libhevsockstun; do
@@ -239,6 +291,26 @@ jobs:
           $ANDROID_HOME/build-tools/37.0.0/apksigner verify --print-certs "$apk" | grep "SHA-256"
           $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging "$apk" | grep -E "^package|application-label:|native-code"
           ls -la "$apk"
+        done
+        true
+
+    # Unchanged apps: the files of their last build, byte for byte, from the latest release.
+    - name: Reuse unchanged apps
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        OUT=V2rayNG/app/build/outputs/apk/playstore/release
+        LITE=V2rayNG/app/build/outputs/apk/lite/release
+        TETHER=V2rayNG/tether/build/outputs/apk/release
+        mkdir -p $OUT $LITE $TETHER
+        [ "$MAIN_BUILD" = "true" ] || gh release download "$PREV_TAG" -R "${{ github.repository }}" -D $OUT -p "AmierVPN_*-b${MAIN_KEEP}_*.apk"
+        rm -f $OUT/AmierVPN_Lite_*.apk
+        [ "$LITE_BUILD" = "true" ] || gh release download "$PREV_TAG" -R "${{ github.repository }}" -D $LITE -p "AmierVPN_Lite_*-b${LITE_KEEP}_*.apk"
+        [ "$TETHER_BUILD" = "true" ] || gh release download "$PREV_TAG" -R "${{ github.repository }}" -D $TETHER -p "AmierTether_*-b${TETHER_KEEP}_*.apk"
+        for d in $OUT $LITE $TETHER; do
+          n=$(ls $d/*.apk 2>/dev/null | wc -l)
+          [ "$n" -ge 2 ] || { echo "::error::$d has $n APK files"; exit 1; }
+          ls -la $d
         done
 
     - name: Upload APK artifact
@@ -251,6 +323,7 @@ jobs:
           V2rayNG/tether/build/outputs/apk/release/*.apk
 
     - name: Publish release
+      if: env.SKIP_RELEASE != 'true'
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
@@ -260,8 +333,20 @@ jobs:
         TETHER=V2rayNG/tether/build/outputs/apk/release
         VERSION=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' V2rayNG/app/build.gradle.kts | head -1)
         PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)
+        # "Amier VPN 1.1.0-b33 (baru)" or "(tidak berubah, sama dengan build-31)" from the file names.
+        status() { # label dir file-regex built
+          f=$(ls "$2" | grep -E "$3" | head -1 || true)
+          v=$(printf '%s' "$f" | sed -n 's/^[A-Za-z_]*_\([0-9.]*-b[0-9]*\)_.*/\1/p')
+          b=$(printf '%s' "$v" | sed -n 's/.*-b//p')
+          if [ "$4" = "true" ]; then echo "- **$1 $v**: baru"; else echo "- **$1 $v**: tidak berubah (sama dengan build-$b)"; fi
+        }
         {
           echo "## Amier VPN $VERSION (build ${{ github.run_number }})"
+          echo
+          echo "### Versi aplikasi"
+          status "Amier VPN" $OUT '^AmierVPN_[0-9]' "$MAIN_BUILD"
+          status "Amier VPN Lite" $LITE '^AmierVPN_Lite_' "$LITE_BUILD"
+          status "Amier Tether" $TETHER '^AmierTether_' "$TETHER_BUILD"
           echo
           if [ -n "$PREV" ]; then
             echo "### Perubahan sejak $PREV"
