@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cassanova: Amier VPN Lite names (lite flavor overrides of main strings). -->
+<resources>
+    <string name="notification_channel_service">Layanan Amier VPN Lite</string>
+    <string name="update_source_cassanova">Mengecek rilis Amier VPN Lite di GitHub</string>
+    <string name="routing_preset_cassanova_default">Default Amier VPN Lite</string>
+    <string name="widget_status_label">Status Amier VPN Lite</string>
+    <string name="about_experimental_off">Tampilan eksperimen dimatikan: kembali ke gaya Amier VPN Lite</string>
+</resources>

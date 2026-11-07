@@ -816,16 +816,18 @@ fun SettingsScreen(
                     title = stringResource(R.string.title_mode_help),
                     onClick = onModeHelpClicked
                 )
-                SettingsListItem(
-                    title = stringResource(R.string.title_ssh_engine),
-                    entries = listOf(
-                        stringResource(R.string.ssh_engine_native),
-                        stringResource(R.string.ssh_engine_java)
-                    ),
-                    values = listOf(AppConfig.SSH_ENGINE_NATIVE, AppConfig.SSH_ENGINE_JAVA),
-                    selectedValue = sshEngine,
-                    onSelected = { sshEngine = it }
-                )
+                if (!com.v2ray.ang.handler.Edition.isLite) {
+                    SettingsListItem(
+                        title = stringResource(R.string.title_ssh_engine),
+                        entries = listOf(
+                            stringResource(R.string.ssh_engine_native),
+                            stringResource(R.string.ssh_engine_java)
+                        ),
+                        values = listOf(AppConfig.SSH_ENGINE_NATIVE, AppConfig.SSH_ENGINE_JAVA),
+                        selectedValue = sshEngine,
+                        onSelected = { sshEngine = it }
+                    )
+                }
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_root_mode_enabled),
                     summary = stringResource(R.string.summary_root_mode_enabled),

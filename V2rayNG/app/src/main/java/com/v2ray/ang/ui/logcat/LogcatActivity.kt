@@ -100,7 +100,7 @@ class LogcatActivity : BaseComponentActivity() {
                 shareDir.listFiles()?.forEach { it.delete() }
 
                 val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
-                val logFile = File(shareDir, "AmierVPN_logcat_$timestamp.txt")
+                val logFile = File(shareDir, "${if (com.v2ray.ang.BuildConfig.LITE) "AmierVPN_Lite" else "AmierVPN"}_logcat_$timestamp.txt")
                 logFile.writeText(logText, Charsets.UTF_8)
 
                 val uri = FileProvider.getUriForFile(
@@ -227,7 +227,8 @@ fun LogcatScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            LogFilterTabs(sshOnly = sshOnly, onChange = viewModel::setSshOnly)
+            // Lite has no SSH, so no "SSH connection" tab.
+            if (!com.v2ray.ang.handler.Edition.isLite) LogFilterTabs(sshOnly = sshOnly, onChange = viewModel::setSshOnly)
             if (logs.isEmpty() && sshOnly && !isLoading) {
                 Text(
                     text = stringResource(R.string.logcat_ssh_empty),

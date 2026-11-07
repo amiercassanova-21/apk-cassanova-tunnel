@@ -69,9 +69,16 @@ internal fun serverMenuActions(
     }
 }
 
+/** Lite shows only the protocols it supports (see [com.v2ray.ang.handler.Edition]). */
+private fun ImportMenuAction.visible(): Boolean {
+    val manual = action as? MainAction.ImportManually ?: return true
+    val type = EConfigType.fromInt(manual.type) ?: return true
+    return com.v2ray.ang.handler.Edition.supports(type)
+}
+
 @Composable
 fun ImportMenuContent(onAction: (MainAction) -> Unit) = AppDropdownMenuItems(
-    items = ImportMenuAction.entries,
+    items = ImportMenuAction.entries.filter { it.visible() },
     labelRes = { it.labelRes },
     onSelected = { onAction(it.action) }
 )

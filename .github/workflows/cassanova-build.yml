@@ -172,7 +172,7 @@ jobs:
     - name: Build APK
       run: |
         cd V2rayNG
-        ./gradlew :app:assemblePlaystoreRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" \
+        ./gradlew :app:assemblePlaystoreRelease :app:assembleLiteRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" \
           -Pandroid.injected.signing.store.file=$SIGN_FILE \
           -Pandroid.injected.signing.store.password=$SIGN_STORE_PASS \
           -Pandroid.injected.signing.key.alias=$SIGN_ALIAS \
@@ -202,11 +202,29 @@ jobs:
         check $OUT/*_armeabi-v7a.apk armeabi-v7a
         check $OUT/*_universal.apk arm64-v8a armeabi-v7a
 
+        # Amier VPN Lite: Xray engine and tun2socks present, SSH/SlowDNS engines absent; two files only.
+        LITE=V2rayNG/app/build/outputs/apk/lite/release
+        rm -f $LITE/*_universal.apk
+        for abi in arm64-v8a armeabi-v7a; do
+          apk=$(ls $LITE/AmierVPN_Lite_*_$abi.apk)
+          for f in libgojni libhev-socks5-tunnel libhevsockstun; do
+            unzip -l "$apk" | grep -q "lib/$abi/$f.so" || { echo "missing $abi/$f.so in $apk"; exit 1; }
+          done
+          for f in libcassh libdnstt; do
+            if unzip -l "$apk" | grep -q "lib/$abi/$f.so"; then echo "$f.so must not be in $apk"; exit 1; fi
+          done
+          $ANDROID_HOME/build-tools/37.0.0/apksigner verify --print-certs "$apk" | grep "SHA-256"
+          $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging "$apk" | grep -E "^package|application-label:|native-code"
+          ls -la "$apk"
+        done
+
     - name: Upload APK artifact
       uses: actions/upload-artifact@v7
       with:
         name: amier-vpn-apks
-        path: V2rayNG/app/build/outputs/apk/playstore/release/*.apk
+        path: |
+          V2rayNG/app/build/outputs/apk/playstore/release/*.apk
+          V2rayNG/app/build/outputs/apk/lite/release/*.apk
 
     - name: Publish release
       env:
@@ -214,6 +232,7 @@ jobs:
       run: |
         TAG="build-${{ github.run_number }}"
         OUT=V2rayNG/app/build/outputs/apk/playstore/release
+        LITE=V2rayNG/app/build/outputs/apk/lite/release
         VERSION=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' V2rayNG/app/build.gradle.kts | head -1)
         PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)
         {
@@ -232,12 +251,19 @@ jobs:
           echo "- **armeabi-v7a**: HP lama 32-bit."
           echo "- **universal**: berjalan di semua HP, ukurannya lebih besar."
           echo
+          echo "### Amier VPN Lite"
+          echo "Versi ringan: hanya VLESS, VMess, Trojan, dan Hysteria2 (tanpa SSH/SlowDNS). Bisa dipasang berdampingan dengan Amier VPN."
+          echo "- **AmierVPN_Lite_…arm64-v8a**: hampir semua HP Android sekarang."
+          echo "- **AmierVPN_Lite_…armeabi-v7a**: HP lama 32-bit."
+          echo
           echo "### SHA-256"
           echo '```'
           (cd $OUT && sha256sum *.apk)
+          (cd $LITE && sha256sum *.apk)
           echo '```'
         } > "$RUNNER_TEMP/notes.md"
-        gh release create "$TAG" $OUT/*.apk \
+        # Main files first, Lite below.
+        gh release create "$TAG" $OUT/*.apk $LITE/*.apk \
           --latest --target "${{ github.sha }}" \
           --title "Amier VPN $VERSION (build ${{ github.run_number }})" \
           --notes-file "$RUNNER_TEMP/notes.md"

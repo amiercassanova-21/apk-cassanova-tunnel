@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cassanova: Amier VPN Lite names (lite flavor overrides of main strings). -->
+<resources>
+    <string name="app_name" translatable="false">Amier VPN Lite</string>
+    <string name="notification_channel_service">Amier VPN Lite service</string>
+    <string name="update_source_cassanova">Checks Amier VPN Lite releases on GitHub</string>
+    <string name="routing_preset_cassanova_default">Amier VPN Lite default</string>
+    <string name="widget_status_label">Amier VPN Lite status</string>
+    <string name="about_experimental_off">Experimental styles off: back to the Amier VPN Lite style</string>
+</resources>

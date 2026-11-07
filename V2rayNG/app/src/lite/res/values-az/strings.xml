@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cassanova: Amier VPN Lite names (lite flavor overrides of main strings). -->
+<resources>
+    <string name="app_name" translatable="false">Amier VPN Lite</string>
+    <string name="notification_channel_service">Amier VPN Lite xidməti</string>
+</resources>

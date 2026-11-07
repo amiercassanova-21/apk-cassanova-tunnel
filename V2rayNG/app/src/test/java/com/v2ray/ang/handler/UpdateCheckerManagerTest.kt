@@ -44,4 +44,23 @@ class UpdateCheckerManagerTest {
         assertEquals("https://example.com/C_universal.apk", UpdateCheckerManager.downloadUrlFor(r, listOf("x86_64")))
         assertNull(UpdateCheckerManager.downloadUrlFor(release("build-1"), listOf("arm64-v8a")))
     }
+
+    @Test
+    fun eachEditionOnlyGetsItsOwnApk() {
+        val r = release(
+            "build-24",
+            "AmierVPN_1.1.0-b24_arm64-v8a.apk", "AmierVPN_1.1.0-b24_armeabi-v7a.apk", "AmierVPN_1.1.0-b24_universal.apk",
+            "AmierVPN_Lite_1.1.0-b24_arm64-v8a.apk", "AmierVPN_Lite_1.1.0-b24_armeabi-v7a.apk",
+        )
+        assertEquals(
+            "https://example.com/AmierVPN_1.1.0-b24_arm64-v8a.apk",
+            UpdateCheckerManager.downloadUrlFor(r, listOf("arm64-v8a"), lite = false)
+        )
+        assertEquals(
+            "https://example.com/AmierVPN_Lite_1.1.0-b24_arm64-v8a.apk",
+            UpdateCheckerManager.downloadUrlFor(r, listOf("arm64-v8a"), lite = true)
+        )
+        // Lite has no universal file: an unknown ABI gets nothing rather than the full edition.
+        assertNull(UpdateCheckerManager.downloadUrlFor(r, listOf("x86_64"), lite = true))
+    }
 }

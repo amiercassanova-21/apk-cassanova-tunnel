@@ -701,6 +701,7 @@
     <string name="connlog_autoping_failed">Auto Ping: no reply</string>
     <string name="connlog_autoping_reset">Auto Ping: %1$d failures in a row, resetting the connection</string>
     <string name="connlog_udp_ok">UDP check OK</string>
+    <string name="lite_unsupported_config">Amier VPN Lite does not support this config type (only VLESS, VMess, Trojan and Hysteria2)</string>
     <string name="connlog_udp_back">UDP OK, Auto Ping is back on STUN</string>
     <string name="connlog_udp_unavailable">No UDP reply yet, Auto Ping uses HTTP for now (retrying every 60 s)</string>
     <string name="title_conn_log">Connection log</string>

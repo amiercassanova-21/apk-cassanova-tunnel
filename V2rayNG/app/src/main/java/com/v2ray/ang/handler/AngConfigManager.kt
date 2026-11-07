@@ -359,6 +359,8 @@ object AngConfigManager {
      * @return The number of configurations parsed.
      */
     private fun parseCustomConfigServer(server: String?, subid: String, append: Boolean): Int {
+        // Lite: no custom JSON or WireGuard configs.
+        if (Edition.isLite) return 0
         if (server == null) {
             return 0
         }
@@ -452,6 +454,10 @@ object AngConfigManager {
             }
 
             if (config == null) {
+                return null
+            }
+            // Lite: links of protocols it does not support (SSH, Shadowsocks, …) are skipped.
+            if (!Edition.supports(config.configType)) {
                 return null
             }
 

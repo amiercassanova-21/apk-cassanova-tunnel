@@ -56,6 +56,7 @@ android {
         }
         buildConfigField("String", "LOCK_KEY", "\"$maskedLockKey\"")
         buildConfigField("int", "CASSANOVA_BUILD", "$cassanovaBuildNumber")
+        buildConfigField("boolean", "LITE", "false")
     }
 
     buildTypes {
@@ -78,6 +79,13 @@ android {
         create("playstore") {
             dimension = "distribution"
             buildConfigField("String", "DISTRIBUTION", "\"Play Store\"")
+        }
+        // Cassanova: "Amier VPN Lite" - VLESS/VMess/Trojan/Hysteria2 only (see handler/Edition.kt).
+        create("lite") {
+            dimension = "distribution"
+            applicationIdSuffix = ".lite"
+            buildConfigField("String", "DISTRIBUTION", "\"Lite\"")
+            buildConfigField("boolean", "LITE", "true")
         }
     }
 
@@ -121,6 +129,7 @@ android {
                     }
                 }
         } else {
+            val isLite = variant.productFlavors.any { it.name == "lite" }
             val versionCodes =
                 mapOf("armeabi-v7a" to 4, "arm64-v8a" to 4, "x86" to 4, "x86_64" to 4, "universal" to 4)
 
@@ -132,7 +141,8 @@ android {
                     else
                         "universal"
 
-                    output.outputFileName = "AmierVPN_${variant.versionName}-b${cassanovaBuildNumber}_${abi}.apk"
+                    val edition = if (isLite) "AmierVPN_Lite" else "AmierVPN"
+                    output.outputFileName = "${edition}_${variant.versionName}-b${cassanovaBuildNumber}_${abi}.apk"
                     if (versionCodes.containsKey(abi)) {
                         output.versionCodeOverride =
                             (1000000 * versionCodes[abi]!!).plus(variant.versionCode)
@@ -182,6 +192,14 @@ android {
         }
     }
 
+}
+
+
+// Cassanova: the Lite edition has no SSH/SlowDNS, so their native engines are left out of its APK.
+androidComponents {
+    onVariants(selector().withFlavor("distribution" to "lite")) { variant ->
+        variant.packaging.jniLibs.excludes.addAll(listOf("**/libcassh.so", "**/libdnstt.so"))
+    }
 }
 
 dependencies {

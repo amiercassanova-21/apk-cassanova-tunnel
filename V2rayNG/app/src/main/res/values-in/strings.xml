@@ -604,6 +604,7 @@
     <string name="connlog_autoping_failed">Auto Ping: tidak ada balasan</string>
     <string name="connlog_autoping_reset">Auto Ping: %1$d kali gagal berturut-turut, koneksi direset</string>
     <string name="connlog_udp_ok">Diagnostik UDP OK</string>
+    <string name="lite_unsupported_config">Amier VPN Lite tidak mendukung jenis config ini (hanya VLESS, VMess, Trojan, dan Hysteria2)</string>
     <string name="connlog_udp_back">UDP OK, Auto Ping kembali memakai STUN</string>
     <string name="connlog_udp_unavailable">UDP belum terdeteksi, Auto Ping sementara memakai HTTP (dicoba lagi tiap 60 detik)</string>
     <string name="title_conn_log">Log Koneksi</string>

@@ -137,6 +137,10 @@ object CoreServiceManager {
     private fun launchCore(service: Service, vpnInterface: ParcelFileDescriptor?, isReload: Boolean = false) {
         val guid = MmkvManager.getSelectServer() ?: error("No server selected")
         val config = MmkvManager.decodeServerConfig(guid) ?: error("Failed to decode server config")
+        // Lite: e.g. an SSH profile restored from a full-edition backup; its engine is not packaged.
+        if (!com.v2ray.ang.handler.Edition.supports(config.configType)) {
+            error(service.getString(R.string.lite_unsupported_config))
+        }
         if (isReload) {
             ConnLog.attach(service)
             ConnLog.warn(service.getString(R.string.connlog_reload))

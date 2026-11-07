@@ -80,8 +80,11 @@ object UpdateCheckerManager {
     fun isNewer(latest: Int, current: Int): Boolean = current > 0 && latest > current
 
     /** The APK for the first supported ABI that has one, else the universal APK. */
-    fun downloadUrlFor(release: GitHubRelease, abis: List<String>): String? {
-        val apks = release.assets.filter { it.name.endsWith(".apk", ignoreCase = true) }
+    fun downloadUrlFor(release: GitHubRelease, abis: List<String>, lite: Boolean = Edition.isLite): String? {
+        // One release carries both editions; Lite files are named AmierVPN_Lite_….
+        val apks = release.assets.filter {
+            it.name.endsWith(".apk", ignoreCase = true) && it.name.contains("_Lite_", ignoreCase = true) == lite
+        }
         abis.forEach { abi ->
             apks.firstOrNull { it.name.contains(abi, ignoreCase = true) }?.let { return it.browserDownloadUrl }
         }
