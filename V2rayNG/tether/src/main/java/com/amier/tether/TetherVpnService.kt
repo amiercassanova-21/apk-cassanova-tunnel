@@ -158,8 +158,8 @@ class TetherVpnService : VpnService() {
     /** Amier VPN announces its proxy on the hotspot network while Proxy Tethering is on. */
     private suspend fun discoverAmierVpn(): ProxyTarget? {
         val nsd = getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return null
-        val found = withTimeoutOrNull(DISCOVERY_MS) {
-            suspendCancellableCoroutine { cont ->
+        val found: NsdServiceInfo = withTimeoutOrNull(DISCOVERY_MS) {
+            suspendCancellableCoroutine<NsdServiceInfo?> { cont ->
                 val listener = object : NsdManager.DiscoveryListener {
                     override fun onDiscoveryStarted(serviceType: String) {}
                     override fun onDiscoveryStopped(serviceType: String) {}
@@ -189,7 +189,7 @@ class TetherVpnService : VpnService() {
     @Suppress("DEPRECATION")
     private suspend fun resolve(nsd: NsdManager, info: NsdServiceInfo): ProxyTarget? =
         withTimeoutOrNull(DISCOVERY_MS) {
-            suspendCancellableCoroutine { cont ->
+            suspendCancellableCoroutine<ProxyTarget?> { cont ->
                 nsd.resolveService(info, object : NsdManager.ResolveListener {
                     override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
                         if (cont.isActive) cont.resume(null)
