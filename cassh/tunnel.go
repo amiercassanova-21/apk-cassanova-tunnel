@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -24,6 +25,8 @@ const (
 	replyWait        = 10 * time.Second
 	secondReplyWait  = 1500 * time.Millisecond
 	maxHeader        = 32 * 1024
+	maxReplies       = 8
+	maxSkip          = 1 << 20 // reply bodies skipped before the SSH banner, at most
 )
 
 // tunnel keeps one SSH client connected, reconnecting with backoff and rotating variants.
@@ -263,35 +266,118 @@ func (t *tunnel) connect(v Variant) (*ssh.Client, error) {
 	return ssh.NewClient(sc, chans, reqs), nil
 }
 
-// readReplies consumes the HTTP replies ("HTTP/1.1 200 …", "HTTP/1.1 101 …") that follow the
-// payload, so the SSH banner is read from the raw stream. Anything else is left for SSH.
+// readReplies consumes what the proxy/server sends after the payload until the SSH banner:
+// every HTTP reply ("HTTP/1.1 301 …" with its body, "HTTP/1.0 200 …", "HTTP/1.1 101 …") and any
+// other stray lines. Go's SSH client accepts only 255 bytes before the banner, so a reply body
+// (e.g. the HTML of a 301 from a CDN) left in the stream failed the handshake with "overflow
+// reading version string" (Cassanova).
 func readReplies(conn net.Conn, br *bufio.Reader) {
 	wait := replyWait
-	for i := 0; i < 3; i++ {
+	skipped := 0
+	for replies := 0; replies < maxReplies && skipped < maxSkip; {
 		_ = conn.SetReadDeadline(time.Now().Add(wait))
-		head, err := br.Peek(5)
+		head, err := br.Peek(4)
 		if err != nil {
-			if i == 0 {
+			if replies == 0 && skipped == 0 {
 				logf("No reply to payload, continuing")
 			}
 			break
 		}
-		if string(head) != "HTTP/" {
+		if string(head) == "SSH-" {
 			break
 		}
-		header, err := readHeader(br)
-		if err != nil {
+		if string(head) == "HTTP" {
+			header, err := readHeader(br)
+			if err != nil {
+				break
+			}
+			line := header
+			if idx := bytes.Index(header, []byte("\r\n")); idx >= 0 {
+				line = header[:idx]
+			}
+			logf("Server reply: %s", string(line))
+			n, err := skipBody(br, header)
+			skipped += n
+			if err != nil {
+				break
+			}
+			replies++
+			// A short wait for a further reply (e.g. 200 then 101); none is fine.
+			wait = secondReplyWait
+			continue
+		}
+		// Not a reply and not the banner (e.g. a body without Content-Length): drop one line.
+		line, err := br.ReadSlice('\n')
+		skipped += len(line)
+		if err != nil && err != bufio.ErrBufferFull {
 			break
 		}
-		line := header
-		if idx := bytes.Index(header, []byte("\r\n")); idx >= 0 {
-			line = header[:idx]
-		}
-		logf("Server reply: %s", string(line))
-		// A short wait for a second reply (e.g. 200 then 101); none is fine.
 		wait = secondReplyWait
 	}
+	if skipped > 0 {
+		logf("Skipped %d byte(s) of reply body before the SSH banner", skipped)
+	}
 	_ = conn.SetReadDeadline(time.Now().Add(connectTimeout))
+}
+
+// skipBody discards the body of an HTTP reply as framed by its header (Content-Length or
+// chunked). 1xx, 204 and 304 replies and replies without framing have no body to skip here.
+func skipBody(br *bufio.Reader, header []byte) (int, error) {
+	status := 0
+	if f := strings.Fields(string(header)); len(f) >= 2 {
+		status, _ = strconv.Atoi(f[1])
+	}
+	if status < 200 || status == 204 || status == 304 {
+		return 0, nil
+	}
+	length := -1
+	chunked := false
+	for _, l := range strings.Split(string(header), "\r\n")[1:] {
+		k, v, ok := strings.Cut(l, ":")
+		if !ok {
+			continue
+		}
+		k, v = strings.ToLower(strings.TrimSpace(k)), strings.TrimSpace(v)
+		switch {
+		case k == "content-length":
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				length = n
+			}
+		case k == "transfer-encoding" && strings.Contains(strings.ToLower(v), "chunked"):
+			chunked = true
+		}
+	}
+	if chunked {
+		total := 0
+		for total < maxSkip {
+			sizeLine, err := br.ReadString('\n')
+			total += len(sizeLine)
+			if err != nil {
+				return total, err
+			}
+			sz, err := strconv.ParseInt(strings.TrimSpace(strings.SplitN(sizeLine, ";", 2)[0]), 16, 64)
+			if err != nil {
+				return total, err
+			}
+			n, err := io.CopyN(io.Discard, br, sz+2) // data + CRLF
+			total += int(n)
+			if err != nil {
+				return total, err
+			}
+			if sz == 0 {
+				return total, nil
+			}
+		}
+		return total, nil
+	}
+	if length <= 0 {
+		return 0, nil
+	}
+	if length > maxSkip {
+		length = maxSkip
+	}
+	n, err := io.CopyN(io.Discard, br, int64(length))
+	return int(n), err
 }
 
 func readHeader(br *bufio.Reader) ([]byte, error) {

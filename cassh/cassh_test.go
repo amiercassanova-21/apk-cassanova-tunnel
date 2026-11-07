@@ -133,6 +133,11 @@ func sshServer(t *testing.T) net.Listener {
 
 // payloadProxy reads the payload header, answers 200 then 101, and pipes to the SSH server.
 func payloadProxy(t *testing.T, sshAddr string, useTLS bool) net.Listener {
+	return payloadProxyReplying(t, sshAddr, useTLS, "HTTP/1.1 200 OK\r\n\r\nHTTP/1.1 101 Switching Protocols\r\n\r\n")
+}
+
+// payloadProxyReplying answers the payload with reply, then relays to the SSH server.
+func payloadProxyReplying(t *testing.T, sshAddr string, useTLS bool, reply string) net.Listener {
 	ln := listen(t)
 	var tcfg *tls.Config
 	if useTLS {
@@ -159,7 +164,7 @@ func payloadProxy(t *testing.T, sshAddr string, useTLS bool) net.Listener {
 					}
 					buf.WriteByte(b)
 				}
-				_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\nHTTP/1.1 101 Switching Protocols\r\n\r\n"))
+				_, _ = conn.Write([]byte(reply))
 				up, err := net.Dial("tcp", sshAddr)
 				if err != nil {
 					return
@@ -255,6 +260,29 @@ func TestPayloadThroughProxyWithTwoReplies(t *testing.T) {
 	c := socksConnect(t, socks, port(echo))
 	defer c.Close()
 	assertEcho(t, c)
+}
+
+// A CDN answering the first payload request with a 301 and an HTML body, then the real replies
+// (as seen on XL with Cloudflare). The body used to overflow Go's 255-byte banner limit.
+func TestPayloadSkipsRedirectBodyAndChunkedReply(t *testing.T) {
+	html := "<html><head><title>301 Moved Permanently</title></head><body>" + strings.Repeat("x", 600) + "</body></html>"
+	replies := []string{
+		"HTTP/1.1 301 Moved Permanently\r\nContent-Type: text/html\r\nContent-Length: " + strconv.Itoa(len(html)) + "\r\n\r\n" + html +
+			"HTTP/1.0 200 Connection established\r\n\r\nHTTP/1.1 101 Switching Protocols\r\n\r\n",
+		"HTTP/1.1 302 Found\r\nTransfer-Encoding: chunked\r\n\r\n" + "1f4\r\n" + strings.Repeat("y", 500) + "\r\n0\r\n\r\n" +
+			"HTTP/1.1 101 Switching Protocols\r\n\r\n",
+		"HTTP/1.1 200 OK\r\n\r\n" + strings.Repeat("junk line\n", 40),
+	}
+	for _, reply := range replies {
+		sshLn, echo := sshServer(t), echoServer(t)
+		proxy := payloadProxyReplying(t, sshLn.Addr().String(), false, reply)
+		socks := startEngine(t, &Config{Host: "127.0.0.1", Port: port(sshLn), User: "user", Pass: "pass",
+			Mode: "payload", ProxyPort: port(proxy),
+			Variants: []Variant{{Chunks: payloadChunks(), ProxyHost: "127.0.0.1"}}})
+		c := socksConnect(t, socks, port(echo))
+		assertEcho(t, c)
+		c.Close()
+	}
 }
 
 func TestSslPayloadWithSelfSignedCert(t *testing.T) {
