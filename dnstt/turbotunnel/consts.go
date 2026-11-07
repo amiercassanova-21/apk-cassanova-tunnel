@@ -8,7 +8,10 @@ import "errors"
 
 // QueueSize is the size of send and receive queues in QueuePacketConn and
 // RemoteMap.
-const QueueSize = 128
+//
+// Cassanova: 1024 (upstream 128) so the queues hold a full 512-packet KCP window
+// in each direction; see clientWindow in dnstt-client.
+const QueueSize = 1024
 
 var errClosedPacketConn = errors.New("operation on closed connection")
 var errNotImplemented = errors.New("not implemented")
