@@ -195,16 +195,19 @@ func run(pubkey []byte, domain dns.Name, localAddr *net.TCPAddr, remoteAddr net.
 	conn.SetStreamMode(true)
 	// Disable the dynamic congestion window (limit only by the maximum of
 	// local and remote static windows).
-	// Cassanova: match the Turbo mode of the Cassanova dnstt-server (send window
-	// 512, 20 ms interval). Upstream used a 64-packet window and the 100 ms KCP
+	// Cassanova: match the Turbo mode of the Cassanova dnstt-server (window 512,
+	// nodelay, 20 ms interval). Upstream used a 64-packet window and the 100 ms KCP
 	// default, which capped downloads at about 64 x MTU per DNS round trip
-	// (~700 KB/s) and starved uploads. KCP sends at most min(local send window,
+	// (~700 KB/s). Uploads travel in many small queries that resolvers drop now
+	// and then; without nodelay every loss doubled the retransmit timeout and the
+	// upload stalled, so nodelay (30 ms minimum RTO, x1.5 backoff) and fast resend
+	// after 2 skipped ACKs are on as well. KCP sends at most min(local send window,
 	// remote receive window), so servers with the standard 64 window still get
 	// at most 64 packets in flight.
 	conn.SetNoDelay(
-		0,  // default nodelay
+		1,  // nodelay: 30 ms minimum RTO, gentler backoff
 		20, // flush (and send ACKs) every 20 ms
-		0,  // default resend
+		2,  // fast resend after 2 skipped ACKs
 		1,  // nc=1 => congestion window off
 	)
 	conn.SetWindowSize(clientWindow, clientWindow)
