@@ -172,11 +172,18 @@ jobs:
     - name: Build APK
       run: |
         cd V2rayNG
-        ./gradlew :app:assemblePlaystoreRelease :app:assembleLiteRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" \
-          -Pandroid.injected.signing.store.file=$SIGN_FILE \
-          -Pandroid.injected.signing.store.password=$SIGN_STORE_PASS \
-          -Pandroid.injected.signing.key.alias=$SIGN_ALIAS \
-          -Pandroid.injected.signing.key.password=$SIGN_KEY_PASS \
+        SIGN="-Pandroid.injected.signing.store.file=$SIGN_FILE -Pandroid.injected.signing.store.password=$SIGN_STORE_PASS -Pandroid.injected.signing.key.alias=$SIGN_ALIAS -Pandroid.injected.signing.key.password=$SIGN_KEY_PASS"
+        ./gradlew :app:assemblePlaystoreRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
+          -PcassanovaLockKey=$LOCK_KEY \
+          -PcassanovaBuild=${{ github.run_number }}
+        # Amier VPN Lite: slim build (R8, Indonesian + English only) with trimmed routing data:
+        # only the categories its presets and DNS settings use (see tools/geotrim.py).
+        mkdir -p app/src/lite/assets
+        unzip -o -j app/libs/libv2ray.aar assets/geoip.dat assets/geosite.dat -d $RUNNER_TEMP/geo
+        python3 ../tools/geotrim.py $RUNNER_TEMP/geo/geoip.dat app/src/lite/assets/geoip.dat private id cn
+        python3 ../tools/geotrim.py $RUNNER_TEMP/geo/geosite.dat app/src/lite/assets/geosite.dat private cn google category-ads-all
+        ./gradlew :app:assembleLiteRelease "-PABI_FILTERS=arm64-v8a;armeabi-v7a" $SIGN \
+          -PcassanovaSlim=true \
           -PcassanovaLockKey=$LOCK_KEY \
           -PcassanovaBuild=${{ github.run_number }}
 

@@ -5,6 +5,11 @@ plugins {
     id("com.jaredsburrows.license")
 }
 
+// Cassanova: -PcassanovaSlim=true makes a slim release build (R8 code/resource shrinking and only
+// the Indonesian and English translations). CI passes it only when building Amier VPN Lite, in a
+// separate Gradle run, so the full edition is built exactly as before.
+val cassanovaSlim = (project.findProperty("cassanovaSlim") as String?)?.trim()?.toBoolean() == true
+
 // Cassanova build number (CI run number, from -PcassanovaBuild); 0 for local builds.
 val cassanovaBuildNumber = (project.findProperty("cassanovaBuild") as String?)?.trim()?.toIntOrNull() ?: 0
 
@@ -61,7 +66,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = cassanovaSlim
+            isShrinkResources = cassanovaSlim
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -160,7 +166,7 @@ android {
 
     androidResources {
         generateLocaleConfig = true
-        localeFilters += listOf(
+        localeFilters += if (cassanovaSlim) listOf("en", "in") else listOf(
             "en",
             "zh-rCN",
             "zh-rTW",
