@@ -77,13 +77,18 @@ object AutoPingManager {
         var stun: SocksUdpClient? = null
         var stunEverOk = false
         var udpUnavailable = cfg.method != AutoPing.Method.STUN
+        // STUN method, but no UDP reply yet: ping over HTTP for now and try STUN again later.
+        var udpFellBack = false
+        var lastUdpTry = 0L
         val target = AutoPing.parseTarget(cfg.stunTarget) ?: AutoPing.parseTarget(AutoPing.DEFAULT_STUN_TARGET)!!
         val timeoutMs = cfg.timeoutSec.coerceIn(1, 60) * 1000
         delay(FIRST_DELAY_MS)
         try {
             while (isActive) {
                 var ms = -1L
-                if (!udpUnavailable) {
+                val tryAt = System.currentTimeMillis()
+                if (!udpUnavailable || AutoPing.shouldRetryUdp(udpFellBack, lastUdpTry, tryAt)) {
+                    if (udpFellBack) lastUdpTry = tryAt
                     ms = try {
                         val client = stun ?: SocksUdpClient(SettingsManager.getSocksPort(), timeoutMs).also { stun = it }
                         client.stunPing(target.first, target.second)
@@ -94,15 +99,20 @@ object AutoPingManager {
                     }
                     if (ms >= 0 && !stunEverOk) {
                         stunEverOk = true
-                        ConnLog.ok(context.getString(R.string.connlog_udp_ok))
+                        ConnLog.ok(context.getString(if (udpFellBack) R.string.connlog_udp_back else R.string.connlog_udp_ok))
+                        udpFellBack = false
+                        udpUnavailable = false
                     }
                 }
                 if (ms < 0 && (udpUnavailable || !stunEverOk)) {
-                    // HTTP method, or UDP never worked on this server: ping over TCP instead of
-                    // resetting a link that is fine but has no UDP (e.g. SSH without udpgw).
+                    // HTTP method, or no UDP reply yet: ping over TCP instead of resetting a link
+                    // that is fine. Over SlowDNS the first UDP reply can simply be late, so STUN
+                    // is retried every minute instead of being given up for the whole session.
                     val http = httpPing(timeoutMs)
                     if (http >= 0 && !udpUnavailable) {
                         udpUnavailable = true
+                        udpFellBack = true
+                        lastUdpTry = tryAt
                         ConnLog.warn(context.getString(R.string.connlog_udp_unavailable))
                     }
                     ms = http

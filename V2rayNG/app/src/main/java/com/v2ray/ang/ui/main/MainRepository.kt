@@ -90,6 +90,10 @@ class MainRepository(
         MessageHelper.sendMsg2Service(app, AppConfig.MSG_REGISTER_CLIENT, "")
     }
 
+    override fun requestServiceState() {
+        MessageHelper.sendMsg2Service(app, AppConfig.MSG_REGISTER_CLIENT, "")
+    }
+
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
         runCatching {

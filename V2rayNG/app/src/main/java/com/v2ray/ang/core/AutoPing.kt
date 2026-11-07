@@ -48,6 +48,13 @@ object AutoPing {
     }
 
     /** "host:port" → pair; the port defaults to 3478. */
+    /** After falling back to HTTP because STUN got no reply, STUN is tried again this often. */
+    const val UDP_RETRY_MS = 60_000L
+
+    /** True when a fallen-back STUN check is due again (the first reply on a slow link can be late). */
+    fun shouldRetryUdp(fellBack: Boolean, lastTryAt: Long, now: Long, everyMs: Long = UDP_RETRY_MS): Boolean =
+        fellBack && now - lastTryAt >= everyMs
+
     fun parseTarget(target: String): Pair<String, Int>? {
         val t = target.trim()
         if (t.isEmpty()) return null

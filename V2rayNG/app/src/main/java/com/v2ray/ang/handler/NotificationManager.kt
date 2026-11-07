@@ -109,7 +109,10 @@ object NotificationManager {
             .setSubText(sshStatus)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
-            .setShowWhen(false)
+            // Cassanova: running "connected for" timer; kept across core reloads.
+            .setWhen(TrafficTracker.connectedAt().takeIf { it > 0 } ?: System.currentTimeMillis())
+            .setUsesChronometer(true)
+            .setShowWhen(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(contentPendingIntent)
             .addAction(

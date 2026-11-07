@@ -12,6 +12,9 @@ import java.io.Closeable
 interface MainDataSource : Closeable {
     val mainServiceEvent: Flow<MainServiceEvent>
 
+    /** Asks the daemon again whether it is running (its reply arrives as a state event). */
+    fun requestServiceState() {}
+
     fun getSelectedSubscriptionId(): String
     fun setSelectedSubscriptionId(id: String)
 

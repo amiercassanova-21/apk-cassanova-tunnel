@@ -77,4 +77,11 @@ class AutoPingTest {
         assertTrue(AutoPing.shouldLog(-1, 70, 5_000))
         assertTrue(AutoPing.shouldLog(70, 72, 60_000))
     }
+
+    @Test
+    fun udpRetryOnlyAfterFallbackAndInterval() {
+        assertFalse(AutoPing.shouldRetryUdp(fellBack = false, lastTryAt = 0, now = 10_000_000))
+        assertFalse(AutoPing.shouldRetryUdp(fellBack = true, lastTryAt = 1_000, now = 1_000 + AutoPing.UDP_RETRY_MS - 1))
+        assertTrue(AutoPing.shouldRetryUdp(fellBack = true, lastTryAt = 1_000, now = 1_000 + AutoPing.UDP_RETRY_MS))
+    }
 }

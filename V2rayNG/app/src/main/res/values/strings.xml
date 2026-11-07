@@ -701,7 +701,8 @@
     <string name="connlog_autoping_failed">Auto Ping: no reply</string>
     <string name="connlog_autoping_reset">Auto Ping: %1$d failures in a row, resetting the connection</string>
     <string name="connlog_udp_ok">UDP check OK</string>
-    <string name="connlog_udp_unavailable">UDP not available on this server, Auto Ping uses HTTP</string>
+    <string name="connlog_udp_back">UDP OK, Auto Ping is back on STUN</string>
+    <string name="connlog_udp_unavailable">No UDP reply yet, Auto Ping uses HTTP for now (retrying every 60 s)</string>
     <string name="title_conn_log">Connection log</string>
     <string name="connlog_empty">No log yet. Connect to see each step here.</string>
     <string name="connlog_open_logcat">Logcat (technical)</string>

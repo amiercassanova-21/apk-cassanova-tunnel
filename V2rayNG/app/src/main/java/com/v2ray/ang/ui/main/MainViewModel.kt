@@ -146,6 +146,8 @@ class MainViewModel(
     // Last 60 one-second speed samples for the home sparkline; cleared when disconnected.
     @Volatile
     private var speedHistory: List<SpeedSample> = emptyList()
+    @Volatile
+    private var serviceStateKnown = false
 
     // Server banner pop-up: shown once per connection session (the session start time).
     private val _serverBanner = MutableStateFlow<ServerBanner?>(null)
@@ -214,7 +216,11 @@ class MainViewModel(
         val snapshot = TrafficTracker.snapshot()
         if (state.isRunning) checkServerBanner()
         refreshTether(state.isRunning)
-        speedHistory = if (state.isRunning) {
+        speedHistory = if (state.isRunning && speedHistory.isEmpty()) {
+            // A fresh UI process (e.g. swiped away from recents): pick up the graph the daemon kept.
+            TrafficTracker.speedHistory().map { SpeedSample(it.first, it.second) }
+                .ifEmpty { listOf(SpeedSample(snapshot.downBytesPerSec, snapshot.upBytesPerSec)) }
+        } else if (state.isRunning) {
             appendSpeedSample(speedHistory, SpeedSample(snapshot.downBytesPerSec, snapshot.upBytesPerSec))
         } else {
             emptyList()
@@ -268,7 +274,19 @@ class MainViewModel(
     private fun collectServiceEvents() {
         viewModelScope.launch {
             dataSource.mainServiceEvent.collect { event ->
+                serviceStateKnown = true
                 handleServiceEvent(event)
+            }
+        }
+        // Cassanova: after the app is swiped away, this UI process is new while the daemon keeps
+        // running. Its one state reply can be missed (seen on HyperOS), which left the home screen
+        // showing "disconnected" with the tunnel up; ask again a few times until it answers. When
+        // the daemon is not running nobody answers and the screen stays disconnected, as it should.
+        viewModelScope.launch {
+            repeat(STATE_QUERY_RETRIES) {
+                kotlinx.coroutines.delay(STATE_QUERY_RETRY_MS)
+                if (serviceStateKnown) return@launch
+                dataSource.requestServiceState()
             }
         }
     }
@@ -1162,6 +1180,8 @@ data class SpeedSample(val down: Long, val up: Long)
 fun appendSpeedSample(history: List<SpeedSample>, sample: SpeedSample, max: Int = SPEED_HISTORY_SIZE): List<SpeedSample> =
     (history + sample).takeLast(max)
 
+private const val STATE_QUERY_RETRIES = 5
+private const val STATE_QUERY_RETRY_MS = 1_500L
 const val SPEED_HISTORY_SIZE = 60
 
 private const val HOME_REFRESH_MS = 1000L
