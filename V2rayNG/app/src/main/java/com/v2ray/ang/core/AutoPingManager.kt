@@ -113,6 +113,9 @@ object AutoPingManager {
                         stun = null
                         -1L
                     }
+                    // The socket calls block and ignore cancellation: a loop stopped meanwhile
+                    // (the previous connection) must not log, record or reset the new one.
+                    if (!isActive) break
                     if (ms >= 0 && !stunEverOk) {
                         stunEverOk = true
                         ConnLog.ok(context.getString(if (udpFellBack) R.string.connlog_udp_back else R.string.connlog_udp_ok))
@@ -125,6 +128,7 @@ object AutoPingManager {
                     // that is fine. Over SlowDNS the first UDP reply can simply be late, so STUN
                     // is retried every minute instead of being given up for the whole session.
                     val http = httpPing(timeoutMs)
+                    if (!isActive) break
                     if (http >= 0 && !udpUnavailable) {
                         udpUnavailable = true
                         udpFellBack = true
