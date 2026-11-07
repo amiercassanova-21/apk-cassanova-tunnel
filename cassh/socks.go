@@ -21,6 +21,14 @@ const (
 	repOK        = 0
 	repHostUnrch = 4
 	repCmdUnsupp = 7
+
+	// After udpgw fails once, every UDP association skips it for this long instead of each one
+	// waiting channelWait again (SlowDNS: those waits and channel opens jam the whole link).
+	udpgwRetryAfter = 5 * time.Minute
+	// DNS over TCP: at most this many channels at once; answers are reused for dnsCacheTTL.
+	dnsMaxInFlight = 4
+	dnsCacheTTL    = 60 * time.Second
+	dnsCacheMax    = 256
 )
 
 // socksServer is a local SOCKS5 server (no auth) that forwards through the SSH tunnel.
@@ -28,6 +36,12 @@ type socksServer struct {
 	ln        net.Listener
 	udpgwPort int
 	tun       *tunnel
+
+	udpgwMu       sync.Mutex
+	udpgwDownTill time.Time // zero: udpgw not known to be down
+
+	dnsSlots chan struct{}
+	dnsCache *dnsCache
 }
 
 func newSocksServer(addr string, udpgwPort int, tun *tunnel) (*socksServer, error) {
@@ -35,7 +49,11 @@ func newSocksServer(addr string, udpgwPort int, tun *tunnel) (*socksServer, erro
 	if err != nil {
 		return nil, err
 	}
-	return &socksServer{ln: ln, udpgwPort: udpgwPort, tun: tun}, nil
+	return &socksServer{
+		ln: ln, udpgwPort: udpgwPort, tun: tun,
+		dnsSlots: make(chan struct{}, dnsMaxInFlight),
+		dnsCache: newDNSCache(dnsCacheMax),
+	}, nil
 }
 
 func (s *socksServer) close() { _ = s.ln.Close() }
@@ -293,12 +311,22 @@ func (r *udpRelay) ensureGateway() bool {
 	}
 	r.mu.Unlock()
 
+	if !r.srv.udpgwUsable(time.Now()) {
+		r.mu.Lock()
+		r.gwFailed = true
+		r.mu.Unlock()
+		return false
+	}
 	gw, err := r.srv.dial(net.JoinHostPort("127.0.0.1", strconv.Itoa(r.srv.udpgwPort)))
+	if err != nil {
+		if r.srv.markUdpgwDown(time.Now()) {
+			logf("udpgw 127.0.0.1:%d unavailable (%v); DNS falls back to TCP for %v", r.srv.udpgwPort, err, udpgwRetryAfter)
+		}
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if err != nil {
 		r.gwFailed = true
-		logf("udpgw 127.0.0.1:%d unavailable (%v); DNS falls back to TCP", r.srv.udpgwPort, err)
 		return false
 	}
 	if r.closed {
@@ -408,7 +436,37 @@ func (r *udpRelay) readGateway(gw net.Conn) {
 	r.mu.Unlock()
 }
 
+// udpgwUsable reports whether udpgw may be tried now (not inside a recent failure window).
+func (s *socksServer) udpgwUsable(now time.Time) bool {
+	s.udpgwMu.Lock()
+	defer s.udpgwMu.Unlock()
+	return s.udpgwDownTill.IsZero() || !now.Before(s.udpgwDownTill)
+}
+
+// markUdpgwDown starts a failure window; true when this is a new window (log once per window).
+func (s *socksServer) markUdpgwDown(now time.Time) bool {
+	s.udpgwMu.Lock()
+	defer s.udpgwMu.Unlock()
+	fresh := s.udpgwDownTill.IsZero() || !now.Before(s.udpgwDownTill)
+	s.udpgwDownTill = now.Add(udpgwRetryAfter)
+	return fresh
+}
+
 func (r *udpRelay) dnsOverTCP(server net.IP, query []byte) {
+	key, ok := dnsQuestionKey(server, query)
+	if ok {
+		if resp := r.srv.dnsCache.get(key, time.Now()); resp != nil {
+			r.sendClient(server, 53, withDNSID(resp, query))
+			return
+		}
+	}
+	// Bounded: a DNS burst must not open dozens of channels over a slow link.
+	select {
+	case r.srv.dnsSlots <- struct{}{}:
+		defer func() { <-r.srv.dnsSlots }()
+	case <-time.After(3 * time.Second):
+		return // the app retries; dropping beats queueing behind a jammed link
+	}
 	c, err := r.srv.dial(net.JoinHostPort(server.String(), "53"))
 	if err != nil {
 		logf("DNS over TCP failed: %v", err)
@@ -430,7 +488,83 @@ func (r *udpRelay) dnsOverTCP(server net.IP, query []byte) {
 	if _, err := io.ReadFull(c, resp); err != nil {
 		return
 	}
+	if ok && dnsAnswerCacheable(resp) {
+		r.srv.dnsCache.put(key, resp, time.Now())
+	}
 	r.sendClient(server, 53, resp)
+}
+
+// ---------- small DNS answer cache (DNS over TCP fallback only) ----------
+
+type dnsEntry struct {
+	resp    []byte
+	expires time.Time
+}
+
+type dnsCache struct {
+	mu      sync.Mutex
+	max     int
+	entries map[string]dnsEntry
+}
+
+func newDNSCache(max int) *dnsCache { return &dnsCache{max: max, entries: map[string]dnsEntry{}} }
+
+func (c *dnsCache) get(key string, now time.Time) []byte {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e, ok := c.entries[key]
+	if !ok {
+		return nil
+	}
+	if !now.Before(e.expires) {
+		delete(c.entries, key)
+		return nil
+	}
+	return e.resp
+}
+
+func (c *dnsCache) put(key string, resp []byte, now time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.entries) >= c.max {
+		for k, e := range c.entries { // drop expired first, else everything (rare, cheap)
+			if !now.Before(e.expires) {
+				delete(c.entries, k)
+			}
+		}
+		if len(c.entries) >= c.max {
+			c.entries = map[string]dnsEntry{}
+		}
+	}
+	c.entries[key] = dnsEntry{resp: append([]byte(nil), resp...), expires: now.Add(dnsCacheTTL)}
+}
+
+// dnsQuestionKey identifies a query by server and everything after the 2-byte ID.
+func dnsQuestionKey(server net.IP, query []byte) (string, bool) {
+	if len(query) < 12 {
+		return "", false
+	}
+	return server.String() + "|" + string(query[2:]), true
+}
+
+// dnsAnswerCacheable: a well-formed response (QR set) with RCODE 0 and at least one answer.
+func dnsAnswerCacheable(resp []byte) bool {
+	if len(resp) < 12 {
+		return false
+	}
+	isResponse := resp[2]&0x80 != 0
+	rcode := resp[3] & 0x0F
+	answers := binary.BigEndian.Uint16(resp[6:8])
+	return isResponse && rcode == 0 && answers > 0
+}
+
+// withDNSID returns a copy of resp carrying the ID of query.
+func withDNSID(resp, query []byte) []byte {
+	out := append([]byte(nil), resp...)
+	if len(out) >= 2 && len(query) >= 2 {
+		out[0], out[1] = query[0], query[1]
+	}
+	return out
 }
 
 func (r *udpRelay) sendClient(ip net.IP, port int, data []byte) {

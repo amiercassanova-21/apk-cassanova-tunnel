@@ -403,3 +403,74 @@ func TestBannerIsEmitted(t *testing.T) {
 		t.Fatalf("banner line missing in %q", got)
 	}
 }
+
+func TestUdpgwFailureWindowIsSharedAndLogsOnce(t *testing.T) {
+	s := &socksServer{}
+	now := time.Unix(1000, 0)
+	if !s.udpgwUsable(now) {
+		t.Fatal("udpgw should be tried at first")
+	}
+	if !s.markUdpgwDown(now) {
+		t.Fatal("first failure should open a new window (log once)")
+	}
+	if s.markUdpgwDown(now.Add(time.Second)) {
+		t.Fatal("second failure inside the window must not log again")
+	}
+	if s.udpgwUsable(now.Add(udpgwRetryAfter / 2)) {
+		t.Fatal("udpgw must be skipped inside the window")
+	}
+	if !s.udpgwUsable(now.Add(udpgwRetryAfter + 2*time.Second)) {
+		t.Fatal("udpgw should be retried after the window")
+	}
+}
+
+func TestDNSCacheKeyIDAndExpiry(t *testing.T) {
+	server := net.IPv4(8, 8, 8, 8)
+	q1 := []byte{0x12, 0x34, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3, 'c', 'o', 'm', 0, 0, 1, 0, 1}
+	q2 := append([]byte(nil), q1...)
+	q2[0], q2[1] = 0xAB, 0xCD
+	k1, ok1 := dnsQuestionKey(server, q1)
+	k2, ok2 := dnsQuestionKey(server, q2)
+	if !ok1 || !ok2 || k1 != k2 {
+		t.Fatal("same question with different IDs must share a key")
+	}
+	if _, ok := dnsQuestionKey(server, []byte{1, 2, 3}); ok {
+		t.Fatal("short query must not be cached")
+	}
+	resp := append([]byte(nil), q1...)
+	resp[2] = 0x81
+	resp[3] = 0x80
+	resp[6], resp[7] = 0, 1
+	if !dnsAnswerCacheable(resp) {
+		t.Fatal("NOERROR with an answer should be cacheable")
+	}
+	nx := append([]byte(nil), resp...)
+	nx[3] = 0x83
+	if dnsAnswerCacheable(nx) {
+		t.Fatal("NXDOMAIN must not be cached")
+	}
+	c := newDNSCache(2)
+	now := time.Unix(2000, 0)
+	c.put(k1, resp, now)
+	got := c.get(k2, now.Add(time.Second))
+	if got == nil {
+		t.Fatal("cache miss")
+	}
+	if out := withDNSID(got, q2); out[0] != 0xAB || out[1] != 0xCD || got[0] != 0x12 {
+		t.Fatal("ID must be rewritten on a copy")
+	}
+	if c.get(k1, now.Add(dnsCacheTTL)) != nil {
+		t.Fatal("expired entry must be dropped")
+	}
+}
+
+func TestDNSCacheBounded(t *testing.T) {
+	c := newDNSCache(2)
+	now := time.Unix(3000, 0)
+	for i := 0; i < 5; i++ {
+		c.put(string(rune('a'+i)), []byte{1}, now)
+	}
+	if len(c.entries) > 2 {
+		t.Fatalf("cache grew to %d", len(c.entries))
+	}
+}
