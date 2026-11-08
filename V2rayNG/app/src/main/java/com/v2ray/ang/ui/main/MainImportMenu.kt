@@ -6,7 +6,6 @@ import androidx.compose.ui.res.stringResource
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
-import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.SelectListDialog
@@ -44,30 +43,27 @@ enum class MainMoreMenuAction(@StringRes val labelRes: Int) {
 internal enum class ServerMenuAction(
     @StringRes val labelRes: Int,
     val isShareAction: Boolean,
-    val supportsComplexProfiles: Boolean,
 ) {
-    ShareQRCode(R.string.share_method_qrcode, isShareAction = true, supportsComplexProfiles = false),
-    ShareClipboard(R.string.share_method_clipboard, isShareAction = true, supportsComplexProfiles = false),
-    ShareFullContent(R.string.share_method_full_content, isShareAction = true, supportsComplexProfiles = true),
-    ShareLocked(R.string.share_method_locked, isShareAction = true, supportsComplexProfiles = false),
-    Edit(R.string.action_edit, isShareAction = false, supportsComplexProfiles = true),
-    Delete(R.string.action_delete, isShareAction = false, supportsComplexProfiles = true),
+    // Cassanova: one "Bagikan" sheet (plain or locked link + QR, JSON for complex configs).
+    Share(R.string.share_action, isShareAction = true),
+    Edit(R.string.action_edit, isShareAction = false),
+    Delete(R.string.action_delete, isShareAction = false),
 }
 
 internal fun serverMenuActions(
-    isComplexProfile: Boolean,
     includeManagementActions: Boolean,
     isLocked: Boolean = false,
-    lockAvailable: Boolean = false,
 ): List<ServerMenuAction> = ServerMenuAction.entries.filter { action ->
     when {
         // A locked config can only be deleted: no edit, no sharing of any kind.
         isLocked -> includeManagementActions && action == ServerMenuAction.Delete
-        action == ServerMenuAction.ShareLocked && !lockAvailable -> false
-        else -> (includeManagementActions || action.isShareAction) &&
-            (!isComplexProfile || action.supportsComplexProfiles)
+        else -> includeManagementActions || action.isShareAction
     }
 }
+
+/** Initial mode of the share sheet: locked when the user last chose it and locking is possible. */
+internal fun shareStartsLocked(preferLocked: Boolean, lockedAvailable: Boolean): Boolean =
+    preferLocked && lockedAvailable
 
 /** Lite shows only the protocols it supports (see [com.v2ray.ang.handler.Edition]). */
 private fun ImportMenuAction.visible(): Boolean {
@@ -100,10 +96,8 @@ fun ShareMethodDialog(
     onRemove: (String, String) -> Unit,
 ) {
     val menuActions = serverMenuActions(
-        isComplexProfile = profile.configType.isComplexType(),
         includeManagementActions = more,
         isLocked = ConfigLockManager.isLocked(profile),
-        lockAvailable = ConfigLockManager.isAvailable,
     )
     SelectListDialog(
         options = menuActions,
@@ -111,10 +105,7 @@ fun ShareMethodDialog(
         onSelected = { action ->
             onDismiss()
             when (action) {
-                ServerMenuAction.ShareQRCode -> onAction(MainAction.ShareQRCode(guid))
-                ServerMenuAction.ShareClipboard -> onAction(MainAction.ShareClipboard(guid))
-                ServerMenuAction.ShareFullContent -> onAction(MainAction.ShareFullContent(guid))
-                ServerMenuAction.ShareLocked -> onAction(MainAction.ShareLocked(guid))
+                ServerMenuAction.Share -> onAction(MainAction.OpenShareSheet(guid))
                 ServerMenuAction.Edit -> onAction(MainAction.EditServer(guid, profile))
                 ServerMenuAction.Delete -> onRemove(guid, profile.remarks)
             }

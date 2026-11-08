@@ -205,8 +205,18 @@ class MainRepository(
     override fun shareNonCustomConfigsToClipboard(guids: List<String>): Int =
         AngConfigManager.shareNonCustomConfigsToClipboard(app, guids)
 
-    override fun share2QRCode(guid: String): android.graphics.Bitmap? =
-        AngConfigManager.share2QRCode(guid)
+    override fun shareLinks(guid: String): Pair<String?, String?> =
+        AngConfigManager.shareLink(guid) to AngConfigManager.lockedShareLink(guid)
+
+    override fun createShareQRCode(text: String): android.graphics.Bitmap? =
+        com.v2ray.ang.util.QRCodeDecoder.createShareQRCode(text)
+
+    override fun isShareLockedPreferred(): Boolean =
+        com.v2ray.ang.handler.MmkvManager.decodeSettingsBool(AppConfig.PREF_SHARE_LOCKED, false)
+
+    override fun setShareLockedPreferred(locked: Boolean) {
+        com.v2ray.ang.handler.MmkvManager.encodeSettings(AppConfig.PREF_SHARE_LOCKED, locked)
+    }
 
     override fun share2Clipboard(guid: String): Boolean =
         AngConfigManager.share2Clipboard(app, guid) == 0

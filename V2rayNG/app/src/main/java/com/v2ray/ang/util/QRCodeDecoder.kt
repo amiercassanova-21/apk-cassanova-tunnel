@@ -39,6 +39,19 @@ object QRCodeDecoder {
         }.getOrNull()
     }
 
+    /** QR code of the share sheet (error correction Q, see [ShareQr]); black on white. */
+    fun createShareQRCode(text: String, size: Int = 800): Bitmap? {
+        return runCatching {
+            val bitMatrix = ShareQr.matrix(text, size)
+            val pixels = IntArray(size * size) { i ->
+                if (bitMatrix.get(i % size, i / size)) 0xff000000.toInt() else 0xffffffff.toInt()
+            }
+            Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).apply {
+                setPixels(pixels, 0, size, 0, 0, size, size)
+            }
+        }.getOrNull()
+    }
+
     /**
      * Decodes a QR code from a local image file. This method is time-consuming and should be called in a background thread.
      *

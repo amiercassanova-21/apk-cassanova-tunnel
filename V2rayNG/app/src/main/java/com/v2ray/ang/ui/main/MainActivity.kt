@@ -145,8 +145,13 @@ class MainActivity : HelperBaseComponentActivity() {
         }
     }
 
-    private fun shareToClipboard(guid: String): Boolean =
-        AngConfigManager.share2Clipboard(this, guid) == 0
+    private fun shareToClipboard(guid: String): Boolean {
+        val ok = AngConfigManager.share2Clipboard(this, guid) == 0
+        // Android 13+ shows its own "copied" confirmation; older versions get a toast.
+        if (!ok) toastError(R.string.toast_failure)
+        else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) toastSuccess(R.string.toast_success)
+        return ok
+    }
 
     private fun shareFullContentAsync(guid: String) {
         lifecycleScope.launch(Dispatchers.IO) {

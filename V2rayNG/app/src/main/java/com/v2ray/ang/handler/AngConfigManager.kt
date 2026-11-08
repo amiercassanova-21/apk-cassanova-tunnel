@@ -1,7 +1,6 @@
 package com.v2ray.ang.handler
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.text.TextUtils
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.core.CoreConfigManager
@@ -26,7 +25,6 @@ import com.v2ray.ang.fmt.WireguardFmt
 import com.v2ray.ang.util.HttpUtil
 import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.LogUtil
-import com.v2ray.ang.util.QRCodeDecoder
 import com.v2ray.ang.util.Utils
 import okhttp3.Headers
 import java.net.URI
@@ -66,6 +64,12 @@ object AngConfigManager {
      * Copies a locked (cslock://) link of the profile to the clipboard.
      * @return 0 on success, -1 when the profile has no share link or locking is unavailable.
      */
+    /** The share link of [guid] (vless://, ssh://, …); null for custom/group or locked configs. */
+    fun shareLink(guid: String): String? = shareConfig(guid).ifEmpty { null }
+
+    /** The locked `cslock://` form of [shareLink]; null when it has none or locking is unavailable. */
+    fun lockedShareLink(guid: String): String? = shareLink(guid)?.let { ConfigLockManager.lockLink(it) }
+
     fun shareLocked2Clipboard(context: Context, guid: String): Int {
         try {
             val link = shareConfig(guid)
@@ -127,26 +131,6 @@ object AngConfigManager {
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to share non-custom configs to clipboard", e)
             return -1
-        }
-    }
-
-    /**
-     * Shares the configuration as a QR code.
-     *
-     * @param guid The GUID of the configuration.
-     * @return The QR code bitmap.
-     */
-    fun share2QRCode(guid: String): Bitmap? {
-        try {
-            val conf = shareConfig(guid)
-            if (TextUtils.isEmpty(conf)) {
-                return null
-            }
-            return QRCodeDecoder.createQRCode(conf)
-
-        } catch (e: Exception) {
-            LogUtil.e(AppConfig.TAG, "Failed to share config as QR code", e)
-            return null
         }
     }
 

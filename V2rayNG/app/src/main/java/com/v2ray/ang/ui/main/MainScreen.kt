@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.sp
 import com.v2ray.ang.ui.compose.ThemeManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.dto.entities.ProfileItem
-import com.v2ray.ang.ui.compose.QRCodeDialog
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -73,7 +72,6 @@ fun MainScreen(
     val selectedGuid = uiState.selectedGuid
     val doubleColumnDisplay = uiState.doubleColumnDisplay
     val confirmRemove = uiState.confirmRemove
-    val shareQRCodeBitmap = uiState.shareQRCodeBitmap
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -158,8 +156,8 @@ fun MainScreen(
             onRemove = removeServer,
         )
     }
-    if (shareQRCodeBitmap != null) {
-        QRCodeDialog(bitmap = shareQRCodeBitmap, onDismiss = { onAction(MainAction.DismissQRCodeDialog) })
+    uiState.shareSheet?.let { sheet ->
+        ShareSheet(sheet = sheet, onAction = onAction)
     }
 
     val onSearchQueryChange: (String) -> Unit = { query ->
@@ -305,7 +303,10 @@ fun MainScreen(
                         onSelectServer = { guid -> onAction(MainAction.SelectServer(guid)) },
                         onEditServer = { guid, profile -> onAction(MainAction.EditServer(guid, profile)) },
                         onShareServer = { guid, profile ->
-                            shareTarget = Triple(guid, profile, false)
+                            // The share icon opens the sheet directly; locked configs are never shared.
+                            if (!com.v2ray.ang.handler.ConfigLockManager.isLocked(profile)) {
+                                onAction(MainAction.OpenShareSheet(guid))
+                            }
                         },
                         onMoreServer = { guid, profile ->
                             shareTarget = Triple(guid, profile, true)

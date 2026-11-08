@@ -56,7 +56,11 @@ interface MainDataSource : Closeable {
     fun updateConfigViaSub(subscriptionCache: SubscriptionCache): SubscriptionUpdateResult
 
     fun shareNonCustomConfigsToClipboard(guids: List<String>): Int
-    fun share2QRCode(guid: String): android.graphics.Bitmap?
+    /** Plain and locked share links of [guid]; either may be null (see [com.v2ray.ang.handler.AngConfigManager]). */
+    fun shareLinks(guid: String): Pair<String?, String?>
+    fun createShareQRCode(text: String): android.graphics.Bitmap?
+    fun isShareLockedPreferred(): Boolean
+    fun setShareLockedPreferred(locked: Boolean)
     fun share2Clipboard(guid: String): Boolean
 
     fun sendMsg2Service(msgId: Int, content: String)

@@ -18,6 +18,7 @@ import com.v2ray.ang.extension.delay
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.moveItem
+import com.v2ray.ang.handler.ConfigLockManager
 import com.v2ray.ang.handler.Edition
 import com.v2ray.ang.handler.SubscriptionInfoParser
 import com.v2ray.ang.handler.TrafficTracker
@@ -106,6 +107,7 @@ class MainViewModel(
     private var preloadJob: Job? = null
     private var selectedGroupLoadJob: Job? = null
     private var reloadJob: Job? = null
+    private var shareSheetJob: Job? = null
     private var testResultFlushJob: Job? = null
     private val pendingTestResults = linkedMapOf<String, Long>()
 
@@ -158,6 +160,36 @@ class MainViewModel(
     // Proxy Tethering card: hotspot address, re-detected every few seconds while connected.
     private var tetherInfo: TetherInfo? = null
     private var tetherTick = 0
+
+    /** Builds the share sheet of [guid] (links and QR codes) off the main thread. */
+    private fun openShareSheet(guid: String) {
+        shareSheetJob?.cancel()
+        shareSheetJob = viewModelScope.launch(ioDispatcher) {
+            val profile = dataSource.decodeServerConfig(guid) ?: return@launch
+            // A locked config is never shared again (the menu does not offer it either).
+            if (ConfigLockManager.isLocked(profile)) return@launch
+            val (plain, locked) = dataSource.shareLinks(guid)
+            val state = ShareSheetUiState(
+                guid = guid,
+                remarks = profile.remarks,
+                typeLabel = typeParts(profile, locked = false).joinToString(" · "),
+                plainLink = plain,
+                lockedLink = locked,
+                plainQr = plain?.let { dataSource.createShareQRCode(it) },
+                lockedQr = locked?.let { dataSource.createShareQRCode(it) },
+                locked = shareStartsLocked(dataSource.isShareLockedPreferred(), locked != null),
+            )
+            _uiState.update { it.copy(shareSheet = state) }
+        }
+    }
+
+    /** Switches the open sheet between plain and locked and remembers the choice. */
+    private fun setShareLocked(locked: Boolean) {
+        val sheet = _uiState.value.shareSheet ?: return
+        if (locked && sheet.lockedLink == null) return
+        _uiState.update { it.copy(shareSheet = sheet.copy(locked = locked)) }
+        viewModelScope.launch(ioDispatcher) { dataSource.setShareLockedPreferred(locked) }
+    }
 
     private fun toggleTether() {
         viewModelScope.launch(ioDispatcher) {
@@ -471,13 +503,11 @@ class MainViewModel(
             is MainAction.ImportBatchConfig -> importBatchConfig(action.configText)
             MainAction.LocateHandled -> consumeLocateTarget()
             MainAction.ToggleTether -> toggleTether()
-            is MainAction.ShareQRCode -> {
-                val bitmap = dataSource.share2QRCode(action.guid)
-                _uiState.update { it.copy(shareQRCodeBitmap = bitmap) }
-            }
-
-            MainAction.DismissQRCodeDialog -> {
-                _uiState.update { it.copy(shareQRCodeBitmap = null) }
+            is MainAction.OpenShareSheet -> openShareSheet(action.guid)
+            is MainAction.SetShareLocked -> setShareLocked(action.locked)
+            MainAction.DismissShareSheet -> {
+                shareSheetJob?.cancel()
+                _uiState.update { it.copy(shareSheet = null) }
             }
 
             MainAction.ToggleService,

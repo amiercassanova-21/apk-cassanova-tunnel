@@ -103,6 +103,8 @@ object AppConfig {
     const val PREF_HOST_LOOKUP_HISTORY = "pref_host_lookup_history"
     const val PREF_AUTOPING_MODE = "pref_autoping_mode"
     const val PREF_AUTOPING_METHOD = "pref_autoping_method"
+    /** Share sheet opens in locked mode (the last mode the user picked). */
+    const val PREF_SHARE_LOCKED = "pref_share_locked"
     const val PREF_AUTOPING_TARGET = "pref_autoping_target"
     const val PREF_AUTOPING_INTERVAL = "pref_autoping_interval"
     const val PREF_AUTOPING_TIMEOUT = "pref_autoping_timeout"

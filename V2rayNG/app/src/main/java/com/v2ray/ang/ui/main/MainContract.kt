@@ -26,7 +26,23 @@ data class MainUiState(
     val locateTarget: LocateTarget? = null,
     val confirmRemove: Boolean = false,
     val doubleColumnDisplay: Boolean = false,
-    val shareQRCodeBitmap: android.graphics.Bitmap? = null
+    val shareSheet: ShareSheetUiState? = null
+)
+
+/**
+ * Cassanova: the "Bagikan" sheet of one config. [plainLink]/[lockedLink] and their QR codes are
+ * null when that form is not available (custom JSON or group configs have no link; locking needs
+ * the build key).
+ */
+data class ShareSheetUiState(
+    val guid: String,
+    val remarks: String,
+    val typeLabel: String,
+    val plainLink: String?,
+    val lockedLink: String?,
+    val plainQr: android.graphics.Bitmap?,
+    val lockedQr: android.graphics.Bitmap?,
+    val locked: Boolean,
 )
 
 /**
@@ -60,11 +76,12 @@ sealed interface MainAction {
     data class RemoveServer(val guid: String) : MainAction
     data class EditServer(val guid: String, val profile: com.v2ray.ang.dto.entities.ProfileItem) : MainAction
     data class Search(val query: String) : MainAction
-    data class ShareQRCode(val guid: String) : MainAction
+    data class OpenShareSheet(val guid: String) : MainAction
+    data class SetShareLocked(val locked: Boolean) : MainAction
     data class ShareClipboard(val guid: String) : MainAction
     data class ShareFullContent(val guid: String) : MainAction
     data class ShareLocked(val guid: String) : MainAction
-    data object DismissQRCodeDialog : MainAction
+    data object DismissShareSheet : MainAction
     data class OpenSubscriptionLink(val url: String) : MainAction
 
     data class ImportBatchConfig(val configText: String) : MainAction
