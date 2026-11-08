@@ -50,6 +50,7 @@ import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.SettingsMenuItem
 import com.v2ray.ang.ui.compose.CassanovaCard
 import com.v2ray.ang.util.Utils
+import com.v2ray.ang.ui.checkupdate.CheckUpdateActivity
 
 class AboutActivity : BaseComponentActivity() {
 
@@ -173,6 +174,13 @@ fun AboutScreen(
                 )
             }
             CassanovaCard(title = stringResource(R.string.about_info)) {
+                // Cassanova: the update check's only entry in styles A and C (style B also has it
+                // in the drawer).
+                SettingsMenuItem(
+                    icon = painterResource(R.drawable.ic_check_update_24dp),
+                    title = stringResource(R.string.update_check_for_update),
+                    onClick = { context.startActivity(Intent(context, CheckUpdateActivity::class.java)) }
+                )
                 SettingsMenuItem(
                     icon = painterResource(R.drawable.ic_source_code_24dp),
                     title = stringResource(R.string.title_source_code),
