@@ -172,7 +172,7 @@ class MainViewModel(
             val state = ShareSheetUiState(
                 guid = guid,
                 remarks = profile.remarks,
-                typeLabel = typeParts(profile, locked = false).joinToString(" · "),
+                profile = profile,
                 plainLink = plain,
                 lockedLink = locked,
                 plainQr = plain?.let { dataSource.createShareQRCode(it) },

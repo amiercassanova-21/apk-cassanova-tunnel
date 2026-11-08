@@ -121,7 +121,7 @@ private fun ColumnScope.SheetContent(sheet: ShareSheetUiState, hasQr: Boolean, o
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.share_sheet_title), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
-            Text(sheet.typeLabel, fontSize = 12.sp, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(typeParts(sheet.profile, locked = false).joinToString(" · "), fontSize = 12.sp, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (hasQr) {
             Text("☀ " + stringResource(R.string.share_brightness), fontSize = 11.sp, color = colors.onSurfaceVariant)

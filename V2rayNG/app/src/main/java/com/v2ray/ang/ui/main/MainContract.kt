@@ -37,7 +37,8 @@ data class MainUiState(
 data class ShareSheetUiState(
     val guid: String,
     val remarks: String,
-    val typeLabel: String,
+    /** For the type line (VLESS · ws · tls), formatted by the sheet. */
+    val profile: com.v2ray.ang.dto.entities.ProfileItem,
     val plainLink: String?,
     val lockedLink: String?,
     val plainQr: android.graphics.Bitmap?,
