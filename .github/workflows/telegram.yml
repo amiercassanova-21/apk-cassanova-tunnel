@@ -1,0 +1,54 @@
+name: Kirim ke Telegram
+
+# Setelah "Build Amier VPN" selesai: aplikasi yang BARU dibangun di rilis itu (nama file -bN dengan N = nomor
+# build) dikirim ke channel Telegram, satu pesan per aplikasi dengan tagarnya. Aplikasi yang tidak berubah
+# tidak dikirim ulang. File terpisah dari workflow build supaya mengubah file ini tidak membangun ulang aplikasi.
+# Butuh secret TELEGRAM_BOT_TOKEN dan TELEGRAM_CHAT_ID; bila kosong, dilewati.
+on:
+  workflow_run:
+    workflows: ["Build Amier VPN"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  telegram:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Kirim aplikasi baru ke channel Telegram
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          N: ${{ github.event.workflow_run.run_number }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then echo "Secret Telegram belum diisi: dilewati."; exit 0; fi
+          TAG="build-$N"
+          if ! gh release view "$TAG" -R "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Tidak ada rilis $TAG (tidak ada aplikasi yang berubah)."; exit 0
+          fi
+          mkdir -p dl
+          gh release download "$TAG" -R "${{ github.repository }}" -D dl -p "*-b${N}_*.apk" || true
+          export RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG"
+          PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | awk -F- -v n="$N" '$2 < n' | head -1 || true)
+          if [ -n "$PREV" ]; then BODY=$(git log --no-merges --format='- %s' "$PREV..$SHA"); else BODY=$(git log --no-merges -n 10 --format='- %s' "$SHA"); fi
+          export BODY
+          rc=0
+          app() { # label tagar regex-nama-file
+            files=$(ls dl | grep -E "$3" | sort | sed 's|^|dl/|') # arm64 → armeabi → universal
+            [ -n "$files" ] || { echo "$1: tidak berubah, tidak dikirim."; return 0; }
+            v=$(basename "$(echo "$files" | head -1)" | sed -n 's/^[A-Za-z_]*_\([0-9.]*-b[0-9]*\)_.*/\1/p')
+            echo "$1 $v:"
+            TITLE="<b>$1 $v</b>" TAGS="$2" bash .github/telegram-send.sh $files || rc=1
+          }
+          app "Amier VPN" "#AmierVPN" '^AmierVPN_[0-9]'
+          app "Amier VPN Lite" "#AmierVPNLite" '^AmierVPN_Lite_'
+          app "Amier Tether" "#AmierTether" '^AmierTether_'
+          exit $rc
