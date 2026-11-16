@@ -8,6 +8,8 @@
 #      LINK   : link yang ditampilkan (opsional; mis. halaman rilis repo publik)
 #      BODY   : daftar perubahan, teks biasa satu poin per baris; dipotong agar muat di keterangan Telegram
 #      RELEASE_URL : link rilis, disertakan bila ada file di atas batas 50 MB bot Telegram
+#      DL_BASE : awal link unduhan GitHub per file (mis. https://github.com/OWNER/REPO/releases/download/build-38);
+#                bila diisi, setiap file diberi link GitHub-nya sendiri
 set -euo pipefail
 if [ -z "${TG_TOKEN:-}" ] || [ -z "${TG_CHAT:-}" ]; then
   echo "Secret Telegram belum diisi: langkah dilewati."
@@ -29,7 +31,8 @@ for f in "$@"; do
   if [ "$(stat -c%s "$f")" -gt "$LIMIT" ]; then big+=("$(basename "$f")"); else small+=("$f"); fi
 done
 
-caption="${TITLE:-} ${TAGS:-}"
+head="${TITLE:-} ${TAGS:-}"
+caption=""
 [ -n "${LINK:-}" ] && caption+=$'\n\n'"$(printf '%s' "$LINK" | esc)"
 body=$(printf '%s' "${BODY:-}" | cut_chars 650 | esc)
 [ -n "$body" ] && caption+=$'\n\n'"<b>Perubahan</b>"$'\n'"$body"
@@ -38,19 +41,28 @@ if [ ${#big[@]} -gt 0 ]; then
   [ -n "${RELEASE_URL:-}" ] && caption+=$'\n'"<a href=\"${RELEASE_URL}\">Buka rilis</a>"
 fi
 
+rest="$caption"; caption="$head$rest"
+
+# Link GitHub untuk satu file (kosong bila DL_BASE tidak diisi).
+file_link() { [ -n "${DL_BASE:-}" ] && printf '<a href="%s/%s">GitHub: %s</a>' "$DL_BASE" "$(basename "$1")" "$(basename "$1" | esc)" || true; }
+# Keterangan utama dengan link GitHub file itu tepat di bawah judul.
+with_link() { local l; l=$(file_link "$1"); if [ -n "$l" ]; then printf '%s\n%s%s' "$head" "$l" "$rest"; else printf '%s%s' "$head" "$rest"; fi; }
+
 # Field teks memakai --form-string: dengan -F, nilai berawalan "@" (mis. ID channel @nama) dianggap nama file.
 if [ ${#small[@]} -eq 0 ]; then
   send sendMessage --form-string "chat_id=${TG_CHAT}" --form-string "parse_mode=HTML" --form-string "text=${caption}"
 elif [ ${#small[@]} -eq 1 ]; then
-  send sendDocument --form-string "chat_id=${TG_CHAT}" -F "document=@${small[0]}" --form-string "parse_mode=HTML" --form-string "caption=${caption}"
+  send sendDocument --form-string "chat_id=${TG_CHAT}" -F "document=@${small[0]}" --form-string "parse_mode=HTML" --form-string "caption=$(with_link "${small[0]}")"
 else
-  # Beberapa file → satu kelompok (album dokumen, maks. 10); keterangan pada file terakhir tampil di bawah kelompok.
+  # Beberapa file → satu kelompok (album dokumen, maks. 10). Setiap file membawa link GitHub-nya sendiri;
+  # keterangan utama ikut di file terakhir sehingga tampil di bawah kelompok.
   media="["; files=()
   last=$((${#small[@]} - 1))
   for i in "${!small[@]}"; do
+    if [ "$i" = "$last" ]; then cap=$(with_link "${small[$i]}"); else cap=$(file_link "${small[$i]}"); fi
     item=$(python3 -c 'import json,sys; d={"type":"document","media":"attach://f"+sys.argv[1]}
-if sys.argv[2]=="1": d.update(caption=sys.argv[3], parse_mode="HTML")
-print(json.dumps(d, ensure_ascii=False))' "$i" "$([ "$i" = "$last" ] && echo 1 || echo 0)" "$caption")
+if sys.argv[2]: d.update(caption=sys.argv[2], parse_mode="HTML")
+print(json.dumps(d, ensure_ascii=False))' "$i" "$cap")
     media+="${item},"; files+=(-F "f${i}=@${small[$i]}")
   done
   media="${media%,}]"
