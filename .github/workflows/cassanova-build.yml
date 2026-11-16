@@ -104,7 +104,7 @@ jobs:
       run: cp -r ${{ github.workspace }}/libs ${{ github.workspace }}/V2rayNG/app
 
     - name: Setup Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version-file: AndroidLibXrayLite/go.mod
         cache-dependency-path: |
