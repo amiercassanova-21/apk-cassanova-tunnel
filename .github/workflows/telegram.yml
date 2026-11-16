@@ -37,8 +37,9 @@ jobs:
           mkdir -p dl
           gh release download "$TAG" -R "${{ github.repository }}" -D dl -p "*-b${N}_*.apk" || true
           export RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG"
+          export LINK="$RELEASE_URL"
           PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | awk -F- -v n="$N" '$2 < n' | head -1 || true)
-          if [ -n "$PREV" ]; then BODY=$(git log --no-merges --format='- %s' "$PREV..$SHA"); else BODY=$(git log --no-merges -n 10 --format='- %s' "$SHA"); fi
+          if [ -n "$PREV" ]; then BODY=$(git log --no-merges --format='• %s' "$PREV..$SHA" | head -10); else BODY=$(git log --no-merges -n 10 --format='• %s' "$SHA"); fi
           export BODY
           rc=0
           app() { # label tagar regex-nama-file
