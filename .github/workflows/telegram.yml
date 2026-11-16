@@ -8,13 +8,21 @@ on:
   workflow_run:
     workflows: ["Build Amier VPN"]
     types: [completed]
+  # Jalankan manual (Actions → Kirim ke Telegram → Run workflow) untuk mengirim ulang rilis yang sudah ada,
+  # tanpa membangun ulang aplikasi. Manual = semua aplikasi di rilis itu dikirim.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Rilis yang dikirim, mis. build-38 (kosong = rilis terbaru)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
   telegram:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,14 +36,20 @@ jobs:
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           N: ${{ github.event.workflow_run.run_number }}
           SHA: ${{ github.event.workflow_run.head_sha }}
+          MANUAL_TAG: ${{ inputs.tag }}
         run: |
           if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then echo "Secret Telegram belum diisi: dilewati."; exit 0; fi
+          PATTERN=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${MANUAL_TAG:-$(gh release view -R "${{ github.repository }}" --json tagName --jq .tagName)}"
+            N="${TAG#build-}"; SHA=$(git rev-list -n 1 "$TAG"); PATTERN="*.apk"
+          fi
           TAG="build-$N"
           if ! gh release view "$TAG" -R "${{ github.repository }}" >/dev/null 2>&1; then
             echo "Tidak ada rilis $TAG (tidak ada aplikasi yang berubah)."; exit 0
           fi
           mkdir -p dl
-          gh release download "$TAG" -R "${{ github.repository }}" -D dl -p "*-b${N}_*.apk" || true
+          gh release download "$TAG" -R "${{ github.repository }}" -D dl -p "${PATTERN:-*-b${N}_*.apk}" || true
           export RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG"
           export DL_BASE="https://github.com/${{ github.repository }}/releases/download/$TAG"
           PREV=$(git tag -l 'build-*' --sort=-v:refname | grep -vx "$TAG" | awk -F- -v n="$N" '$2 < n' | head -1 || true)
