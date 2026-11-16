@@ -35,15 +35,15 @@ if [ ${#big[@]} -gt 0 ]; then
 fi
 
 if [ ${#small[@]} -eq 0 ]; then
-  send sendMessage -F "chat_id=${TG_CHAT}" -F "parse_mode=HTML" --form-string "text=${caption}"
+  send sendMessage --form-string "chat_id=${TG_CHAT}" --form-string "parse_mode=HTML" --form-string "text=${caption}"
 else
   first=1
   for f in "${small[@]}"; do
     if [ "$first" = 1 ]; then
-      send sendDocument -F "chat_id=${TG_CHAT}" -F "document=@${f}" -F "parse_mode=HTML" --form-string "caption=${caption}"
+      send sendDocument --form-string "chat_id=${TG_CHAT}" -F "document=@${f}" --form-string "parse_mode=HTML" --form-string "caption=${caption}"
       first=0
     else
-      send sendDocument -F "chat_id=${TG_CHAT}" -F "document=@${f}" --form-string "caption=${TAGS:-}"
+      send sendDocument --form-string "chat_id=${TG_CHAT}" -F "document=@${f}" --form-string "caption=${TAGS:-}"
     fi
   done
 fi
