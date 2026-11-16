@@ -26,9 +26,10 @@ send() { # METHOD ARGS... — token tidak pernah dicetak, hanya jawaban Telegram
   grep -q '"ok":true' <<<"$r" || { echo "Telegram menolak: $r"; FAIL=1; }
 }
 
-small=(); big=()
+small=(); big=(); total=0
 for f in "$@"; do
-  if [ "$(stat -c%s "$f")" -gt "$LIMIT" ]; then big+=("$(basename "$f")"); else small+=("$f"); fi
+  sz=$(stat -c%s "$f")
+  if [ "$sz" -gt "$LIMIT" ]; then big+=("$(basename "$f")"); else small+=("$f"); total=$((total + sz)); fi
 done
 
 head="${TITLE:-} ${TAGS:-}"
@@ -53,6 +54,14 @@ if [ ${#small[@]} -eq 0 ]; then
   send sendMessage --form-string "chat_id=${TG_CHAT}" --form-string "parse_mode=HTML" --form-string "text=${caption}"
 elif [ ${#small[@]} -eq 1 ]; then
   send sendDocument --form-string "chat_id=${TG_CHAT}" -F "document=@${small[0]}" --form-string "parse_mode=HTML" --form-string "caption=$(with_link "${small[0]}")"
+elif [ "$total" -gt "$LIMIT" ]; then
+  # Satu kiriman bot dibatasi 50 MB secara keseluruhan (Telegram menjawab 413): bila gabungan file lebih besar,
+  # file dikirim satu per satu (berurutan), keterangan utama tetap di file terakhir.
+  last=$((${#small[@]} - 1))
+  for i in "${!small[@]}"; do
+    if [ "$i" = "$last" ]; then cap=$(with_link "${small[$i]}"); else cap=$(file_link "${small[$i]}"); fi
+    send sendDocument --form-string "chat_id=${TG_CHAT}" -F "document=@${small[$i]}" --form-string "parse_mode=HTML" --form-string "caption=${cap}"
+  done
 else
   # Beberapa file → satu kelompok (album dokumen, maks. 10). Setiap file membawa link GitHub-nya sendiri;
   # keterangan utama ikut di file terakhir sehingga tampil di bawah kelompok.

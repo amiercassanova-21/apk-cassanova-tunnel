@@ -16,6 +16,10 @@ on:
         description: "Rilis yang dikirim, mis. build-38 (kosong = rilis terbaru)"
         required: false
         default: ""
+      apps:
+        description: "Aplikasi yang dikirim: vpn, lite, tether (pisahkan koma; kosong = semua)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -37,6 +41,7 @@ jobs:
           N: ${{ github.event.workflow_run.run_number }}
           SHA: ${{ github.event.workflow_run.head_sha }}
           MANUAL_TAG: ${{ inputs.tag }}
+          APPS: ${{ inputs.apps }}
         run: |
           if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then echo "Secret Telegram belum diisi: dilewati."; exit 0; fi
           PATTERN=""
@@ -56,14 +61,16 @@ jobs:
           if [ -n "$PREV" ]; then BODY=$(git log --no-merges --format='• %s' "$PREV..$SHA" | head -10); else BODY=$(git log --no-merges -n 10 --format='• %s' "$SHA"); fi
           export BODY
           rc=0
-          app() { # label tagar regex-nama-file
+          app() { # kunci label tagar regex-nama-file
+            local key=$1; shift
+            if [ -n "${APPS:-}" ] && ! grep -qw "$key" <<<"${APPS//,/ }"; then return 0; fi
             files=$(ls dl | grep -E "$3" | sort | sed 's|^|dl/|') # arm64 → armeabi → universal
             [ -n "$files" ] || { echo "$1: tidak berubah, tidak dikirim."; return 0; }
             v=$(basename "$(echo "$files" | head -1)" | sed -n 's/^[A-Za-z_]*_\([0-9.]*-b[0-9]*\)_.*/\1/p')
             echo "$1 $v:"
             TITLE="<b>$1 $v</b>" TAGS="$2" bash .github/telegram-send.sh $files || rc=1
           }
-          app "Amier VPN" "#AmierVPN" '^AmierVPN_[0-9]'
-          app "Amier VPN Lite" "#AmierVPNLite" '^AmierVPN_Lite_'
-          app "Amier Tether" "#AmierTether" '^AmierTether_'
+          app vpn "Amier VPN" "#AmierVPN" '^AmierVPN_[0-9]'
+          app lite "Amier VPN Lite" "#AmierVPNLite" '^AmierVPN_Lite_'
+          app tether "Amier Tether" "#AmierTether" '^AmierTether_'
           exit $rc
