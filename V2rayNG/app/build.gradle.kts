@@ -62,6 +62,8 @@ android {
         buildConfigField("String", "LOCK_KEY", "\"$maskedLockKey\"")
         buildConfigField("int", "CASSANOVA_BUILD", "$cassanovaBuildNumber")
         buildConfigField("boolean", "LITE", "false")
+        // Cassanova: launcher shortcuts (res/xml/shortcuts.xml) must name this app's package.
+        resValue("string", "shortcut_target_package", "com.amier.vpn")
     }
 
     buildTypes {
@@ -80,6 +82,7 @@ android {
         create("fdroid") {
             dimension = "distribution"
             applicationIdSuffix = ".fdroid"
+            resValue("string", "shortcut_target_package", "com.amier.vpn.fdroid")
             buildConfigField("String", "DISTRIBUTION", "\"F-Droid\"")
         }
         create("playstore") {
@@ -90,6 +93,7 @@ android {
         create("lite") {
             dimension = "distribution"
             applicationIdSuffix = ".lite"
+            resValue("string", "shortcut_target_package", "com.amier.vpn.lite")
             buildConfigField("String", "DISTRIBUTION", "\"Lite\"")
             buildConfigField("boolean", "LITE", "true")
         }
@@ -162,6 +166,7 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
+        resValues = true
     }
 
     androidResources {
