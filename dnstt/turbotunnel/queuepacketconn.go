@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+// Cassanova: process-wide counts of packets dropped because a queue was full,
+// read by the dnstt client's diagnostic stats.
+var (
+	DroppedIncoming atomic.Uint64
+	DroppedOutgoing atomic.Uint64
+)
+
 // taggedPacket is a combination of a []byte and a net.Addr, encapsulating the
 // return type of PacketConn.ReadFrom.
 type taggedPacket struct {
@@ -69,6 +76,7 @@ func (c *QueuePacketConn) QueueIncoming(p []byte, addr net.Addr) {
 	case c.recvQueue <- taggedPacket{buf, addr}:
 	default:
 		// Drop the incoming packet if the receive queue is full.
+		DroppedIncoming.Add(1)
 	}
 }
 
@@ -124,6 +132,7 @@ func (c *QueuePacketConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 		return len(buf), nil
 	default:
 		// Drop the outgoing packet if the send queue is full.
+		DroppedOutgoing.Add(1)
 		return len(buf), nil
 	}
 }

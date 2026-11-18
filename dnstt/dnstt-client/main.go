@@ -191,6 +191,12 @@ func run(pubkey []byte, domain dns.Name, localAddr *net.TCPAddr, remoteAddr net.
 		conn.Close()
 	}()
 	log.Printf("begin session %08x", conn.GetConv())
+	// Cassanova: periodic diagnostic stats for the connection log.
+	statsDone := make(chan struct{})
+	defer close(statsDone)
+	if dc, ok := pconn.(*DNSPacketConn); ok {
+		go statsLoop(dc, conn, remoteAddr, statsDone)
+	}
 	// Permit coalescing the payloads of consecutive sends.
 	conn.SetStreamMode(true)
 	// Disable the dynamic congestion window (limit only by the maximum of

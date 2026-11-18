@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"www.bamsoftware.com/git/dnstt.git/dns"
@@ -66,6 +67,21 @@ type DNSPacketConn struct {
 	// recvLoop and sendLoop take the messages out of the receive and send
 	// queues and actually put them on the network.
 	*turbotunnel.QueuePacketConn
+
+	// Cassanova: counters for the diagnostic stats line (see stats.go).
+	stats dnsStats
+}
+
+// dnsStats counts queries and responses since the start of the session.
+type dnsStats struct {
+	queriesData atomic.Uint64 // queries carrying a packet (upload)
+	queriesPoll atomic.Uint64 // empty polling queries
+	sendErrors  atomic.Uint64 // queries the transport refused to send
+	replies     atomic.Uint64 // well-formed DNS responses received
+	repliesData atomic.Uint64 // responses carrying at least one packet
+	repliesErr  atomic.Uint64 // responses with an error RCODE (SERVFAIL, REFUSED, ...)
+	repliesTC   atomic.Uint64 // truncated responses (TC bit)
+	packetsIn   atomic.Uint64 // packets taken out of responses
 }
 
 // NewDNSPacketConn creates a new DNSPacketConn. transport, through its WriteTo
@@ -209,6 +225,13 @@ func (c *DNSPacketConn) recvLoop(transport net.PacketConn) error {
 			continue
 		}
 
+		c.stats.replies.Add(1)
+		if resp.Flags&0x0200 != 0 {
+			c.stats.repliesTC.Add(1)
+		}
+		if resp.Flags&0x000f != dns.RcodeNoError {
+			c.stats.repliesErr.Add(1)
+		}
 		payload := dnsResponsePayload(&resp, c.domain)
 
 		// Pull out the packets contained in the payload.
@@ -220,7 +243,11 @@ func (c *DNSPacketConn) recvLoop(transport net.PacketConn) error {
 				break
 			}
 			any = true
+			c.stats.packetsIn.Add(1)
 			c.QueuePacketConn.QueueIncoming(p, addr)
+		}
+		if any {
+			c.stats.repliesData.Add(1)
 		}
 
 		// If the payload contained one or more packets, permit sendLoop
@@ -406,8 +433,14 @@ func (c *DNSPacketConn) sendLoop(transport net.PacketConn, addr net.Addr) error 
 		// Unlike in the server, in the client we assume that because
 		// the data capacity of queries is so limited, it's not worth
 		// trying to send more than one packet per query.
+		if len(p) > 0 {
+			c.stats.queriesData.Add(1)
+		} else {
+			c.stats.queriesPoll.Add(1)
+		}
 		err := c.send(transport, p, addr)
 		if err != nil {
+			c.stats.sendErrors.Add(1)
 			log.Printf("send: %v", err)
 			continue
 		}
