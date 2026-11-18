@@ -772,6 +772,10 @@ class MainViewModel(
                         result.successCount + result.failureCount + result.skipCount == 0 ->
                             toast(R.string.title_update_subscription_no_subscription)
 
+                        // A multi-link subscription with a failed link keeps its configs; say which link.
+                        result.failedLinks.isNotEmpty() ->
+                            toastError(dataSource.getString(R.string.sub_links_failed, result.failedLinks.joinToString(", ")))
+
                         result.successCount > 0 && result.failureCount + result.skipCount == 0 ->
                             toast(
                                 getQuantityString(

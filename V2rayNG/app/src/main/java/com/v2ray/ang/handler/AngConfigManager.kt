@@ -505,76 +505,52 @@ object AngConfigManager {
                 return SubscriptionUpdateResult(skipCount = 1)
             }
 
-            val url = HttpUtil.toIdnUrl(it.subscription.url)
-            if (!Utils.isValidUrl(url)) {
-                return SubscriptionUpdateResult(failureCount = 1)
+            // Cassanova: the URL field may hold several links, one per line (see SubscriptionLinks).
+            val links = SubscriptionLinks.split(it.subscription.url).take(SubscriptionLinks.MAX_LINKS)
+            if (links.isEmpty()) {
+                return SubscriptionUpdateResult(skipCount = 1)
             }
-            if (!it.subscription.allowInsecureUrl) {
-                if (!Utils.isValidSubUrl(url)) {
-                    return SubscriptionUpdateResult(failureCount = 1)
-                }
-            }
-            LogUtil.i(AppConfig.TAG, url)
-            val userAgent = it.subscription.userAgent
-            val requestHeaders = it.subscription.requestHeaders
-            val proxyUsername = SettingsManager.getSocksUsername()
-            val proxyPassword = SettingsManager.getSocksPassword()
 
-            // Account info (traffic, expiry, support link) the panel sends in the response headers.
+            // Account info (traffic, expiry, support link) the panel sends in the response headers;
+            // with several links the first one that sends it is shown.
             var usageInfo: SubscriptionUsageInfo? = null
             val captureUsageInfo: (Headers) -> Unit = { headers ->
-                usageInfo = SubscriptionInfoParser.parse(
-                    userInfo = headers["Subscription-Userinfo"],
-                    profileTitle = headers["Profile-Title"],
-                    supportUrl = headers["Support-Url"],
-                    webPageUrl = headers["Profile-Web-Page-Url"],
-                )
-            }
-
-            var configText = try {
-                val httpPort = SettingsManager.getHttpPort()
-                HttpUtil.getUrlContentWithUserAgent(
-                    UrlContentRequest(
-                        url = url,
-                        userAgent = userAgent,
-                        requestHeaders = requestHeaders,
-                        timeout = 15000,
-                        httpPort = httpPort,
-                        proxyUsername = proxyUsername,
-                        proxyPassword = proxyPassword
-                    ),
-                    captureUsageInfo
-                )
-            } catch (e: Exception) {
-                LogUtil.e(AppConfig.ANG_PACKAGE, "Update subscription: proxy not ready or other error", e)
-                ""
-            }
-            if (configText.isEmpty()) {
-                configText = try {
-                    HttpUtil.getUrlContentWithUserAgent(
-                        UrlContentRequest(
-                            url = url,
-                            userAgent = userAgent,
-                            requestHeaders = requestHeaders
-                        ),
-                        captureUsageInfo
+                if (usageInfo == null) {
+                    usageInfo = SubscriptionInfoParser.parse(
+                        userInfo = headers["Subscription-Userinfo"],
+                        profileTitle = headers["Profile-Title"],
+                        supportUrl = headers["Support-Url"],
+                        webPageUrl = headers["Profile-Web-Page-Url"],
                     )
-                } catch (e: Exception) {
-                    LogUtil.e(AppConfig.TAG, "Update subscription: Failed to get URL content with user agent", e)
-                    ""
                 }
             }
-            if (configText.isEmpty()) {
-                return SubscriptionUpdateResult(failureCount = 1)
-            }
 
-            val count = parseConfigViaSub(configText, it.guid, false)
+            val count = if (links.size == 1) {
+                val configText = fetchSubscription(it, links[0], captureUsageInfo)
+                    ?: return SubscriptionUpdateResult(failureCount = 1)
+                parseConfigViaSub(configText, it.guid, false)
+            } else {
+                // All or nothing: when one link fails the group keeps its current configs, so a
+                // short outage of one server never removes its configs (Cassanova).
+                val failed = mutableListOf<String>()
+                val parts = links.mapIndexedNotNull { index, link ->
+                    val lines = fetchSubscription(it, link, captureUsageInfo)
+                        ?.let { body -> SubscriptionLinks.shareLines(body, Utils::decode) }
+                    if (lines == null) failed.add(SubscriptionLinks.label(index, link))
+                    lines
+                }
+                if (failed.isNotEmpty()) {
+                    LogUtil.w(AppConfig.TAG, "Subscription ${it.subscription.remarks}: links failed, group kept: $failed")
+                    return SubscriptionUpdateResult(failureCount = 1, failedLinks = failed)
+                }
+                parseBatchConfig(parts.joinToString("\n"), it.guid, false)
+            }
             if (count > 0) {
                 it.subscription.lastUpdated = System.currentTimeMillis()
                 // Replaced on every successful update so the box disappears if the panel stops sending the headers.
                 it.subscription.usageInfo = usageInfo
                 MmkvManager.encodeSubscription(it.guid, it.subscription)
-                LogUtil.i(AppConfig.TAG, "Subscription updated: ${it.subscription.remarks}, $count configs")
+                LogUtil.i(AppConfig.TAG, "Subscription updated: ${it.subscription.remarks}, $count configs from ${links.size} link(s)")
                 return SubscriptionUpdateResult(
                     configCount = count,
                     successCount = 1
@@ -587,6 +563,62 @@ object AngConfigManager {
             LogUtil.e(AppConfig.TAG, "Failed to update config via subscription", e)
             return SubscriptionUpdateResult(failureCount = 1)
         }
+    }
+
+    /**
+     * Downloads one subscription link (through the local proxy first, then directly); null when the
+     * link is invalid or nothing came back.
+     */
+    private fun fetchSubscription(it: SubscriptionCache, link: String, captureUsageInfo: (Headers) -> Unit): String? {
+        val url = HttpUtil.toIdnUrl(link)
+        if (!Utils.isValidUrl(url)) {
+            return null
+        }
+        if (!it.subscription.allowInsecureUrl) {
+            if (!Utils.isValidSubUrl(url)) {
+                return null
+            }
+        }
+        LogUtil.i(AppConfig.TAG, url)
+        val userAgent = it.subscription.userAgent
+        val requestHeaders = it.subscription.requestHeaders
+        val proxyUsername = SettingsManager.getSocksUsername()
+        val proxyPassword = SettingsManager.getSocksPassword()
+
+        var configText = try {
+            val httpPort = SettingsManager.getHttpPort()
+            HttpUtil.getUrlContentWithUserAgent(
+                UrlContentRequest(
+                    url = url,
+                    userAgent = userAgent,
+                    requestHeaders = requestHeaders,
+                    timeout = 15000,
+                    httpPort = httpPort,
+                    proxyUsername = proxyUsername,
+                    proxyPassword = proxyPassword
+                ),
+                captureUsageInfo
+            )
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.ANG_PACKAGE, "Update subscription: proxy not ready or other error", e)
+            ""
+        }
+        if (configText.isEmpty()) {
+            configText = try {
+                HttpUtil.getUrlContentWithUserAgent(
+                    UrlContentRequest(
+                        url = url,
+                        userAgent = userAgent,
+                        requestHeaders = requestHeaders
+                    ),
+                    captureUsageInfo
+                )
+            } catch (e: Exception) {
+                LogUtil.e(AppConfig.TAG, "Update subscription: Failed to get URL content with user agent", e)
+                ""
+            }
+        }
+        return configText.ifEmpty { null }
     }
 
     /**

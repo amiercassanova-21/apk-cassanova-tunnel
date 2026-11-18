@@ -358,6 +358,8 @@
     <string name="title_sub_setting">Subscriptions</string>
     <string name="sub_setting_remarks">Remarks</string>
     <string name="sub_setting_url">Optional URL</string>
+    <string name="sub_setting_url_hint">One link per line (max %1$d). All links are merged into this group.</string>
+    <string name="sub_links_failed">Subscription not updated, the current configs are kept. Failed link: %1$s</string>
     <string name="sub_setting_user_agent" translatable="false">User Agent</string>
     <string name="sub_setting_request_headers">Request Headers (JSON format)</string>
     <string name="sub_setting_filter">Remarks filter (regular expression)</string>

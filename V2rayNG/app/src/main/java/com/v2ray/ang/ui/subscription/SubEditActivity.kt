@@ -34,6 +34,7 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.handler.SubscriptionUpdater
+import com.v2ray.ang.handler.SubscriptionLinks
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
@@ -81,13 +82,9 @@ class SubEditActivity : BaseComponentActivity() {
         if (TextUtils.isEmpty(subItem.remarks)) {
             return false
         }
-        if (subItem.url.isNotEmpty()) {
-            if (!Utils.isValidUrl(subItem.url)) {
-                return false
-            }
-            if (!Utils.isValidSubUrl(subItem.url) && !subItem.allowInsecureUrl) {
-                return false
-            }
+        // Cassanova: one link per line; each must be valid.
+        if (subItem.url.isNotEmpty() && !subLinksValid(subItem.url, subItem.allowInsecureUrl)) {
+            return false
         }
 
         if (subItem.autoUpdate && subItem.updateInterval < AppConfig.SUBSCRIPTION_MIN_INTERVAL_MINUTES) {
@@ -175,9 +172,7 @@ fun SubEditScreen(
                     }
                     IconButton(onClick = {
                         val remarksErr = remarks.isBlank()
-                        val urlErr = url.isNotEmpty() && (
-                            !Utils.isValidUrl(url) || (!Utils.isValidSubUrl(url) && !allowInsecureUrl)
-                        )
+                        val urlErr = url.isNotEmpty() && !subLinksValid(url, allowInsecureUrl)
                         val intervalErr = autoUpdate && updateInterval.toLongEx() < AppConfig.SUBSCRIPTION_MIN_INTERVAL_MINUTES
 
                         isRemarksError = remarksErr
@@ -217,7 +212,11 @@ fun SubEditScreen(
                 value = url,
                 onValueChange = { url = it },
                 isError = isUrlError,
-                supportingText = if (isUrlError) stringResource(R.string.toast_invalid_url) else null
+                supportingText = if (isUrlError) {
+                    stringResource(R.string.toast_invalid_url)
+                } else {
+                    stringResource(R.string.sub_setting_url_hint, SubscriptionLinks.MAX_LINKS)
+                }
             )
             FormTextField(stringResource(R.string.sub_setting_user_agent), userAgent, { userAgent = it })
             FormTextField(stringResource(R.string.sub_setting_request_headers), requestHeaders, { requestHeaders = it })
@@ -279,3 +278,9 @@ fun SubEditScreen(
         )
     }
 }
+
+/** Every link of a (possibly multi-line) subscription URL field is a valid subscription URL. */
+private fun subLinksValid(urlField: String, allowInsecureUrl: Boolean): Boolean =
+    SubscriptionLinks.allValid(urlField) { link ->
+        Utils.isValidUrl(link) && (Utils.isValidSubUrl(link) || allowInsecureUrl)
+    }

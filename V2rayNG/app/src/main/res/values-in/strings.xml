@@ -297,6 +297,8 @@
     <string name="title_sub_setting">Langganan</string>
     <string name="sub_setting_remarks">Nama</string>
     <string name="sub_setting_url">URL opsional</string>
+    <string name="sub_setting_url_hint">Satu link per baris (maks. %1$d). Semua link digabung ke grup ini.</string>
+    <string name="sub_links_failed">Langganan tidak diperbarui, config lama tetap dipakai. Link gagal: %1$s</string>
     <string name="sub_setting_request_headers">Header permintaan (format JSON)</string>
     <string name="sub_setting_filter">Filter nama (regular expression)</string>
     <string name="sub_setting_enable">Aktifkan pembaruan</string>
