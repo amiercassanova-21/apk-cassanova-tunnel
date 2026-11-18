@@ -264,6 +264,24 @@ internal class SocksUdpClient(port: Int, private val timeoutMs: Int) : Closeable
         }
     }
 
+    /**
+     * Cassanova: sends one UDP [payload] to [host]:[port] through the proxy and returns the data
+     * of the first reply (used by the DNS leak check). Throws on timeout.
+     */
+    fun exchange(host: String, port: Int, payload: ByteArray): ByteArray {
+        val packet = AutoPing.socksUdpPacket(host, port, payload)
+        udp.send(DatagramPacket(packet, packet.size, relay))
+        val buf = ByteArray(4096)
+        val start = System.currentTimeMillis()
+        while (true) {
+            val reply = DatagramPacket(buf, buf.size)
+            udp.receive(reply)
+            val off = AutoPing.socksUdpDataOffset(buf, reply.length)
+            if (off >= 0) return buf.copyOfRange(off, reply.length)
+            if (System.currentTimeMillis() - start > timeoutMs) error("udp timeout")
+        }
+    }
+
     override fun close() {
         try {
             udp.close()

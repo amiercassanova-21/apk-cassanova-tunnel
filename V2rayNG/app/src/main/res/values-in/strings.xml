@@ -841,4 +841,23 @@
     <string name="help_ssh_engine">Program yang menjalankan koneksi SSH dan SlowDNS. Native lebih cepat; Java mesin lama, coba hanya kalau Native gagal.</string>
     <string name="connlog_dns_slowdns_boost">" · DNS cepat SlowDNS (DNS lokal + FakeDNS)"</string>
     <string name="connlog_dns_ads_routing">" · iklan juga diblokir lewat routing"</string>
+
+    <!-- Cassanova: DNS leak check -->
+    <string name="dns_leak_title">Cek kebocoran DNS</string>
+    <string name="dns_leak_summary">Mengecek dalam beberapa detik apakah pencarian alamat situs lewat VPN dan DNS mana yang menjawab. Sambungkan VPN dulu.</string>
+    <string name="dns_leak_full_test">Uji kebocoran lengkap di browser</string>
+    <string name="dns_leak_full_summary">Membuka browserleaks.com/dns. Browser ada di dalam VPN, jadi semua jalur ikut teruji. Kalau ada nama operator (Telkomsel, XL, Indosat…) di daftar, berarti DNS bocor. Sambungkan VPN dulu.</string>
+    <string name="dns_adblock_web_title">Uji blokir iklan di browser</string>
+    <string name="dns_adblock_web_summary">Membuka adblock.turtlecute.org untuk melihat berapa banyak situs iklan dan pelacak yang terblokir. DNS blok iklan hanya bisa lolos bagian \"Host\", jadi skor di bawah 97% itu normal.</string>
+    <string name="dns_leak_checking">Memeriksa…</string>
+    <string name="dns_leak_need_vpn">VPN belum tersambung. Sambungkan dulu, lalu cek lagi.</string>
+    <string name="dns_leak_safe">Aman: DNS lewat VPN.</string>
+    <string name="dns_leak_leak">Bocor: DNS dijawab oleh jaringan operator Anda sendiri, bukan lewat VPN.</string>
+    <string name="dns_leak_unknown">Belum pasti: jaringan server DNS tidak bisa dicari. Coba lagi atau pakai uji lengkap.</string>
+    <string name="dns_leak_no_answer">Tidak bisa dicek: pertanyaan DNS lewat VPN tidak dijawab. Periksa alamat \"DNS VPN\" atau koneksinya.</string>
+    <string name="dns_leak_fakedns">FakeDNS aktif: server DNS asli tidak terlihat dari cek ini. Pakai uji lengkap di browser.</string>
+    <string name="dns_leak_resolver">Server DNS yang menjawab: %1$s (%2$s), %3$s</string>
+    <string name="dns_leak_operator">Jaringan HP tanpa VPN: %1$s</string>
+    <string name="dns_leak_unknown_org">tidak diketahui</string>
+    <string name="dns_leak_limits">Cek ini mengikuti jalur DNS aplikasi lain lewat VPN. Cek ini tidak bisa melihat DNS pribadi HP atau aplikasi yang dikecualikan lewat proxy per aplikasi; uji lengkap di browser mencakup itu.</string>
 </resources>

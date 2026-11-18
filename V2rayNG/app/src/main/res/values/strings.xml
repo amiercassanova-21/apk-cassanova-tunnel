@@ -947,4 +947,23 @@
     <string name="help_ssh_engine">Program that runs SSH and SlowDNS connections. Native is faster; Java is the old one, try it only if Native fails.</string>
     <string name="connlog_dns_slowdns_boost">" · faster DNS for SlowDNS (local DNS + FakeDNS)"</string>
     <string name="connlog_dns_ads_routing">" · ads also blocked by routing"</string>
+
+    <!-- Cassanova: DNS leak check -->
+    <string name="dns_leak_title">Check DNS leak</string>
+    <string name="dns_leak_summary">Checks in a few seconds whether site lookups go through the VPN and which DNS answers them. Connect the VPN first.</string>
+    <string name="dns_leak_full_test">Full leak test in the browser</string>
+    <string name="dns_leak_full_summary">Opens browserleaks.com/dns. The browser is inside the VPN, so every path is tested. If an operator name (Telkomsel, XL, Indosat…) is listed, DNS leaks. Connect the VPN first.</string>
+    <string name="dns_adblock_web_title">Ad-block test in the browser</string>
+    <string name="dns_adblock_web_summary">Opens adblock.turtlecute.org to see how many ad and tracker sites are blocked. A DNS blocker can only pass the \"Host\" part, so a score below 97% is normal.</string>
+    <string name="dns_leak_checking">Checking…</string>
+    <string name="dns_leak_need_vpn">The VPN is not connected. Connect it first, then check again.</string>
+    <string name="dns_leak_safe">Safe: DNS goes through the VPN.</string>
+    <string name="dns_leak_leak">Leak: DNS is answered by your own operator network, not through the VPN.</string>
+    <string name="dns_leak_unknown">Not sure: the network of the DNS server could not be looked up. Try again or use the full test.</string>
+    <string name="dns_leak_no_answer">Could not check: the DNS question sent through the VPN got no answer. Check the \"VPN DNS\" address or the connection.</string>
+    <string name="dns_leak_fakedns">FakeDNS is on: the real DNS server is hidden from this check. Use the full test in the browser.</string>
+    <string name="dns_leak_resolver">DNS server that answered: %1$s (%2$s), %3$s</string>
+    <string name="dns_leak_operator">Your network without the VPN: %1$s</string>
+    <string name="dns_leak_unknown_org">unknown</string>
+    <string name="dns_leak_limits">This check follows the DNS path of other apps through the VPN. It cannot see the phone\'s own Private DNS or apps left out by per-app proxy; the full browser test covers those.</string>
 </resources>

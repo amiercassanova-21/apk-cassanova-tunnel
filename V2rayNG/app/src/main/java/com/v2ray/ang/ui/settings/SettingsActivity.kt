@@ -39,6 +39,7 @@ import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.core.AutoPing
 import com.v2ray.ang.handler.TetherManager
 import com.v2ray.ang.handler.DnsPresets
+import com.v2ray.ang.handler.DnsLeakCheck
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.AppLocaleManager
@@ -116,6 +117,7 @@ class SettingsActivity : BaseComponentActivity() {
             onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
             onSystemVpnSettingsClicked = ::openSystemVpnSettings,
             onPrivateDnsSettingsClicked = ::openPrivateDnsSettings,
+            onOpenUrl = { Utils.openUri(this, it) },
             onRoutingClicked = { startActivity(Intent(this, RoutingSettingActivity::class.java)) },
             onBackupClicked = { startActivity(Intent(this, BackupActivity::class.java)) },
             onAboutClicked = { startActivity(Intent(this, AboutActivity::class.java)) }
@@ -131,6 +133,7 @@ fun SettingsScreen(
     onModeHelpClicked: () -> Unit,
     onSystemVpnSettingsClicked: () -> Unit,
     onPrivateDnsSettingsClicked: () -> Unit = {},
+    onOpenUrl: (String) -> Unit = {},
     onRoutingClicked: () -> Unit = {},
     onBackupClicked: () -> Unit = {},
     onAboutClicked: () -> Unit = {}
@@ -145,6 +148,7 @@ fun SettingsScreen(
     var showDnsPresetDialog by rememberSaveable { mutableStateOf(false) }
     val privateDnsHost by viewModel.privateDnsHost.collectAsStateWithLifecycle()
     val dnsTest by viewModel.dnsTest.collectAsStateWithLifecycle()
+    val dnsLeak by viewModel.dnsLeak.collectAsStateWithLifecycle()
     var coreSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var muxSettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var fragmentSettingsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -527,6 +531,24 @@ fun SettingsScreen(
                         viewModel.startDnsTest(if (dnsPreset == null) DnsPresets.customDohUrl(remoteDns) else null)
                     }
                 )
+                // Cassanova: DNS checks (leak check in the app, full leak test and ad-block test in the browser).
+                SettingsMenuItem(
+                    title = stringResource(R.string.dns_leak_title),
+                    subtitle = stringResource(R.string.dns_leak_summary),
+                    onClick = { viewModel.startDnsLeakCheck() }
+                )
+                SettingsMenuItem(
+                    title = stringResource(R.string.dns_leak_full_test),
+                    subtitle = stringResource(R.string.dns_leak_full_summary),
+                    onClick = { onOpenUrl(DnsLeakCheck.FULL_TEST_URL) }
+                )
+                if (dnsPreset?.category == DnsPresets.Category.ADBLOCK) {
+                    SettingsMenuItem(
+                        title = stringResource(R.string.dns_adblock_web_title),
+                        subtitle = stringResource(R.string.dns_adblock_web_summary),
+                        onClick = { onOpenUrl(DnsLeakCheck.ADBLOCK_TEST_URL) }
+                    )
+                }
                 SettingsEditItem(
                     title = stringResource(R.string.title_dns_block_list),
                     value = dnsBlockList,
@@ -613,6 +635,14 @@ fun SettingsScreen(
                     },
                     onDismiss = { showDnsPresetDialog = false },
                     showRadio = true
+                )
+            }
+
+            if (dnsLeak.visible) {
+                DnsLeakDialog(
+                    state = dnsLeak,
+                    onFullTest = { onOpenUrl(DnsLeakCheck.FULL_TEST_URL) },
+                    onDismiss = { viewModel.closeDnsLeakCheck() }
                 )
             }
 

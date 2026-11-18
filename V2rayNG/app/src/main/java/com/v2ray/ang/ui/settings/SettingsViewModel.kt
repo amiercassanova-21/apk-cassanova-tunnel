@@ -6,7 +6,9 @@ import android.provider.Settings
 import com.v2ray.ang.AppConfig
 import androidx.lifecycle.viewModelScope
 import com.v2ray.ang.R
+import com.v2ray.ang.handler.DnsLeakCheck
 import com.v2ray.ang.handler.DnsPresets
+import com.v2ray.ang.handler.LocalProxyClient
 import com.v2ray.ang.handler.DnsSpeedTest
 import com.v2ray.ang.handler.PrivateDnsCheck
 import com.v2ray.ang.root.RootManager
@@ -33,6 +35,14 @@ data class DnsTestRow(
         const val CUSTOM_ID = "custom"
     }
 }
+
+/** DNS leak check dialog; [needVpn] when the VPN is not connected, [result] once done. */
+data class DnsLeakUiState(
+    val visible: Boolean = false,
+    val running: Boolean = false,
+    val needVpn: Boolean = false,
+    val result: DnsLeakCheck.Result? = null,
+)
 
 /** [viaVpn] is null until the test has checked for the local proxy. */
 data class DnsTestUiState(
@@ -96,6 +106,31 @@ class SettingsViewModel(application: Application) : BaseViewModel(application) {
                 state.copy(running = false, rows = state.rows.sortedBy { it.millis ?: Long.MAX_VALUE })
             }
         }
+    }
+
+    private val _dnsLeak = MutableStateFlow(DnsLeakUiState())
+    val dnsLeak: StateFlow<DnsLeakUiState> = _dnsLeak.asStateFlow()
+    private var dnsLeakJob: Job? = null
+
+    fun startDnsLeakCheck() {
+        dnsLeakJob?.cancel()
+        _dnsLeak.value = DnsLeakUiState(visible = true, running = true)
+        dnsLeakJob = viewModelScope.launch(Dispatchers.IO) {
+            val proxyPort = LocalProxyClient.port()
+            if (proxyPort == null) {
+                _dnsLeak.value = DnsLeakUiState(visible = true, needVpn = true)
+                return@launch
+            }
+            val result = DnsLeakCheck.run(proxyPort)
+            ensureActive()
+            _dnsLeak.value = DnsLeakUiState(visible = true, result = result)
+        }
+    }
+
+    fun closeDnsLeakCheck() {
+        dnsLeakJob?.cancel()
+        dnsLeakJob = null
+        _dnsLeak.value = DnsLeakUiState()
     }
 
     fun closeDnsTest() {
