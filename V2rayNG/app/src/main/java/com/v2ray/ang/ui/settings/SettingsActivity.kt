@@ -38,6 +38,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.core.AutoPing
 import com.v2ray.ang.handler.TetherManager
+import com.v2ray.ang.handler.DnsPresets
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.AppLocaleManager
@@ -51,6 +52,8 @@ import com.v2ray.ang.ui.AboutActivity
 import com.v2ray.ang.ui.backup.BackupActivity
 import com.v2ray.ang.ui.routing.RoutingSettingActivity
 import com.v2ray.ang.ui.compose.AppTopBar
+import com.v2ray.ang.ui.compose.CollapsiblePreferenceGroupHeader
+import com.v2ray.ang.ui.compose.SelectListDialog
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.SettingsEditItem
 import com.v2ray.ang.ui.compose.SettingsListItem
@@ -72,6 +75,7 @@ class SettingsActivity : BaseComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 viewModel.refreshSystemVpnSettingsAvailability()
+                viewModel.refreshPrivateDns()
             }
         }
     }
@@ -83,6 +87,19 @@ class SettingsActivity : BaseComponentActivity() {
             reportSystemVpnSettingsFailure(error)
         } catch (error: SecurityException) {
             reportSystemVpnSettingsFailure(error)
+        }
+    }
+
+    /** Android has no public link to the Private DNS page; it sits under network settings. */
+    private fun openPrivateDnsSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+        } catch (error: ActivityNotFoundException) {
+            LogUtil.e(AppConfig.TAG, "Cannot open network settings for Private DNS", error)
+            toastError(R.string.toast_system_vpn_settings_unavailable)
+        } catch (error: SecurityException) {
+            LogUtil.e(AppConfig.TAG, "Cannot open network settings for Private DNS", error)
+            toastError(R.string.toast_system_vpn_settings_unavailable)
         }
     }
 
@@ -98,6 +115,7 @@ class SettingsActivity : BaseComponentActivity() {
             onBackClick = { finish() },
             onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
             onSystemVpnSettingsClicked = ::openSystemVpnSettings,
+            onPrivateDnsSettingsClicked = ::openPrivateDnsSettings,
             onRoutingClicked = { startActivity(Intent(this, RoutingSettingActivity::class.java)) },
             onBackupClicked = { startActivity(Intent(this, BackupActivity::class.java)) },
             onAboutClicked = { startActivity(Intent(this, AboutActivity::class.java)) }
@@ -112,6 +130,7 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     onModeHelpClicked: () -> Unit,
     onSystemVpnSettingsClicked: () -> Unit,
+    onPrivateDnsSettingsClicked: () -> Unit = {},
     onRoutingClicked: () -> Unit = {},
     onBackupClicked: () -> Unit = {},
     onAboutClicked: () -> Unit = {}
@@ -121,6 +140,11 @@ fun SettingsScreen(
     val systemVpnSettingsAvailable by viewModel.systemVpnSettingsAvailable.collectAsStateWithLifecycle()
     var uiSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var vpnSettingsExpanded by rememberSaveable { mutableStateOf(true) }
+    var dnsSettingsExpanded by rememberSaveable { mutableStateOf(true) }
+    var dnsAdvancedExpanded by rememberSaveable { mutableStateOf(false) }
+    var showDnsPresetDialog by rememberSaveable { mutableStateOf(false) }
+    val privateDnsHost by viewModel.privateDnsHost.collectAsStateWithLifecycle()
+    val dnsTest by viewModel.dnsTest.collectAsStateWithLifecycle()
     var coreSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var muxSettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var fragmentSettingsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -393,26 +417,6 @@ fun SettingsScreen(
                     onCheckedChange = { preferIpv6 = it }
                 )
                 SettingsSwitchItem(
-                    title = stringResource(R.string.title_pref_local_dns_enabled),
-                    summary = stringResource(R.string.summary_pref_local_dns_enabled),
-                    checked = localDns,
-                    enabled = isVpn,
-                    onCheckedChange = { localDns = it }
-                )
-                SettingsSwitchItem(
-                    title = stringResource(R.string.title_pref_fake_dns_enabled),
-                    summary = stringResource(R.string.summary_pref_fake_dns_enabled),
-                    checked = fakeDns,
-                    enabled = isVpn && localDns,
-                    onCheckedChange = { fakeDns = it }
-                )
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_vpn_dns),
-                    value = vpnDns,
-                    enabled = isVpn && !localDns,
-                    onValueChanged = { vpnDns = it }
-                )
-                SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_append_http_proxy),
                     summary = stringResource(R.string.summary_pref_append_http_proxy),
                     checked = appendHttpProxy,
@@ -468,6 +472,114 @@ fun SettingsScreen(
                     enabled = hevTunEnabled,
                     keyboardNumber = true,
                     onValueChanged = { hevTunRwTimeout = it }
+                )
+            }
+
+            // Cassanova: one DNS choice for everyday use; the original fields under "Advanced".
+            val dnsPreset = DnsPresets.detect(vpnDns, remoteDns)
+            SettingsSection(
+                title = stringResource(R.string.title_dns_settings),
+                expanded = dnsSettingsExpanded,
+                onExpandedChange = { dnsSettingsExpanded = it }
+            ) {
+                privateDnsHost?.let { host ->
+                    SettingsMenuItem(
+                        title = stringResource(R.string.dns_private_warning_title),
+                        subtitle = stringResource(R.string.dns_private_warning_summary, host),
+                        onClick = onPrivateDnsSettingsClicked
+                    )
+                }
+                SettingsMenuItem(
+                    title = stringResource(R.string.title_dns_preset),
+                    subtitle = dnsPreset?.let {
+                        stringResource(R.string.dns_preset_summary, stringResource(it.nameRes), stringResource(it.category.labelRes))
+                    } ?: stringResource(R.string.dns_preset_custom_summary),
+                    onClick = { showDnsPresetDialog = true }
+                )
+                SettingsMenuItem(
+                    title = stringResource(R.string.dns_test_title),
+                    subtitle = stringResource(R.string.dns_test_summary),
+                    onClick = {
+                        viewModel.startDnsTest(if (dnsPreset == null) DnsPresets.customDohUrl(remoteDns) else null)
+                    }
+                )
+                CollapsiblePreferenceGroupHeader(
+                    title = stringResource(R.string.title_dns_advanced),
+                    expanded = dnsAdvancedExpanded,
+                    onExpandedChange = { dnsAdvancedExpanded = it }
+                )
+                if (dnsAdvancedExpanded) {
+                    SettingsSwitchItem(
+                        title = stringResource(R.string.title_pref_local_dns_enabled),
+                        summary = stringResource(R.string.summary_pref_local_dns_enabled),
+                        checked = localDns,
+                        enabled = isVpn,
+                        onCheckedChange = { localDns = it }
+                    )
+                    SettingsSwitchItem(
+                        title = stringResource(R.string.title_pref_fake_dns_enabled),
+                        summary = stringResource(R.string.summary_pref_fake_dns_enabled),
+                        checked = fakeDns,
+                        enabled = isVpn && localDns,
+                        onCheckedChange = { fakeDns = it }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_vpn_dns),
+                        value = vpnDns,
+                        enabled = isVpn && !localDns,
+                        onValueChanged = { vpnDns = it }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_remote_dns),
+                        value = remoteDns,
+                        onValueChanged = { remoteDns = it }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_domestic_dns),
+                        value = domesticDns,
+                        onValueChanged = { domesticDns = it }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_dns_hosts),
+                        value = dnsHosts,
+                        onValueChanged = { dnsHosts = it }
+                    )
+                }
+            }
+
+            if (showDnsPresetDialog) {
+                SelectListDialog(
+                    title = stringResource(R.string.title_dns_preset),
+                    options = DnsPresets.ALL,
+                    optionText = {
+                        stringResource(R.string.dns_preset_summary, stringResource(it.nameRes), stringResource(it.category.labelRes))
+                    },
+                    selectedOption = dnsPreset,
+                    onSelected = { preset ->
+                        showDnsPresetDialog = false
+                        vpnDns = preset.vpnDnsValue
+                        remoteDns = preset.remoteDns
+                    },
+                    onDismiss = { showDnsPresetDialog = false },
+                    showRadio = true
+                )
+            }
+
+            if (dnsTest.visible) {
+                DnsTestDialog(
+                    state = dnsTest,
+                    currentPresetId = dnsPreset?.id,
+                    onPick = { id ->
+                        DnsPresets.byId(id)?.let { preset ->
+                            vpnDns = preset.vpnDnsValue
+                            remoteDns = preset.remoteDns
+                        }
+                        viewModel.closeDnsTest()
+                    },
+                    onRetry = {
+                        viewModel.startDnsTest(if (dnsPreset == null) DnsPresets.customDohUrl(remoteDns) else null)
+                    },
+                    onDismiss = { viewModel.closeDnsTest() }
                 )
             }
 
@@ -542,21 +654,6 @@ fun SettingsScreen(
                     checked = socksEnableUdp,
                     enabled = effectiveLocalProxy,
                     onCheckedChange = { socksEnableUdp = it }
-                )
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_remote_dns),
-                    value = remoteDns,
-                    onValueChanged = { remoteDns = it }
-                )
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_domestic_dns),
-                    value = domesticDns,
-                    onValueChanged = { domesticDns = it }
-                )
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_dns_hosts),
-                    value = dnsHosts,
-                    onValueChanged = { dnsHosts = it }
                 )
                 SettingsListItem(
                     title = stringResource(R.string.title_core_loglevel),

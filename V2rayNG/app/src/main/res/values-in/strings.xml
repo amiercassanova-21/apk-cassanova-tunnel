@@ -727,4 +727,37 @@
     <string name="summary_tether_enabled">HP lain memakai HP ini sebagai proxy SOCKS5/HTTP. Tanpa login: siapa pun di hotspot Anda bisa memakainya. Berlaku saat sambung berikutnya.</string>
     <string name="title_tether_socks_port">Port SOCKS5</string>
     <string name="title_tether_http_port">Port HTTP</string>
+
+    <!-- Cassanova: DNS presets -->
+    <string name="title_dns_settings">DNS</string>
+    <string name="title_dns_preset">Pilihan DNS</string>
+    <string name="title_dns_advanced">Pengaturan DNS lanjutan</string>
+    <string name="dns_category_fast">Cepat &amp; stabil</string>
+    <string name="dns_category_balanced">Blok malware</string>
+    <string name="dns_category_adblock">Blok iklan</string>
+    <string name="dns_category_family">Keluarga</string>
+    <string name="dns_preset_summary">%1$s · %2$s</string>
+    <string name="dns_preset_custom">Kustom</string>
+    <string name="dns_preset_custom_summary">Kustom (diatur di Pengaturan DNS lanjutan)</string>
+    <string name="dns_preset_custom_host">Kustom (%1$s)</string>
+    <string name="dns_private_warning_title">DNS pribadi HP sedang aktif</string>
+    <string name="dns_private_warning_summary">DNS pribadi diatur ke %1$s, ini bisa membuat VPN tidak tersambung. Ketuk untuk membuka setelan jaringan, cari \"DNS pribadi\" lalu pilih Nonaktif atau Otomatis.</string>
+    <string name="dns_test_title">Uji kecepatan DNS</string>
+    <string name="dns_test_summary">Mengukur kecepatan semua pilihan DNS dan mengecek mana yang memblokir iklan</string>
+    <string name="dns_test_checking">Memeriksa koneksi…</string>
+    <string name="dns_test_via_vpn">Diukur lewat koneksi VPN yang aktif.</string>
+    <string name="dns_test_direct">VPN belum tersambung: diukur langsung, hasilnya bisa berbeda saat VPN tersambung.</string>
+    <string name="dns_test_hint">Makin kecil makin cepat. Ketuk salah satu DNS untuk memakainya.</string>
+    <string name="dns_test_retry">Uji lagi</string>
+    <string name="dns_test_close">Tutup</string>
+    <string name="dns_test_pending">…</string>
+    <string name="dns_test_failed">gagal</string>
+    <string name="dns_test_ms">%1$d ms</string>
+    <string name="dns_test_ads_blocked">Iklan diblokir</string>
+    <string name="dns_test_ads_not_blocked">Iklan tidak diblokir</string>
+    <string name="dns_test_use">Pakai DNS ini</string>
+    <string name="dns_test_current">%1$s (dipakai)</string>
+    <string name="connlog_private_dns">DNS pribadi HP aktif (%1$s): bisa membuat VPN tidak jalan. Ubah ke Nonaktif atau Otomatis di setelan HP.</string>
+    <string name="connlog_dns">DNS: %1$s · DNS VPN %2$s · remote %3$s</string>
+    <string name="connlog_dns_local"> · DNS lokal aktif</string>
 </resources>

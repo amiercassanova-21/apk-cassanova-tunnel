@@ -15,6 +15,8 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.R
 import com.v2ray.ang.handler.ConnLog
+import com.v2ray.ang.handler.DnsPresets
+import com.v2ray.ang.handler.PrivateDnsCheck
 import com.v2ray.ang.contracts.IDialerService
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.core.ssh.SshTunnelManager
@@ -161,6 +163,7 @@ object CoreServiceManager {
         if (config.configType == EConfigType.CUSTOM) {
             logCustomSummary(service, guid)
         }
+        logDnsSummary(service, config)
 
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config.remarks}")
         // SSH profiles: the core's outbound is the local SOCKS port of this tunnel.
@@ -381,6 +384,30 @@ object CoreServiceManager {
         if (socksPort != settingsPort) {
             ConnLog.warn(service.getString(R.string.connlog_custom_port_mismatch, settingsPort, socksPort))
         }
+    }
+
+    /**
+     * Connection log: a warning when the phone's strict Private DNS is on, and which DNS this
+     * connection uses (skipped for custom configs, which bring their own DNS). Only the host of
+     * the remote DNS is shown: a DoH path may carry an account ID.
+     */
+    private fun logDnsSummary(service: Service, config: ProfileItem) {
+        PrivateDnsCheck.strictHost(service)?.let {
+            ConnLog.warn(service.getString(R.string.connlog_private_dns, it))
+        }
+        if (config.configType == EConfigType.CUSTOM) return
+        val vpnDns = SettingsManager.getVpnDnsServers().joinToString(",")
+        val remoteRaw = MmkvManager.decodeSettingsString(AppConfig.PREF_REMOTE_DNS)
+        val remoteHost = DnsPresets.hostOf(SettingsManager.getRemoteDnsServers().joinToString(",")).orEmpty()
+        val name = DnsPresets.detect(vpnDns, remoteRaw)?.let {
+            service.getString(R.string.dns_preset_summary, service.getString(it.nameRes), service.getString(it.category.labelRes))
+        } ?: service.getString(R.string.dns_preset_custom)
+        val line = service.getString(R.string.connlog_dns, name, vpnDns.ifEmpty { "-" }, remoteHost.ifEmpty { "-" })
+        ConnLog.info(
+            if (MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_DNS_ENABLED)) {
+                line + service.getString(R.string.connlog_dns_local)
+            } else line
+        )
     }
 
     /** About 20 s after connecting a custom config, says whether any data came back. */

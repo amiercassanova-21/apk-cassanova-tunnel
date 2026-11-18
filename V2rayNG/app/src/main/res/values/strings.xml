@@ -825,4 +825,45 @@
     <string name="summary_tether_enabled">Other devices set this phone as SOCKS5/HTTP proxy. No login: anyone on your hotspot can use it. Applies on the next connect.</string>
     <string name="title_tether_socks_port">SOCKS5 port</string>
     <string name="title_tether_http_port">HTTP port</string>
+
+    <!-- Cassanova: DNS presets -->
+    <string name="title_dns_settings">DNS</string>
+    <string name="title_dns_preset">DNS choice</string>
+    <string name="title_dns_advanced">Advanced DNS settings</string>
+    <string name="dns_category_fast">Fast &amp; stable</string>
+    <string name="dns_category_balanced">Blocks malware</string>
+    <string name="dns_category_adblock">Blocks ads</string>
+    <string name="dns_category_family">Family</string>
+    <string name="dns_preset_cloudflare" translatable="false">Cloudflare</string>
+    <string name="dns_preset_google" translatable="false">Google</string>
+    <string name="dns_preset_quad9" translatable="false">Quad9</string>
+    <string name="dns_preset_cloudflare_security" translatable="false">Cloudflare Security</string>
+    <string name="dns_preset_adguard" translatable="false">AdGuard</string>
+    <string name="dns_preset_controld_ads" translatable="false">ControlD Ads</string>
+    <string name="dns_preset_adguard_family" translatable="false">AdGuard Family</string>
+    <string name="dns_preset_cloudflare_family" translatable="false">Cloudflare Family</string>
+    <string name="dns_preset_summary">%1$s · %2$s</string>
+    <string name="dns_preset_custom">Custom</string>
+    <string name="dns_preset_custom_summary">Custom (set under Advanced DNS settings)</string>
+    <string name="dns_preset_custom_host">Custom (%1$s)</string>
+    <string name="dns_private_warning_title">Phone Private DNS is on</string>
+    <string name="dns_private_warning_summary">Private DNS is set to %1$s, which can stop the VPN from connecting. Tap to open network settings, find \"Private DNS\" and set it to Off or Automatic.</string>
+    <string name="dns_test_title">DNS speed test</string>
+    <string name="dns_test_summary">Times every DNS choice and checks which ones block ads</string>
+    <string name="dns_test_checking">Checking the connection…</string>
+    <string name="dns_test_via_vpn">Measured through the active VPN connection.</string>
+    <string name="dns_test_direct">The VPN is not connected: measured directly, results may differ once connected.</string>
+    <string name="dns_test_hint">Lower is faster. Tap a DNS to use it.</string>
+    <string name="dns_test_retry">Test again</string>
+    <string name="dns_test_close">Close</string>
+    <string name="dns_test_pending">…</string>
+    <string name="dns_test_failed">failed</string>
+    <string name="dns_test_ms">%1$d ms</string>
+    <string name="dns_test_ads_blocked">Ads blocked</string>
+    <string name="dns_test_ads_not_blocked">Ads not blocked</string>
+    <string name="dns_test_use">Use this DNS</string>
+    <string name="dns_test_current">%1$s (in use)</string>
+    <string name="connlog_private_dns">Phone Private DNS is on (%1$s): it can stop the VPN from working. Set it to Off or Automatic in the phone settings.</string>
+    <string name="connlog_dns">DNS: %1$s · VPN DNS %2$s · remote %3$s</string>
+    <string name="connlog_dns_local"> · local DNS on</string>
 </resources>
