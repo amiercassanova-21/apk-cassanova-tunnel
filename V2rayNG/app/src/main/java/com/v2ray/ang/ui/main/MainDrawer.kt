@@ -51,6 +51,7 @@ enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRe
     ConnectionLog(R.drawable.ic_logcat_24dp, R.string.title_conn_log),
     HostToIp(R.drawable.ic_dns_24dp, R.string.title_host_to_ip),
     HostChecker(R.drawable.ic_host_check_24dp, R.string.title_host_checker),
+    SpeedTest(R.drawable.ic_speed_24dp, R.string.speedtest_title),
     Logcat(R.drawable.ic_logcat_24dp, R.string.title_logcat),
     CheckUpdate(R.drawable.ic_check_update_24dp, R.string.update_check_for_update),
     BackupRestore(R.drawable.ic_restore_24dp, R.string.title_configuration_backup_restore),
@@ -67,6 +68,7 @@ private val primaryDrawerItems = listOf(
 
 private val drawerItems = primaryDrawerItems + listOf(
     MainDestination.ConnectionLog,
+    MainDestination.SpeedTest,
     MainDestination.Logcat,
     MainDestination.CheckUpdate,
     MainDestination.BackupRestore,

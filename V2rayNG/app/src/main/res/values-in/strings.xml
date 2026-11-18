@@ -760,4 +760,29 @@
     <string name="connlog_private_dns">DNS pribadi HP aktif (%1$s): bisa membuat VPN tidak jalan. Ubah ke Nonaktif atau Otomatis di setelan HP.</string>
     <string name="connlog_dns">DNS: %1$s · DNS VPN %2$s · remote %3$s</string>
     <string name="connlog_dns_local"> · DNS lokal aktif</string>
+
+    <!-- Cassanova: internet speed test -->
+    <string name="tool_speedtest">Uji kecepatan</string>
+    <string name="speedtest_title">Uji kecepatan internet</string>
+    <string name="speedtest_intro">Mengukur ping, kecepatan unduh, dan unggah. Sambungkan VPN dulu untuk menguji terowongannya.</string>
+    <string name="speedtest_via_vpn">Diukur lewat koneksi VPN yang aktif.</string>
+    <string name="speedtest_direct">VPN belum tersambung: yang diukur internet biasa, bukan terowongan VPN.</string>
+    <string name="speedtest_ready">Siap</string>
+    <string name="speedtest_phase_ping">Mengukur ping…</string>
+    <string name="speedtest_phase_download">Unduh</string>
+    <string name="speedtest_phase_upload">Unggah</string>
+    <string name="speedtest_done">Selesai</string>
+    <string name="speedtest_failed">Uji gagal: server uji tidak menjawab. Periksa koneksi lalu coba lagi.</string>
+    <string name="speedtest_ping">Ping</string>
+    <string name="speedtest_download">Unduh</string>
+    <string name="speedtest_upload">Unggah</string>
+    <string name="speedtest_ms">%1$d ms</string>
+    <string name="speedtest_mbps">%1$s Mbps</string>
+    <string name="speedtest_none">–</string>
+    <string name="speedtest_value_failed">gagal</string>
+    <string name="speedtest_used">Kuota terpakai: %1$s MB</string>
+    <string name="speedtest_start">Mulai uji</string>
+    <string name="speedtest_again">Uji lagi</string>
+    <string name="speedtest_stop">Berhenti</string>
+    <string name="speedtest_note">Tiap bagian berjalan paling lama 10 detik dengan 4 koneksi ke server uji Cloudflare, dan berhenti di 150 MB unduh / 50 MB unggah. Di koneksi cepat, kuota yang terpakai bisa lebih dari 100 MB. Keluar dari layar ini menghentikan uji.</string>
 </resources>

@@ -2,14 +2,10 @@ package com.v2ray.ang.handler
 
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.util.LogUtil
-import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.net.Socket
 import java.util.concurrent.TimeUnit
 
 /**
@@ -28,41 +24,19 @@ object DnsSpeedTest {
 
     private const val TIMED_QUERIES = 3
     private const val TIMEOUT_MS = 6_000L
-    private const val PORT_CHECK_MS = 300
 
     /** [millis] is the median of the timed queries, null when they all failed. */
     data class Measurement(val millis: Long?, val adsBlocked: Boolean?)
 
-    /** The local HTTP proxy port when something listens on it, else null. */
-    fun localProxyPort(): Int? {
-        val port = SettingsManager.getHttpPort()
-        if (port <= 0) return null
-        return try {
-            Socket().use { it.connect(InetSocketAddress(AppConfig.LOOPBACK, port), PORT_CHECK_MS) }
-            port
-        } catch (e: Exception) {
-            null
-        }
-    }
+    /** The local HTTP proxy port when connected, else null (queries then go direct). */
+    fun localProxyPort(): Int? = LocalProxyClient.port()
 
     fun client(proxyPort: Int?): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .connectTimeout(TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .readTimeout(TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .callTimeout(TIMEOUT_MS, TimeUnit.MILLISECONDS)
-        if (proxyPort != null) {
-            builder.proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress(AppConfig.LOOPBACK, proxyPort)))
-            val user = SettingsManager.getSocksUsername()
-            val pass = SettingsManager.getSocksPassword()
-            if (!user.isNullOrBlank() && !pass.isNullOrBlank()) {
-                builder.proxyAuthenticator { _, response ->
-                    if (response.request.header("Proxy-Authorization") != null) null
-                    else response.request.newBuilder()
-                        .header("Proxy-Authorization", Credentials.basic(user, pass))
-                        .build()
-                }
-            }
-        }
+        if (proxyPort != null) LocalProxyClient.useProxy(builder, proxyPort)
         return builder.build()
     }
 

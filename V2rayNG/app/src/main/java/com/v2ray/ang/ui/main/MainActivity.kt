@@ -189,6 +189,7 @@ class MainActivity : HelperBaseComponentActivity() {
             MainDestination.HostToIp -> Intent(this, com.v2ray.ang.ui.tools.HostToIpActivity::class.java)
             MainDestination.HostChecker -> Intent(this, com.v2ray.ang.ui.tools.HostToIpActivity::class.java)
                 .putExtra(com.v2ray.ang.ui.tools.HostToIpActivity.EXTRA_CHECKER, true)
+            MainDestination.SpeedTest -> Intent(this, com.v2ray.ang.ui.speedtest.SpeedTestActivity::class.java)
             MainDestination.CheckUpdate -> Intent(this, CheckUpdateActivity::class.java)
             MainDestination.BackupRestore -> Intent(this, BackupActivity::class.java)
             MainDestination.About -> Intent(this, AboutActivity::class.java)

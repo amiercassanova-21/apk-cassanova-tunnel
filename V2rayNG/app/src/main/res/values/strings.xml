@@ -866,4 +866,29 @@
     <string name="connlog_private_dns">Phone Private DNS is on (%1$s): it can stop the VPN from working. Set it to Off or Automatic in the phone settings.</string>
     <string name="connlog_dns">DNS: %1$s · VPN DNS %2$s · remote %3$s</string>
     <string name="connlog_dns_local"> · local DNS on</string>
+
+    <!-- Cassanova: internet speed test -->
+    <string name="tool_speedtest">Speed test</string>
+    <string name="speedtest_title">Internet speed test</string>
+    <string name="speedtest_intro">Measures ping, download and upload speed. Connect the VPN first to test the tunnel.</string>
+    <string name="speedtest_via_vpn">Measured through the active VPN connection.</string>
+    <string name="speedtest_direct">The VPN is not connected: this measures your normal internet, not the tunnel.</string>
+    <string name="speedtest_ready">Ready</string>
+    <string name="speedtest_phase_ping">Measuring ping…</string>
+    <string name="speedtest_phase_download">Download</string>
+    <string name="speedtest_phase_upload">Upload</string>
+    <string name="speedtest_done">Done</string>
+    <string name="speedtest_failed">Test failed: no answer from the test server. Check the connection and try again.</string>
+    <string name="speedtest_ping">Ping</string>
+    <string name="speedtest_download">Download</string>
+    <string name="speedtest_upload">Upload</string>
+    <string name="speedtest_ms">%1$d ms</string>
+    <string name="speedtest_mbps">%1$s Mbps</string>
+    <string name="speedtest_none">–</string>
+    <string name="speedtest_value_failed">failed</string>
+    <string name="speedtest_used">Data used: %1$s MB</string>
+    <string name="speedtest_start">Start test</string>
+    <string name="speedtest_again">Test again</string>
+    <string name="speedtest_stop">Stop</string>
+    <string name="speedtest_note">Each part runs up to 10 seconds with 4 connections to the Cloudflare speed test server, and stops at 150 MB download / 50 MB upload. Fast connections can use over 100 MB of quota. Leaving this screen stops the test.</string>
 </resources>

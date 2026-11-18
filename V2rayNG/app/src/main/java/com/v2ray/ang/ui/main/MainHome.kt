@@ -618,6 +618,11 @@ private fun ToolsTab(home: HomeState, onAction: (MainAction) -> Unit, onNavigate
             QuickTool(stringResource(R.string.tool_host_checker), R.drawable.ic_host_check_24dp, light = true) { onNavigate(MainDestination.HostChecker) }
             TetherTool(enabled = home.tetherEnabled) { onAction(MainAction.ToggleTether) }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuickTool(stringResource(R.string.tool_speedtest), R.drawable.ic_speed_24dp, light = true) { onNavigate(MainDestination.SpeedTest) }
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
+        }
     }
 }
 
