@@ -16,6 +16,7 @@ import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.R
 import com.v2ray.ang.handler.ConnLog
 import com.v2ray.ang.handler.DnsPresets
+import com.v2ray.ang.handler.DnsRules
 import com.v2ray.ang.handler.PrivateDnsCheck
 import com.v2ray.ang.contracts.IDialerService
 import com.v2ray.ang.contracts.ServiceControl
@@ -403,11 +404,14 @@ object CoreServiceManager {
             service.getString(R.string.dns_preset_summary, service.getString(it.nameRes), service.getString(it.category.labelRes))
         } ?: service.getString(R.string.dns_preset_custom)
         val line = service.getString(R.string.connlog_dns, name, vpnDns.ifEmpty { "-" }, remoteHost.ifEmpty { "-" })
-        ConnLog.info(
-            if (MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_DNS_ENABLED)) {
-                line + service.getString(R.string.connlog_dns_local)
-            } else line
-        )
+        val extras = buildString {
+            when {
+                SettingsManager.isSlowDnsBoost(config) -> append(service.getString(R.string.connlog_dns_slowdns_boost))
+                MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_DNS_ENABLED) -> append(service.getString(R.string.connlog_dns_local))
+            }
+            if (DnsRules.adsRoutingBlock(vpnDns, remoteRaw)) append(service.getString(R.string.connlog_dns_ads_routing))
+        }
+        ConnLog.info(line + extras)
     }
 
     /** About 20 s after connecting a custom config, says whether any data came back. */

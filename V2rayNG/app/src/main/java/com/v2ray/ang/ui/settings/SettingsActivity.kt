@@ -224,6 +224,10 @@ fun SettingsScreen(
     var remoteDns by rememberMmkvString(AppConfig.PREF_REMOTE_DNS, "")
     var domesticDns by rememberMmkvString(AppConfig.PREF_DOMESTIC_DNS, "")
     var dnsHosts by rememberMmkvString(AppConfig.PREF_DNS_HOSTS, "")
+    var dnsBlockList by rememberMmkvString(AppConfig.PREF_DNS_BLOCK_LIST, "")
+    var dnsAllowList by rememberMmkvString(AppConfig.PREF_DNS_ALLOW_LIST, "")
+    var slowDnsFakeDns by rememberMmkvBool(AppConfig.PREF_SLOWDNS_FAKEDNS, false)
+    var showAdvanced by rememberMmkvBool(AppConfig.PREF_SHOW_ADVANCED_SETTINGS, false)
     var coreLogLevel by rememberMmkvString(AppConfig.PREF_LOGLEVEL, "warning")
     var outboundResolveMethod by rememberMmkvString(AppConfig.PREF_OUTBOUND_DOMAIN_RESOLVE_METHOD, AppConfig.DEFAULT_OUTBOUND_DOMAIN_RESOLVE_METHOD)
 
@@ -317,6 +321,12 @@ fun SettingsScreen(
                 expanded = uiSettingsExpanded,
                 onExpandedChange = { uiSettingsExpanded = it }
             ) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_show_advanced_settings),
+                    summary = stringResource(R.string.summary_show_advanced_settings),
+                    checked = showAdvanced,
+                    onCheckedChange = { showAdvanced = it }
+                )
                 // Styles B and C are experimental: the picker shows only after the About unlock.
                 if (experimentalUi) {
                     SettingsListItem(
@@ -324,6 +334,7 @@ fun SettingsScreen(
                         entries = uiStyleEntries,
                         values = uiStyleValues,
                         selectedValue = currentStyle,
+                        help = stringResource(R.string.help_ui_style),
                         onSelected = {
                             uiStyle = it
                             ThemeManager.setUiStyle(it)
@@ -382,6 +393,7 @@ fun SettingsScreen(
                     entries = languageEntries,
                     values = languageValues,
                     selectedValue = language,
+                    help = stringResource(R.string.help_language),
                     onSelected = {
                         language = it
                         AppLocaleManager.setApplicationLanguage(it)
@@ -392,6 +404,7 @@ fun SettingsScreen(
                     entries = uiModeNightEntries,
                     values = uiModeNightValues,
                     selectedValue = uiModeNight,
+                    help = stringResource(R.string.help_ui_mode_night),
                     onSelected = {
                         uiModeNight = it
                         ThemeManager.setThemeMode(it)
@@ -410,43 +423,50 @@ fun SettingsScreen(
                     checked = ipv6Enabled,
                     onCheckedChange = { ipv6Enabled = it }
                 )
-                SettingsSwitchItem(
-                    title = stringResource(R.string.title_pref_prefer_ipv6),
-                    summary = stringResource(R.string.summary_pref_prefer_ipv6),
-                    checked = preferIpv6,
-                    onCheckedChange = { preferIpv6 = it }
-                )
-                SettingsSwitchItem(
-                    title = stringResource(R.string.title_pref_append_http_proxy),
-                    summary = stringResource(R.string.summary_pref_append_http_proxy),
-                    checked = appendHttpProxy,
-                    enabled = effectiveLocalProxy,
-                    onCheckedChange = { appendHttpProxy = it }
-                )
+                if (showAdvanced) {
+                    SettingsSwitchItem(
+                        title = stringResource(R.string.title_pref_prefer_ipv6),
+                        summary = stringResource(R.string.summary_pref_prefer_ipv6),
+                        checked = preferIpv6,
+                        onCheckedChange = { preferIpv6 = it }
+                    )
+                    SettingsSwitchItem(
+                        title = stringResource(R.string.title_pref_append_http_proxy),
+                        summary = stringResource(R.string.summary_pref_append_http_proxy),
+                        checked = appendHttpProxy,
+                        enabled = effectiveLocalProxy,
+                        onCheckedChange = { appendHttpProxy = it }
+                    )
+                }
                 SettingsListItem(
                     title = stringResource(R.string.title_pref_vpn_bypass_lan),
                     entries = bypassLanEntries,
                     values = bypassLanValues,
                     selectedValue = vpnBypassLan,
                     enabled = isVpn,
+                    help = stringResource(R.string.help_vpn_bypass_lan),
                     onSelected = { vpnBypassLan = it }
                 )
-                SettingsListItem(
-                    title = stringResource(R.string.title_pref_vpn_interface_address),
-                    entries = interfaceAddrEntries,
-                    values = interfaceAddrValues,
-                    selectedValue = vpnInterfaceAddress,
-                    enabled = isVpn,
-                    onSelected = { vpnInterfaceAddress = it }
-                )
+                if (showAdvanced) {
+                    SettingsListItem(
+                        title = stringResource(R.string.title_pref_vpn_interface_address),
+                        entries = interfaceAddrEntries,
+                        values = interfaceAddrValues,
+                        selectedValue = vpnInterfaceAddress,
+                        enabled = isVpn,
+                        help = stringResource(R.string.help_vpn_interface_address),
+                        onSelected = { vpnInterfaceAddress = it }
+                    )
+                }
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_vpn_mtu),
                     value = vpnMtu,
                     enabled = isVpn,
                     keyboardNumber = true,
+                    help = stringResource(R.string.help_vpn_mtu),
                     onValueChanged = { vpnMtu = it }
                 )
-                SettingsSwitchItem(
+                if (showAdvanced || !useHevTun) SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_use_hev_tunnel),
                     summary = stringResource(R.string.summary_pref_use_hev_tunnel),
                     checked = useHevTun,
@@ -458,21 +478,25 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsListItem(
-                    title = stringResource(R.string.title_pref_hev_tunnel_loglevel),
-                    entries = hevLogEntries,
-                    values = hevLogValues,
-                    selectedValue = hevTunLogLevel,
-                    enabled = hevTunEnabled,
-                    onSelected = { hevTunLogLevel = it }
-                )
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_hev_tunnel_rw_timeout),
-                    value = hevTunRwTimeout,
-                    enabled = hevTunEnabled,
-                    keyboardNumber = true,
-                    onValueChanged = { hevTunRwTimeout = it }
-                )
+                if (showAdvanced) {
+                    SettingsListItem(
+                        title = stringResource(R.string.title_pref_hev_tunnel_loglevel),
+                        entries = hevLogEntries,
+                        values = hevLogValues,
+                        selectedValue = hevTunLogLevel,
+                        enabled = hevTunEnabled,
+                        help = stringResource(R.string.help_hev_loglevel),
+                        onSelected = { hevTunLogLevel = it }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_hev_tunnel_rw_timeout),
+                        value = hevTunRwTimeout,
+                        enabled = hevTunEnabled,
+                        keyboardNumber = true,
+                        help = stringResource(R.string.help_hev_rw_timeout),
+                        onValueChanged = { hevTunRwTimeout = it }
+                    )
+                }
             }
 
             // Cassanova: one DNS choice for everyday use; the original fields under "Advanced".
@@ -503,12 +527,35 @@ fun SettingsScreen(
                         viewModel.startDnsTest(if (dnsPreset == null) DnsPresets.customDohUrl(remoteDns) else null)
                     }
                 )
-                CollapsiblePreferenceGroupHeader(
-                    title = stringResource(R.string.title_dns_advanced),
-                    expanded = dnsAdvancedExpanded,
-                    onExpandedChange = { dnsAdvancedExpanded = it }
+                SettingsEditItem(
+                    title = stringResource(R.string.title_dns_block_list),
+                    value = dnsBlockList,
+                    help = stringResource(R.string.help_dns_block_list),
+                    onValueChanged = { dnsBlockList = it.trim() }
                 )
-                if (dnsAdvancedExpanded) {
+                SettingsEditItem(
+                    title = stringResource(R.string.title_dns_allow_list),
+                    value = dnsAllowList,
+                    help = stringResource(R.string.help_dns_allow_list),
+                    onValueChanged = { dnsAllowList = it.trim() }
+                )
+                if (!com.v2ray.ang.handler.Edition.isLite) {
+                    SettingsSwitchItem(
+                        title = stringResource(R.string.title_slowdns_fakedns),
+                        summary = stringResource(R.string.summary_slowdns_fakedns),
+                        checked = slowDnsFakeDns,
+                        enabled = isVpn,
+                        onCheckedChange = { slowDnsFakeDns = it }
+                    )
+                }
+                if (showAdvanced) {
+                    CollapsiblePreferenceGroupHeader(
+                        title = stringResource(R.string.title_dns_advanced),
+                        expanded = dnsAdvancedExpanded,
+                        onExpandedChange = { dnsAdvancedExpanded = it }
+                    )
+                }
+                if (showAdvanced && dnsAdvancedExpanded) {
                     SettingsSwitchItem(
                         title = stringResource(R.string.title_pref_local_dns_enabled),
                         summary = stringResource(R.string.summary_pref_local_dns_enabled),
@@ -527,21 +574,25 @@ fun SettingsScreen(
                         title = stringResource(R.string.title_pref_vpn_dns),
                         value = vpnDns,
                         enabled = isVpn && !localDns,
+                        help = stringResource(R.string.help_vpn_dns),
                         onValueChanged = { vpnDns = it }
                     )
                     SettingsEditItem(
                         title = stringResource(R.string.title_pref_remote_dns),
                         value = remoteDns,
+                        help = stringResource(R.string.help_remote_dns),
                         onValueChanged = { remoteDns = it }
                     )
                     SettingsEditItem(
                         title = stringResource(R.string.title_pref_domestic_dns),
                         value = domesticDns,
+                        help = stringResource(R.string.help_domestic_dns),
                         onValueChanged = { domesticDns = it }
                     )
                     SettingsEditItem(
                         title = stringResource(R.string.title_pref_dns_hosts),
                         value = dnsHosts,
+                        help = stringResource(R.string.help_dns_hosts),
                         onValueChanged = { dnsHosts = it }
                     )
                 }
@@ -583,7 +634,8 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSection(
+            // Hidden sections still show while one of their risky options is in use.
+            if (showAdvanced || dynamicSocksPort || socksUsername.isNotBlank() || !enableLocalProxy) SettingsSection(
                 title = stringResource(R.string.title_core_settings),
                 expanded = coreSettingsExpanded,
                 onExpandedChange = { coreSettingsExpanded = it }
@@ -633,12 +685,14 @@ fun SettingsScreen(
                     value = socksPort,
                     enabled = effectiveLocalProxy && !dynamicSocksPort,
                     keyboardNumber = true,
+                    help = stringResource(R.string.help_socks_port),
                     onValueChanged = { socksPort = it }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_username),
                     value = socksUsername,
                     enabled = effectiveLocalProxy,
+                    help = stringResource(R.string.help_socks_username),
                     onValueChanged = { socksUsername = it }
                 )
                 SettingsEditItem(
@@ -646,6 +700,7 @@ fun SettingsScreen(
                     value = socksPassword,
                     enabled = effectiveLocalProxy,
                     isPassword = true,
+                    help = stringResource(R.string.help_socks_password),
                     onValueChanged = { socksPassword = it }
                 )
                 SettingsSwitchItem(
@@ -660,6 +715,7 @@ fun SettingsScreen(
                     entries = coreLogLevelEntries,
                     values = coreLogLevelValues,
                     selectedValue = coreLogLevel,
+                    help = stringResource(R.string.help_core_loglevel),
                     onSelected = { coreLogLevel = it }
                 )
                 SettingsListItem(
@@ -667,11 +723,12 @@ fun SettingsScreen(
                     entries = outboundResolveEntries,
                     values = outboundResolveValues,
                     selectedValue = outboundResolveMethod,
+                    help = stringResource(R.string.help_outbound_resolve),
                     onSelected = { outboundResolveMethod = it }
                 )
             }
 
-            SettingsSection(
+            if (showAdvanced || mux) SettingsSection(
                 title = stringResource(R.string.title_mux_settings),
                 expanded = muxSettingsExpanded,
                 onExpandedChange = { muxSettingsExpanded = it }
@@ -687,6 +744,7 @@ fun SettingsScreen(
                     value = muxConcurrency,
                     enabled = mux,
                     keyboardNumber = true,
+                    help = stringResource(R.string.help_mux_concurrency),
                     onValueChanged = { muxConcurrency = it }
                 )
                 SettingsEditItem(
@@ -694,6 +752,7 @@ fun SettingsScreen(
                     value = muxXudpConcurrency,
                     enabled = mux,
                     keyboardNumber = true,
+                    help = stringResource(R.string.help_mux_xudp_concurrency),
                     onValueChanged = { muxXudpConcurrency = it }
                 )
                 SettingsListItem(
@@ -702,17 +761,19 @@ fun SettingsScreen(
                     values = xudpQuicValues,
                     selectedValue = muxXudpQuic,
                     enabled = mux && muxXudpConcurrencyInt >= 0,
+                    help = stringResource(R.string.help_mux_xudp_quic),
                     onSelected = { muxXudpQuic = it }
                 )
             }
 
-            SettingsSection(
+            if (showAdvanced || fragment) SettingsSection(
                 title = stringResource(R.string.title_fragment_settings),
                 expanded = fragmentSettingsExpanded,
                 onExpandedChange = { fragmentSettingsExpanded = it }
             ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_fragment_enabled),
+                    summary = stringResource(R.string.summary_fragment_enabled),
                     checked = fragment,
                     onCheckedChange = { fragment = it }
                 )
@@ -722,18 +783,21 @@ fun SettingsScreen(
                     values = fragmentPacketsValues,
                     selectedValue = fragmentPackets,
                     enabled = fragment,
+                    help = stringResource(R.string.help_fragment_packets),
                     onSelected = { fragmentPackets = it }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_fragment_length),
                     value = fragmentLength,
                     enabled = fragment,
+                    help = stringResource(R.string.help_fragment_length),
                     onValueChanged = { fragmentLength = it }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_fragment_interval),
                     value = fragmentInterval,
                     enabled = fragment,
+                    help = stringResource(R.string.help_fragment_interval),
                     onValueChanged = { fragmentInterval = it }
                 )
                 SettingsEditItem(
@@ -741,18 +805,26 @@ fun SettingsScreen(
                     value = fragmentMaxSplit,
                     enabled = fragment,
                     keyboardNumber = true,
+                    help = stringResource(R.string.help_fragment_maxsplit),
                     onValueChanged = { fragmentMaxSplit = it }
                 )
             }
 
-            SettingsSection(
+            if (showAdvanced) SettingsSection(
                 title = stringResource(R.string.title_observatory_settings),
                 expanded = observatorySettingsExpanded,
                 onExpandedChange = { observatorySettingsExpanded = it }
             ) {
+                Text(
+                    text = stringResource(R.string.help_observatory),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_observatory_least_ping_interval),
                     value = observatoryLeastPingInterval,
+                    help = stringResource(R.string.help_observatory_least_ping_interval),
                     onValueChanged = {
                         viewModel.validateObservatoryDuration(it)?.let { value ->
                             observatoryLeastPingInterval = value
@@ -762,6 +834,7 @@ fun SettingsScreen(
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_observatory_least_load_interval),
                     value = observatoryLeastLoadInterval,
+                    help = stringResource(R.string.help_observatory_least_load_interval),
                     onValueChanged = {
                         viewModel.validateObservatoryDuration(it)?.let { value ->
                             observatoryLeastLoadInterval = value
@@ -773,12 +846,14 @@ fun SettingsScreen(
                     entries = observatoryLeastLoadMethodEntries,
                     values = observatoryLeastLoadMethodValues,
                     selectedValue = observatoryLeastLoadMethod,
+                    help = stringResource(R.string.help_observatory_least_load_method),
                     onSelected = { observatoryLeastLoadMethod = it }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_observatory_least_load_sampling),
                     value = observatoryLeastLoadSampling,
                     keyboardNumber = true,
+                    help = stringResource(R.string.help_observatory_least_load_sampling),
                     onValueChanged = {
                         viewModel.validateObservatorySampling(it)?.let { value ->
                             observatoryLeastLoadSampling = value
@@ -788,6 +863,7 @@ fun SettingsScreen(
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_observatory_least_load_timeout),
                     value = observatoryLeastLoadTimeout,
+                    help = stringResource(R.string.help_observatory_least_load_timeout),
                     onValueChanged = {
                         viewModel.validateObservatoryDuration(it)?.let { value ->
                             observatoryLeastLoadTimeout = value
@@ -814,22 +890,27 @@ fun SettingsScreen(
                         onClick = onSystemVpnSettingsClicked
                     )
                 }
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_delay_test_url),
-                    value = delayTestUrl,
-                    onValueChanged = { delayTestUrl = it }
-                )
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_real_ping_concurrency),
-                    value = realPingConcurrency,
-                    keyboardNumber = true,
-                    onValueChanged = { realPingConcurrency = it }
-                )
-                SettingsEditItem(
-                    title = stringResource(R.string.title_pref_ip_api_url),
-                    value = ipApiUrl,
-                    onValueChanged = { ipApiUrl = it }
-                )
+                if (showAdvanced) {
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_delay_test_url),
+                        value = delayTestUrl,
+                        help = stringResource(R.string.help_delay_test_url),
+                        onValueChanged = { delayTestUrl = it }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_real_ping_concurrency),
+                        value = realPingConcurrency,
+                        keyboardNumber = true,
+                        help = stringResource(R.string.help_real_ping_concurrency),
+                        onValueChanged = { realPingConcurrency = it }
+                    )
+                    SettingsEditItem(
+                        title = stringResource(R.string.title_pref_ip_api_url),
+                        value = ipApiUrl,
+                        help = stringResource(R.string.help_ip_api_url),
+                        onValueChanged = { ipApiUrl = it }
+                    )
+                }
             }
 
             SettingsSection(
@@ -848,12 +929,14 @@ fun SettingsScreen(
                         title = stringResource(R.string.title_tether_socks_port),
                         value = tetherSocksPort,
                         keyboardNumber = true,
+                        help = stringResource(R.string.help_tether_socks_port),
                         onValueChanged = { tetherSocksPort = it.trim() }
                     )
                     SettingsEditItem(
                         title = stringResource(R.string.title_tether_http_port),
                         value = tetherHttpPort,
                         keyboardNumber = true,
+                        help = stringResource(R.string.help_tether_http_port),
                         onValueChanged = { tetherHttpPort = it.trim() }
                     )
                 }
@@ -868,6 +951,7 @@ fun SettingsScreen(
                     entries = stringArrayResource(R.array.autoping_mode_entries).toList(),
                     values = AutoPing.Mode.entries.map { it.key },
                     selectedValue = autoPingMode,
+                    help = stringResource(R.string.help_autoping_mode),
                     onSelected = { autoPingMode = it }
                 )
                 if (autoPingMode != AutoPing.Mode.OFF.key) {
@@ -876,24 +960,28 @@ fun SettingsScreen(
                         entries = stringArrayResource(R.array.autoping_method_entries).toList(),
                         values = AutoPing.Method.entries.map { it.key },
                         selectedValue = autoPingMethod,
+                        help = stringResource(R.string.help_autoping_method),
                         onSelected = { autoPingMethod = it }
                     )
                     if (autoPingMethod != AutoPing.Method.HTTP.key) {
                         SettingsEditItem(
                             title = stringResource(R.string.title_autoping_target),
                             value = autoPingTarget,
+                            help = stringResource(R.string.help_autoping_target),
                             onValueChanged = { autoPingTarget = it.trim() }
                         )
                     }
                     SettingsEditItem(
                         title = stringResource(R.string.title_autoping_interval),
                         value = autoPingInterval,
+                        help = stringResource(R.string.help_autoping_interval),
                         onValueChanged = { autoPingInterval = it.trim() },
                         keyboardNumber = true
                     )
                     SettingsEditItem(
                         title = stringResource(R.string.title_autoping_timeout),
                         value = autoPingTimeout,
+                        help = stringResource(R.string.help_autoping_timeout),
                         onValueChanged = { autoPingTimeout = it.trim() },
                         keyboardNumber = true
                     )
@@ -901,6 +989,7 @@ fun SettingsScreen(
                         SettingsEditItem(
                             title = stringResource(R.string.title_autoping_fail_limit),
                             value = autoPingFailLimit,
+                            help = stringResource(R.string.help_autoping_fail_limit),
                             onValueChanged = { autoPingFailLimit = it.trim() },
                             keyboardNumber = true
                         )
@@ -917,13 +1006,14 @@ fun SettingsScreen(
                     entries = modeEntries,
                     values = modeValues,
                     selectedValue = mode,
+                    help = stringResource(R.string.help_mode),
                     onSelected = { mode = it }
                 )
                 SettingsMenuItem(
                     title = stringResource(R.string.title_mode_help),
                     onClick = onModeHelpClicked
                 )
-                if (!com.v2ray.ang.handler.Edition.isLite) {
+                if ((showAdvanced || sshEngine != AppConfig.SSH_ENGINE_NATIVE) && !com.v2ray.ang.handler.Edition.isLite) {
                     SettingsListItem(
                         title = stringResource(R.string.title_ssh_engine),
                         entries = listOf(
@@ -932,10 +1022,11 @@ fun SettingsScreen(
                         ),
                         values = listOf(AppConfig.SSH_ENGINE_NATIVE, AppConfig.SSH_ENGINE_JAVA),
                         selectedValue = sshEngine,
+                        help = stringResource(R.string.help_ssh_engine),
                         onSelected = { sshEngine = it }
                     )
                 }
-                SettingsSwitchItem(
+                if (showAdvanced || enableRootMode) SettingsSwitchItem(
                     title = stringResource(R.string.title_root_mode_enabled),
                     summary = stringResource(R.string.summary_root_mode_enabled),
                     checked = enableRootMode,
@@ -949,7 +1040,7 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsSwitchItem(
+                if (showAdvanced || lanSharing) SettingsSwitchItem(
                     title = stringResource(R.string.title_root_lan_sharing),
                     summary = stringResource(R.string.summary_root_lan_sharing),
                     checked = lanSharing,

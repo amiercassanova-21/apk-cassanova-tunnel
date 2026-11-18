@@ -418,6 +418,19 @@ object SettingsManager {
      * Check if VPN mode is enabled.
      * @return True if VPN mode is enabled, false otherwise.
      */
+    /**
+     * Cassanova: "Faster DNS for SlowDNS" applies to [profile] (local DNS + FakeDNS for this
+     * connection only). See [DnsRules.slowDnsBoost].
+     */
+    fun isSlowDnsBoost(profile: ProfileItem?): Boolean {
+        profile ?: return false
+        val slowDns = profile.configType == EConfigType.SSH &&
+            com.v2ray.ang.core.ssh.SshMode.from(ConfigLockManager.unlock(profile).sshMode) == com.v2ray.ang.core.ssh.SshMode.SLOWDNS
+        return DnsRules.slowDnsBoost(
+            MmkvManager.decodeSettingsBool(AppConfig.PREF_SLOWDNS_FAKEDNS, false), isVpnMode(), slowDns
+        )
+    }
+
     fun isVpnMode(): Boolean {
         val mode = MmkvManager.decodeSettingsString(AppConfig.PREF_MODE)
         return mode == null || mode == VPN

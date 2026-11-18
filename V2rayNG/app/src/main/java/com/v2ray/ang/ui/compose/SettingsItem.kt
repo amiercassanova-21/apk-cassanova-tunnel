@@ -246,7 +246,8 @@ private fun SettingsItemRow(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     trailing: @Composable (() -> Unit)? = null,
-    showChevron: Boolean = false
+    showChevron: Boolean = false,
+    help: String? = null
 ) {
     val titleColor = if (enabled) MaterialTheme.colorScheme.onSurface
     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -291,6 +292,15 @@ private fun SettingsItemRow(
                     color = descriptionColor
                 )
             }
+            // Cassanova: plain-language explanation under the current value.
+            if (!help.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = help,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = descriptionColor.copy(alpha = descriptionColor.alpha * 0.8f)
+                )
+            }
         }
         trailing?.invoke()
         if (showChevron && trailing == null) {
@@ -316,7 +326,8 @@ fun SettingsEditItem(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isPassword: Boolean = false,
-    keyboardNumber: Boolean = false
+    keyboardNumber: Boolean = false,
+    help: String? = null
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val description = if (isPassword) {
@@ -334,7 +345,8 @@ fun SettingsEditItem(
             { showDialog = true }
         } else null,
         modifier = modifier,
-        showChevron = true
+        showChevron = true,
+        help = help
     )
 
     if (showDialog) {
@@ -366,7 +378,8 @@ fun SettingsListItem(
     selectedValue: String,
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    help: String? = null
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val options = entries.zip(values)
@@ -382,7 +395,8 @@ fun SettingsListItem(
             { showDialog = true }
         } else null,
         modifier = modifier,
-        showChevron = true
+        showChevron = true,
+        help = help
     )
 
     if (showDialog) {

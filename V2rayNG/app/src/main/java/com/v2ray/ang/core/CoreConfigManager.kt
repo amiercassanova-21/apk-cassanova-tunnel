@@ -17,6 +17,7 @@ import com.v2ray.ang.extension.isNotNullEmpty
 import com.v2ray.ang.handler.TetherManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
+import com.v2ray.ang.handler.DnsRules
 import com.v2ray.ang.util.HttpUtil
 import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.LogUtil
@@ -194,7 +195,9 @@ object CoreConfigManager {
         v2rayConfig.log.loglevel = MmkvManager.decodeSettingsString(AppConfig.PREF_LOGLEVEL) ?: "warning"
         v2rayConfig.remarks = primaryResolvedOutbound.profile.remarks
 
-        configureInbounds(v2rayConfig)
+        // Cassanova: "Faster DNS for SlowDNS" turns on local DNS + FakeDNS for this connection.
+        val slowDnsBoost = SettingsManager.isSlowDnsBoost(primaryResolvedOutbound.profile)
+        configureInbounds(v2rayConfig, slowDnsBoost)
 
         if (v2rayConfig.outbounds.isNotEmpty()) {
             v2rayConfig.outbounds.removeAt(0)
@@ -218,9 +221,10 @@ object CoreConfigManager {
 
         // User routing rules (policyGroupBalancerTags rewrites TAG_PROXY→balancer when main is POLICYGROUP).
         configureRouting(configContext, v2rayConfig, policyGroupBalancerTags)
-        configureFakeDns(v2rayConfig)
+        configureDnsLists(v2rayConfig, policyGroupBalancerTags)
+        configureFakeDns(v2rayConfig, slowDnsBoost)
         configureDns(configContext, v2rayConfig, policyGroupBalancerTags)
-        configureLocalDns(configContext, v2rayConfig)
+        configureLocalDns(configContext, v2rayConfig, slowDnsBoost)
         configureRootModeDns(v2rayConfig)
 
         // (added by getDns / getCustomLocalDns) to use the balancer, then add
@@ -526,7 +530,7 @@ object CoreConfigManager {
     /**
      * Configure inbound listeners and related runtime options.
      */
-    private fun configureInbounds(v2rayConfig: V2rayConfig) {
+    private fun configureInbounds(v2rayConfig: V2rayConfig, slowDnsBoost: Boolean = false) {
         val vpn = SettingsManager.isVpnMode()
         val useHev = SettingsManager.isUsingHevTun()
         val forcedByHev = vpn && useHev
@@ -560,7 +564,7 @@ object CoreConfigManager {
             inbound1.settings?.auth = "noauth"
             inbound1.settings?.accounts = null
         }
-        val fakedns = MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true
+        val fakedns = MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true || slowDnsBoost
         val sniffAllTlsAndHttp =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_SNIFFING_ENABLED, true) != false
         inbound1.sniffing?.enabled = fakedns || sniffAllTlsAndHttp
@@ -626,11 +630,11 @@ object CoreConfigManager {
     private const val TETHER_HTTP_TAG = "tether-http"
 
     /**
-     * Enable fake DNS when local DNS and fake DNS are both enabled.
+     * Enable fake DNS when local DNS and fake DNS are both enabled (or by [slowDnsBoost]).
      */
-    private fun configureFakeDns(v2rayConfig: V2rayConfig) {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_DNS_ENABLED) == true
-            && MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true
+    private fun configureFakeDns(v2rayConfig: V2rayConfig, slowDnsBoost: Boolean = false) {
+        if (slowDnsBoost || (MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_DNS_ENABLED) == true
+                    && MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true)
         ) {
             v2rayConfig.fakedns = listOf(V2rayConfig.FakednsBean())
         }
@@ -677,12 +681,12 @@ object CoreConfigManager {
     /**
      * Configure local DNS inbounds, outbounds, and routing rules.
      */
-    private fun configureLocalDns(configContext: CoreConfigContext, v2rayConfig: V2rayConfig) {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_DNS_ENABLED) != true) {
+    private fun configureLocalDns(configContext: CoreConfigContext, v2rayConfig: V2rayConfig, slowDnsBoost: Boolean = false) {
+        if (!slowDnsBoost && MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_DNS_ENABLED) != true) {
             return
         }
 
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true) {
+        if (slowDnsBoost || MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true) {
             val geositeCn = arrayListOf(AppConfig.GEOSITE_CN)
             val routingDomains = configContext.routingDomainRules
                 .asSequence()
@@ -944,11 +948,27 @@ object CoreConfigManager {
         )
         domesticDnsTags.addAll(cnDomesticDnsTags)
 
+        // Cassanova: always-allowed domains are resolved by an unfiltered DNS first, so an
+        // ad-blocking DNS choice cannot block them (applies when the core handles DNS).
+        val allowDomains = DnsRules.parseDomains(MmkvManager.decodeSettingsString(AppConfig.PREF_DNS_ALLOW_LIST))
+        if (allowDomains.isNotEmpty()) {
+            servers.add(
+                0,
+                V2rayConfig.DnsBean.ServersBean(
+                    address = DnsRules.ALLOW_DNS,
+                    domains = allowDomains,
+                    skipFallback = true,
+                )
+            )
+        }
+
         remoteDns.forEach { servers.add(it) }
 
         v2rayConfig.dns = V2rayConfig.DnsBean(
             servers = servers,
             hosts = hosts,
+            // Cassanova: only IPv4 answers while IPv6 is off.
+            queryStrategy = DnsRules.queryStrategy(MmkvManager.decodeSettingsBool(AppConfig.PREF_IPV6_ENABLED) == true),
             tag = AppConfig.TAG_DNS,
             enableParallelQuery = if ((domesticDns.size + remoteDns.size) > 2) true else null
         )
@@ -1214,6 +1234,37 @@ object CoreConfigManager {
     /**
      * Configure routing domain strategy and append enabled user rules.
      */
+    /**
+     * Cassanova: rules placed before the user's routing: always-allowed domains go through the
+     * proxy, always-blocked domains and (with an ad-blocking DNS choice) ad domains are blocked.
+     */
+    private fun configureDnsLists(v2rayConfig: V2rayConfig, policyGroupBalancerTags: Map<String, String>) {
+        val rules = ArrayList<V2rayConfig.RoutingBean.RulesBean>()
+        val allow = DnsRules.parseDomains(MmkvManager.decodeSettingsString(AppConfig.PREF_DNS_ALLOW_LIST))
+        if (allow.isNotEmpty()) {
+            val balancer = policyGroupBalancerTags[AppConfig.TAG_PROXY]
+            rules.add(
+                V2rayConfig.RoutingBean.RulesBean(
+                    domain = ArrayList(allow),
+                    outboundTag = if (balancer == null) AppConfig.TAG_PROXY else null,
+                    balancerTag = balancer,
+                )
+            )
+        }
+        val block = DnsRules.parseDomains(MmkvManager.decodeSettingsString(AppConfig.PREF_DNS_BLOCK_LIST))
+        if (block.isNotEmpty()) {
+            rules.add(V2rayConfig.RoutingBean.RulesBean(domain = ArrayList(block), outboundTag = AppConfig.TAG_BLOCKED))
+        }
+        if (DnsRules.adsRoutingBlock(
+                SettingsManager.getVpnDnsServers().joinToString(","),
+                MmkvManager.decodeSettingsString(AppConfig.PREF_REMOTE_DNS)
+            )
+        ) {
+            rules.add(V2rayConfig.RoutingBean.RulesBean(domain = arrayListOf(DnsRules.ADS_GEOSITE), outboundTag = AppConfig.TAG_BLOCKED))
+        }
+        v2rayConfig.routing.rules.addAll(0, rules)
+    }
+
     private fun configureRouting(
         configContext: CoreConfigContext,
         v2rayConfig: V2rayConfig,

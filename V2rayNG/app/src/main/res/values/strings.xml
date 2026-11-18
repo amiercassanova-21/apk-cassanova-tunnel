@@ -204,7 +204,7 @@
     <string name="title_pref_per_app_proxy">Per-app proxy</string>
     <string name="summary_pref_per_app_proxy">General: checked apps use the proxy, and unchecked apps connect directly;\nBypass mode: checked apps connect directly, and unchecked apps use the proxy.\nThe option to automatically select apps that should use the proxy is in the menu.</string>
     <string name="title_pref_is_booted">Connect after device boot</string>
-    <string name="summary_pref_is_booted">Automatically connect to the selected server after the device starts. Android may restrict background starts.</string>
+    <string name="summary_pref_is_booted">Connects to the selected config by itself after the phone turns on. Some phones block this; then also allow the app to start in the background.</string>
     <string name="title_system_vpn_settings">System VPN settings</string>
     <string name="summary_system_vpn_settings">Open Android VPN settings to configure Always-on VPN, if supported by this device.</string>
     <string name="toast_system_vpn_settings_unavailable">System VPN settings are unavailable.</string>
@@ -220,7 +220,7 @@
 
     <string name="title_mux_settings">Mux Settings</string>
     <string name="title_pref_mux_enabled">Enable Mux</string>
-    <string name="summary_pref_mux_enabled">Faster, but it may cause unstable connectivity\nCustomize how to handle TCP, UDP and QUIC below</string>
+    <string name="summary_pref_mux_enabled">Carries many connections inside one. Can be faster on some servers, but many servers do not support it and the connection then drops. Use only if your account seller says so.</string>
     <string name="title_pref_mux_concurrency">TCP connections (range -1 to 1024)</string>
     <string name="title_pref_mux_xudp_concurrency">XUDP connections (range -1 to 1024)</string>
     <string name="title_pref_mux_xudp_quic">Handling of QUIC in mux tunnel</string>
@@ -231,24 +231,24 @@
     </string-array>
 
     <string name="title_pref_speed_enabled">Enable speed display</string>
-    <string name="summary_pref_speed_enabled">Show current speeds in the notification.\nThe icon indicates whether proxy or direct traffic is dominant.</string>
+    <string name="summary_pref_speed_enabled">Shows upload and download speed in the notification.</string>
 
     <string name="title_pref_sniffing_enabled">Enable Sniffing</string>
-    <string name="summary_pref_sniffing_enabled">Detect destination domains from traffic (enabled by default).</string>
+    <string name="summary_pref_sniffing_enabled">Reads the site name from the traffic so routing rules and ad blocking by name work. Keep it on.</string>
     <string name="title_pref_route_only_enabled">Enable routeOnly</string>
-    <string name="summary_pref_route_only_enabled">Use the sniffed domain name for routing only, and keep the target address as the IP address.</string>
+    <string name="summary_pref_route_only_enabled">Uses that site name only to decide the route, and still connects to the original IP. Leave off unless advised.</string>
 
     <string name="title_pref_local_dns_enabled">Enable local DNS</string>
-    <string name="summary_pref_local_dns_enabled">DNS processed by core‘s DNS module (Recommended if you need routing bypassing LAN and mainland addresses)</string>
+    <string name="summary_pref_local_dns_enabled">The VPN core answers every DNS lookup itself (needed for FakeDNS and for \"Always allow\" to fully work). Off: the phone asks the \"VPN DNS\" through the tunnel.</string>
 
     <string name="title_pref_fake_dns_enabled">Enable FakeDNS</string>
-    <string name="summary_pref_fake_dns_enabled">FakeDNS returns synthetic IP addresses for domain lookups (faster, but may not work with some apps).</string>
+    <string name="summary_pref_fake_dns_enabled">Answers site lookups at once with temporary addresses, so pages start loading sooner. Some apps or games may not work with it.</string>
 
     <string name="title_pref_ipv6_enabled">Enable IPv6</string>
-    <string name="summary_pref_ipv6_enabled">Add IPv6 address and routes to the VPN interface</string>
+    <string name="summary_pref_ipv6_enabled">Lets sites use IPv6. Turn on only if your server and network support IPv6; off is more stable on most mobile networks.</string>
 
     <string name="title_pref_prefer_ipv6">Prefer IPv6</string>
-    <string name="summary_pref_prefer_ipv6">Prefer IPv6 addresses when resolving domain names</string>
+    <string name="summary_pref_prefer_ipv6">When a site has both, use the IPv6 address first. Leave off unless you know you need it.</string>
 
     <string name="title_pref_remote_dns">Remote DNS (UDP/TCP/HTTPS/QUIC, optional)</string>
     <string name="summary_pref_remote_dns" translatable="false">DNS</string>
@@ -275,17 +275,17 @@
     <string name="summary_pref_ip_api_url" translatable="false">URL</string>
 
     <string name="title_pref_proxy_sharing_enabled">Allow connections from the LAN</string>
-    <string name="summary_pref_proxy_sharing_enabled">Other devices can connect to proxy by your IP address through local proxy. Only enable in trusted networks to avoid unauthorized connections</string>
+    <string name="summary_pref_proxy_sharing_enabled">Other devices on the same Wi-Fi can use this phone\'s proxy through its IP address. Turn on only on a network you trust.</string>
     <string name="toast_warning_pref_proxysharing_short">Allow connections from the LAN. Make sure you are in a trusted network</string>
 
     <string name="title_pref_socks_port">Local proxy port</string>
     <string name="title_pref_enable_local_proxy">Enable local proxy</string>
-    <string name="summary_pref_enable_local_proxy">When disabled, no SOCKS proxy is available, so subscription updates and similar actions cannot use the proxy</string>
+    <string name="summary_pref_enable_local_proxy">Proxy inside the phone used by Hev TUN, tethering, the speed and DNS tests and subscription updates. Keep it on.</string>
     <string name="title_pref_socks_enable_udp" translatable="false">SOCKS5 UDP</string>
-    <string name="summary_pref_socks_enable_udp">SOCKS5 authentication is not fully secure when using UDP.</string>
+    <string name="summary_pref_socks_enable_udp">Lets UDP (games, voice and video calls) pass through the proxy inside the phone. Keep it on.</string>
     <string name="summary_pref_socks_port">Local proxy port</string>
     <string name="title_pref_dynamic_socks_port">Enable dynamic local proxy port</string>
-    <string name="summary_pref_dynamic_socks_port">Use a random local proxy port for each inbound</string>
+    <string name="summary_pref_dynamic_socks_port">Uses a random proxy port on every connect so other apps cannot find it. Tests and tethering may then fail.</string>
     <string name="title_pref_socks_username">Local proxy username (optional)</string>
     <string name="summary_pref_socks_username">Username</string>
     <string name="title_pref_socks_password">Local proxy password (optional)</string>
@@ -295,17 +295,17 @@
     <string name="summary_pref_local_dns_port">Local DNS port</string>
 
     <string name="title_pref_confirm_remove">Delete config confirmation</string>
-    <string name="summary_pref_confirm_remove">Whether deleting a config requires a second confirmation by the user</string>
+    <string name="summary_pref_confirm_remove">Ask once more before a config is deleted, so you do not delete one by accident.</string>
 
 
     <string name="title_pref_append_http_proxy">Add HTTP proxy to VPN</string>
-    <string name="summary_pref_append_http_proxy">Allow browsers and supported apps to use the HTTP proxy directly instead of the virtual network interface (Android 10+).</string>
+    <string name="summary_pref_append_http_proxy">Also tells Android about the app\'s HTTP proxy, so browsers can use it directly (Android 10+). Rarely needed.</string>
 
     <string name="title_pref_double_column_display">Use two-column layout</string>
-    <string name="summary_pref_double_column_display">Display the profile list in two columns to fit more content on screen.</string>
+    <string name="summary_pref_double_column_display">Show configs in two columns so more fit on the screen.</string>
 
     <string name="title_pref_group_all_display">Show an "All" group tab</string>
-    <string name="summary_pref_group_all_display">Combine profiles from every subscription group in one tab.</string>
+    <string name="summary_pref_group_all_display">Adds an \"All\" tab with the configs of every group together.</string>
 
     <!-- AboutActivity -->
     <string name="title_pref_feedback">Feedback</string>
@@ -334,17 +334,17 @@
     <string name="title_ui_settings">UI settings</string>
     <string name="title_pref_ui_mode_night">UI mode settings</string>
     <string name="title_pref_dynamic_color">Enable dynamic color</string>
-    <string name="summary_pref_dynamic_color">Only works on Android 12+ devices</string>
+    <string name="summary_pref_dynamic_color">Use the colours of your wallpaper (Android 12 and newer).</string>
     <string name="title_pref_use_hev_tunnel">Use Hev TUN</string>
-    <string name="summary_pref_use_hev_tunnel">When enabled, TUN will use hev-socks5-tunnel; otherwise, it will use xray-core.</string>
+    <string name="summary_pref_use_hev_tunnel">Engine that passes the phone\'s traffic to the VPN core. On (recommended) is faster and more stable; off uses the core\'s own engine.</string>
     <string name="title_pref_hev_tunnel_loglevel">Hev TUN log level</string>
     <string name="title_pref_hev_tunnel_rw_timeout">Hev TUN read/write timeout (seconds; TCP/UDP defaults: 300/60)</string>
     <string name="title_mode_settings">Mode Settings</string>
     <string name="title_root_mode_enabled">Enable root mode (root users)</string>
-    <string name="summary_root_mode_enabled">Use root access for low-level transparent proxying. Root mode handles network traffic directly instead of using the Android VPN service. Standard mode, per-app routing, and VPN-related settings do not apply while root mode is enabled.</string>
+    <string name="summary_root_mode_enabled">For rooted phones only: sends traffic through the app without Android\'s VPN. Per-app settings and VPN options then do not apply.</string>
     <string name="toast_root_required">Root access is required for this feature</string>
     <string name="title_root_lan_sharing">Share VPN with LAN / tethered devices (root users)</string>
-    <string name="summary_root_lan_sharing">Route traffic from Wi-Fi hotspot and USB-tethered devices through the VPN.</string>
+    <string name="summary_root_lan_sharing">For rooted phones only: devices on your hotspot or USB tethering go through the VPN without setting a proxy.</string>
 
     <string name="title_logcat" translatable="false">Logcat</string>
     <string name="logcat_copy">Copy</string>
@@ -822,7 +822,7 @@
     <string name="acc_tether_qr">Show proxy QR code</string>
     <string name="title_tether">Proxy Tethering</string>
     <string name="title_tether_enabled">Share the tunnel over the hotspot</string>
-    <string name="summary_tether_enabled">Other devices set this phone as SOCKS5/HTTP proxy. No login: anyone on your hotspot can use it. Applies on the next connect.</string>
+    <string name="summary_tether_enabled">Other phones or laptops on your hotspot can use this VPN by setting this phone as their SOCKS5/HTTP proxy. No password: anyone on your hotspot can use it. Applies on the next connect.</string>
     <string name="title_tether_socks_port">SOCKS5 port</string>
     <string name="title_tether_http_port">HTTP port</string>
 
@@ -865,7 +865,7 @@
     <string name="dns_test_current">%1$s (in use)</string>
     <string name="connlog_private_dns">Phone Private DNS is on (%1$s): it can stop the VPN from working. Set it to Off or Automatic in the phone settings.</string>
     <string name="connlog_dns">DNS: %1$s · VPN DNS %2$s · remote %3$s</string>
-    <string name="connlog_dns_local"> · local DNS on</string>
+    <string name="connlog_dns_local">" · local DNS on"</string>
 
     <!-- Cassanova: internet speed test -->
     <string name="tool_speedtest">Speed test</string>
@@ -891,4 +891,60 @@
     <string name="speedtest_again">Test again</string>
     <string name="speedtest_stop">Stop</string>
     <string name="speedtest_note">Each part runs up to 10 seconds with 4 connections to the Cloudflare speed test server, and stops at 150 MB download / 50 MB upload. Fast connections can use over 100 MB of quota. Leaving this screen stops the test.</string>
+
+    <!-- Cassanova: plain-language help for every setting -->
+    <string name="title_show_advanced_settings">Show advanced settings</string>
+    <string name="summary_show_advanced_settings">Off: only the settings most people need are shown. On: every technical option appears too. Wrong values there can break the connection.</string>
+    <string name="help_ui_style">How the main screen looks. A, B and C are different layouts.</string>
+    <string name="help_language">Language of the app. Auto follows the phone language.</string>
+    <string name="help_ui_mode_night">Light or dark colours. Auto follows the phone setting.</string>
+    <string name="help_vpn_bypass_lan">Whether devices in your own network (router page, printer, TV) are reached directly instead of through the VPN. \"Bypass\" is the usual choice.</string>
+    <string name="help_vpn_interface_address">Private address the VPN uses inside the phone. Change only if it clashes with your Wi-Fi addresses.</string>
+    <string name="help_vpn_mtu">Largest packet size. Leave 1500. If some sites or apps keep loading forever, try 1400 or 1280.</string>
+    <string name="help_hev_loglevel">How much detail the Hev TUN engine writes to the log. Only for finding problems.</string>
+    <string name="help_hev_rw_timeout">How long an idle connection is kept open before it is closed (TCP,UDP in seconds). Leave empty for the default.</string>
+    <string name="help_vpn_dns">DNS address given to the phone. Filled in by \"DNS choice\".</string>
+    <string name="help_remote_dns">DNS the VPN core uses through the server (can be DoH, https://…). Filled in by \"DNS choice\".</string>
+    <string name="help_domestic_dns">DNS for sites that do not go through the VPN, and for finding the VPN server itself before connecting.</string>
+    <string name="help_dns_hosts">Force a site name to a fixed address, e.g. example.com:1.2.3.4. Leave empty if you do not need it.</string>
+    <string name="title_dns_block_list">Always block these sites</string>
+    <string name="help_dns_block_list">Site names separated by commas, e.g. ads.example.com, tracker.net. They and their subdomains are blocked while connected.</string>
+    <string name="title_dns_allow_list">Always allow these sites</string>
+    <string name="help_dns_allow_list">For sites an ad-blocking DNS breaks (e.g. shopee.co.id). They always go through the VPN and are not blocked by the app. For the DNS part, turn on \"Local DNS\" under advanced DNS settings.</string>
+    <string name="title_slowdns_fakedns">Faster DNS for SlowDNS</string>
+    <string name="summary_slowdns_fakedns">SlowDNS connections only: pages start loading sooner because site lookups are answered at once (local DNS + FakeDNS). A few apps or games may not work with it; turn it off if they fail. Applies on the next connect.</string>
+    <string name="help_socks_port">Port of the proxy inside the phone (default 10808). Change only if another app already uses it.</string>
+    <string name="help_socks_username">Optional login for the proxy inside the phone. Leave empty: when set, the speed and DNS tests and tethering may fail.</string>
+    <string name="help_socks_password">Password for that login. Leave empty unless you set a username.</string>
+    <string name="help_core_loglevel">How much the VPN core writes to the log. \"warning\" is normal; \"debug\" only while finding a problem (uses more battery).</string>
+    <string name="help_outbound_resolve">Whether the server\'s domain is turned into an IP address before connecting. Can help when the operator blocks the server\'s name. Leave \"Do not resolve\" if it works.</string>
+    <string name="help_mux_concurrency">How many connections share one tunnel. -1 turns it off for TCP.</string>
+    <string name="help_mux_xudp_concurrency">The same for UDP (games, calls). -1 turns it off.</string>
+    <string name="help_mux_xudp_quic">What happens to QUIC (fast YouTube/Google traffic) inside Mux. \"reject\" makes apps fall back to normal TCP.</string>
+    <string name="summary_fragment_enabled">Splits the first TLS message into small pieces to get past some blocking. Use only if your account seller tells you to.</string>
+    <string name="help_fragment_packets">Which part is split. \"tlshello\" is the usual choice.</string>
+    <string name="help_fragment_length">Size of each piece in bytes, as min-max.</string>
+    <string name="help_fragment_interval">Pause between pieces in milliseconds, as min-max.</string>
+    <string name="help_fragment_maxsplit">Largest number of pieces.</string>
+    <string name="help_observatory">Only for groups that pick a server automatically (lowest ping / load balance).</string>
+    <string name="help_observatory_least_ping_interval">How often the servers in a lowest-ping group are tested, e.g. 3m.</string>
+    <string name="help_observatory_least_load_interval">How often servers in a load-balance group are tested, e.g. 5m.</string>
+    <string name="help_observatory_least_load_method">Kind of test request. HEAD uses less data.</string>
+    <string name="help_observatory_least_load_sampling">How many recent results are compared.</string>
+    <string name="help_observatory_least_load_timeout">How long one test may take before it counts as failed, e.g. 10s.</string>
+    <string name="help_delay_test_url">Address used by the ping test of configs. Leave empty for the default.</string>
+    <string name="help_real_ping_concurrency">How many configs are tested at the same time. Lower it (e.g. 4) if results are unreliable on a slow connection.</string>
+    <string name="help_ip_api_url">Site that shows your IP and country after a test. Leave empty for the default.</string>
+    <string name="help_tether_socks_port">Port other devices enter as SOCKS5 proxy, together with this phone\'s hotspot IP.</string>
+    <string name="help_tether_http_port">Port other devices enter as HTTP proxy.</string>
+    <string name="help_autoping_mode">Checks the connection regularly. Keep-alive only pings to keep it awake. Reset reconnects after several failed pings. Aggressive checks every 2 s and resets after 2 failures.</string>
+    <string name="help_autoping_method">How the check is done. Automatic picks STUN (UDP) for SSH and Hysteria2, HTTP for the rest.</string>
+    <string name="help_autoping_target">STUN server used for the check (host:port).</string>
+    <string name="help_autoping_interval">Seconds between two checks.</string>
+    <string name="help_autoping_timeout">Seconds to wait for an answer before a check counts as failed.</string>
+    <string name="help_autoping_fail_limit">Failed checks in a row before the connection is restarted.</string>
+    <string name="help_mode">VPN: all apps go through the tunnel (normal choice). Proxy only: no VPN icon, only apps you set to use the proxy go through it.</string>
+    <string name="help_ssh_engine">Program that runs SSH and SlowDNS connections. Native is faster; Java is the old one, try it only if Native fails.</string>
+    <string name="connlog_dns_slowdns_boost">" · faster DNS for SlowDNS (local DNS + FakeDNS)"</string>
+    <string name="connlog_dns_ads_routing">" · ads also blocked by routing"</string>
 </resources>
